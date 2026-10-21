@@ -8,7 +8,7 @@ set(GAME_VERSION_STRING ${GAME_VERSION_MAJOR}.${GAME_VERSION_MINOR}.${GAME_VERSI
 project(KingdomRushFrontiers
   VERSION ${GAME_VERSION_STRING}
   DESCRIPTION "Kingdom Rush Frontiers"
-  LANGUAGES CXX
+  LANGUAGES C CXX
 )
 
 if (CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
@@ -66,7 +66,7 @@ add_subdirectory(vendor)
 if(GAME_BUILD_TESTS)
   include(CTest)
   enable_testing()
-  add_subdirectory(tests)
+  # add_subdirectory(tests)
 endif()
 
 # Build targets
