@@ -5,6 +5,8 @@ add_library(engine STATIC
   src/scene/Scene.cpp
   src/graphics/Shader.cpp
   src/graphics/SpriteBatch.cpp
+  src/graphics/Texture.cpp
+  src/graphics/stbi_image_impl.cpp
 )
 
 # Public include root. Consumers see: include <glgame/core/Logger.hpp>
@@ -32,6 +34,7 @@ target_link_libraries(engine PUBLIC
 # Internal-only dependencies.
 target_link_libraries(engine PRIVATE
   imgui
+  stb_image
 )
 
 target_compile_definitions(engine PUBLIC

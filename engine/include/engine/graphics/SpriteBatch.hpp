@@ -2,6 +2,7 @@
 
 #include "engine/graphics/Camera.hpp"
 #include "engine/graphics/Shader.hpp"
+#include "engine/graphics/Texture.hpp"
 #include "engine/scene/Scene.hpp"
 #include "glad/gl.h"
 #include <cstdint>
@@ -49,6 +50,9 @@ private:
 
   Shader m_Shader;
   const Camera *m_Camera = nullptr;
+
+  Texture m_DefaultTexture;
+  const Texture *m_CurrentTexture = nullptr;
 
   std::uint32_t m_LastDrawCalls = 0;
   std::uint32_t m_LastQuadCount = 0;

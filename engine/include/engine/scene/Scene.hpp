@@ -7,6 +7,10 @@
 #include <glm/glm.hpp>
 
 namespace engine {
+class Texture;
+}
+
+namespace engine {
 
 using Entity = std::uint32_t;
 constexpr Entity kInvalidEntity = 0xFFFFFFFFu;
@@ -19,6 +23,7 @@ struct Transform {
 
 struct Sprite {
   glm::vec4 color{1.0f, 1.0f, 1.0f, 1.0f};
+  const Texture *texture = nullptr;
 };
 
 class Scene {

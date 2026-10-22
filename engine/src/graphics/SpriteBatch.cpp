@@ -23,9 +23,9 @@ out vec2 vUV;
 out vec4 vColor;
 
 void main() {
-    gl_Position = uViewProjection * vec4(aPos, 0.0, 1.0);
-    vUV         = aUV;
-    vColor      = aColor;
+  gl_Position = uViewProjection * vec4(aPos, 0.0, 1.0);
+  vUV = aUV;
+  vColor = aColor;
 }
 )glsl";
 
@@ -35,10 +35,13 @@ constexpr const char *kFragmentShaderSrc = R"glsl(
 in vec2 vUV;
 in vec4 vColor;
 
+uniform sampler2D uTexture;
+
 out vec4 FragColor;
 
 void main() {
-    FragColor = vColor;
+  vec4 tex = texture(uTexture, vUV);
+  FragColor = tex * vColor;
 }
 )glsl";
 
@@ -100,6 +103,8 @@ SpriteBatch::SpriteBatch(std::size_t maxQuads)
 
   glEnable(GL_BLEND);
   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+  m_DefaultTexture.CreateSolid(0xFFFFFFFF);
 }
 
 SpriteBatch::~SpriteBatch() {
@@ -151,11 +156,20 @@ SpriteBatch &SpriteBatch::operator=(SpriteBatch &&other) noexcept {
 void SpriteBatch::Begin(const Camera &camera) {
   m_Camera = &camera;
   m_QuadCount = 0;
+  m_CurrentTexture = nullptr;
   m_LastDrawCalls = 0;
   m_LastQuadCount = 0;
 }
 
 void SpriteBatch::DrawQuad(const Transform &t, const Sprite &s) {
+  const Texture *tex = s.texture ? s.texture : &m_DefaultTexture;
+
+  if (tex != m_CurrentTexture) {
+    Flush();
+    m_QuadCount = 0;
+    m_CurrentTexture = tex;
+  }
+
   if (m_QuadCount >= m_MaxQuads) {
     Flush();
     m_QuadCount = 0;
@@ -201,6 +215,10 @@ void SpriteBatch::Flush() {
   m_Shader.Bind();
   m_Shader.SetMat4("uViewProjection", m_Camera->ViewProjectionMatrix());
 
+  const Texture *tex = m_CurrentTexture ? m_CurrentTexture : &m_DefaultTexture;
+  tex->Bind(0);
+  m_Shader.SetInt("uTexture", 0);
+
   glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(m_QuadCount * 6),
                  GL_UNSIGNED_INT, nullptr);
 
@@ -213,6 +231,7 @@ void SpriteBatch::End() {
   Flush();
   m_QuadCount = 0;
   m_Camera = nullptr;
+  m_CurrentTexture = nullptr;
 }
 
 void SpriteBatch::Render(const Scene &scnene, const Camera &camera) {
