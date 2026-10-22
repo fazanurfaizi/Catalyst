@@ -1,6 +1,7 @@
 #pragma once
 
 #include "GLFW/glfw3.h"
+#include "engine/animation/AnimationLibrary.hpp"
 #include "engine/core/Game.hpp"
 #include "engine/graphics/Camera.hpp"
 #include "engine/graphics/SpriteBatch.hpp"
@@ -12,6 +13,7 @@
 
 #include <cmath>
 #include <memory>
+#include <string>
 
 namespace {
 void DrawWorldGrid(engine::SpriteBatch &batch, const engine::Camera &camera,
@@ -89,9 +91,17 @@ protected:
     m_Atlas.AddSolid("tower", 0xE65555FF, 16);
     m_Atlas.AddSolid("solidWhite", 0xFFFFFFFF, 16);
 
+    for (int i = 0; i < 6; ++i) {
+      const std::string name = "coin_" + std::to_string(i);
+      m_Atlas.AddCheckerboard(name, 4 + 1, 0xFFDD66FF, 0xAA8800FF);
+    }
+
     if (!m_Atlas.Pack()) {
       engine::Logger::Error("Atlas pack failed");
     }
+
+    m_Animations.AddStrip("coin_spin", m_Atlas, "coin", 6, 0.08f,
+                          /*loop=*/true);
 
     BuildDemoScene();
   }
@@ -208,7 +218,9 @@ protected:
 private:
   std::unique_ptr<engine::SpriteBatch> m_Batch;
   engine::TextureAtlas m_Atlas;
+  engine::AnimationLibrary m_Animations;
 
+  engine::Entity m_Coin = engine::kInvalidEntity;
   engine::Entity m_Tower = engine::kInvalidEntity;
   engine::Entity m_Hero = engine::kInvalidEntity;
   engine::Entity m_Enemy = engine::kInvalidEntity;
@@ -246,12 +258,28 @@ private:
     scene.TransformOf(m_Enemy).scale = {0.5f, 0.5f};
     scene.SpriteOf(m_Enemy).color = {0.9f, 0.9f, 0.3f, 1.0f};
     ApplyRegion(m_Enemy, "checkerBlue");
+
+    m_Coin = scene.CreateEntity("Coin");
+    scene.TransformOf(m_Coin).position = {3.0f, 3.0f};
+    scene.TransformOf(m_Coin).scale = {0.8f, 0.8f};
+    scene.SpriteOf(m_Coin).color = {1, 1, 1, 1};
+    scene.SpriteOf(m_Coin).texture = &m_Atlas.GetTexture();
+
+    auto *coinClip = m_Animations.Get("coin_spin");
+    if (coinClip)
+      scene.AnimatorOf(m_Coin).Play(coinClip);
   }
 
   void DrawSceneDebug() {
     ImGui::Begin("Renderer");
     ImGui::Text("Draw calls: %u", m_Batch->LastDrawCalls());
     ImGui::Text("Quads:      %u", m_Batch->LastQuadCount());
+    ImGui::Text("Clips: %d", m_Animations.Count());
+    if (GetScene().IsAlive(m_Coin)) {
+      auto &a = GetScene().AnimatorOf(m_Coin);
+      ImGui::Text("Coin frame: %d / %d", a.currentFrame,
+                  a.clip ? a.clip->FrameCount() : 0);
+    }
     ImGui::Separator();
 
     auto &cam = GetCamera();

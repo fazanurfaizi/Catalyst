@@ -8,6 +8,7 @@ add_library(engine STATIC
   src/graphics/Texture.cpp
   src/graphics/TextureAtlas.cpp
   src/graphics/stbi_image_impl.cpp
+  src/animation/AnimationLibrary.cpp
 )
 
 # Public include root. Consumers see: include <glgame/core/Logger.hpp>

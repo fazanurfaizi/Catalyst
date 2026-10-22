@@ -1,5 +1,6 @@
 #pragma once
 
+#include "engine/animation/Animator.hpp"
 #include <cstdint>
 #include <string>
 #include <vector>
@@ -40,6 +41,8 @@ public:
   Sprite &SpriteOf(Entity entity);
   const Sprite &SpriteOf(Entity entity) const;
   const std::string &NameOf(Entity entity) const;
+  Animator &AnimatorOf(Entity entity);
+  const Animator &AnimatorOf(Entity entity) const;
 
   // fn(Entity, const Transform&, const Sprite&)
   template <typename Fn> void ForEach(Fn &&fn) const {
@@ -50,13 +53,14 @@ public:
     }
   }
 
-  void Update(double deltatime) {}
+  void Update(double deltatime);
 
 private:
   struct Entry {
     std::string name;
     Transform transform;
     Sprite sprite;
+    Animator animator;
   };
 
   std::vector<Entry> m_Entries;
