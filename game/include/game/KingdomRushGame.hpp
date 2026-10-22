@@ -3,12 +3,14 @@
 #include "GLFW/glfw3.h"
 #include "engine/core/Game.hpp"
 #include "engine/graphics/Camera.hpp"
+#include "engine/graphics/SpriteBatch.hpp"
 #include <engine/core/Logger.hpp>
 
 #include <glad/gl.h>
 #include <imgui.h>
 
 #include <cmath>
+#include <memory>
 
 class KingdomRushGame final : public engine::Game {
 public:
@@ -24,29 +26,7 @@ public:
 protected:
   void OnInitialize() override {
     engine::Logger::Info("OnInitialize");
-
-    engine::Camera camera;
-    camera.SetViewport(1280, 720);
-    camera.SetOrthoSize(10.0f); // Half-height = 10 world units
-    camera.SetPosition({0, 0, 0});
-
-    auto viewProjection = camera.ViewProjectionMatrix();
-    engine::Logger::Info("View Projection %.2f %.2f %.2f %.2f",
-                         viewProjection[0][0], viewProjection[1][0],
-                         viewProjection[2][0], viewProjection[3][0]);
-
-    auto centre = camera.WorldToScreen({0, 0});
-    engine::Logger::Info("World(0, 0) -> Screen(%.2f, %.2f)", centre.x,
-                         centre.y);
-
-    // World (17.78, 10) should map to the top-right pixel.
-    auto tr = camera.WorldToScreen({10.0f * (16.0f / 9.0f), 10.0f});
-    engine::Logger::Info("World(17.78, 10) -> screen(%.2f, %.2f)", tr.x, tr.y);
-
-    // Round-trip: screen -> world -> screen must match.
-    auto back = camera.ScreenToWorld({640.0f, 360.0f});
-    engine::Logger::Info("Screen(640,360) -> world(%.2f, %.2f)", back.x,
-                         back.y);
+    m_Batch = std::make_unique<engine::SpriteBatch>(4096);
   }
 
   void OnUpdate(double dt) override {
@@ -71,7 +51,17 @@ protected:
 
     if (GetScene().IsAlive(m_Enemy)) {
       auto &t = GetScene().TransformOf(m_Enemy);
-      const float angle = glfwGetTime() * 1.0f;
+      double mx, my;
+      glfwGetCursorPos(Window(), &mx, &my);
+      const auto world = camera.ScreenToWorld(
+          {static_cast<float>(mx), static_cast<float>(my)});
+      GetScene().TransformOf(m_Hero).position = world;
+    }
+
+    // Enemy orbits origin.
+    if (GetScene().IsAlive(m_Enemy)) {
+      const float angle = static_cast<float>(glfwGetTime());
+      auto &t = GetScene().TransformOf(m_Enemy);
       t.position = {std::cos(angle) * 6.0f, std::sin(angle) * 4.0f};
       t.rotation = angle;
     }
@@ -80,9 +70,18 @@ protected:
   void OnRender() override {
     glClearColor(0.15f, 0.20f, 0.30f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
+    m_Batch->Begin(GetCamera());
+    DrawWorldGrid();
+    GetScene().ForEach(
+        [&](engine::Entity, const engine::Transform &t,
+            const engine::Sprite &s) { m_Batch->DrawQuad(t, s); });
+    m_Batch->End();
   }
 
-  void OnShutdown() override { engine::Logger::Info("OnShutdown"); }
+  void OnShutdown() override {
+    m_Batch.reset();
+    engine::Logger::Info("OnShutdown");
+  }
 
   void OnKey(int key, int scancode, int action, int mods) override {
     (void)scancode;
@@ -127,70 +126,65 @@ protected:
   }
 
   void OnImGui() override {
-    DrawWorldGrid();
-    DrawScene();
-    DrawCameraControls();
-#ifdef DEBUG
+#ifndef DEBUG
     DrawSceneDebug();
 #endif // DEBUG
   }
 
 private:
+  std::unique_ptr<engine::SpriteBatch> m_Batch;
   engine::Entity m_Tower = engine::kInvalidEntity;
   engine::Entity m_Hero = engine::kInvalidEntity;
   engine::Entity m_Enemy = engine::kInvalidEntity;
 
   void DrawWorldGrid() {
     auto &camera = GetCamera();
-    auto *draw = ImGui::GetBackgroundDrawList();
 
     // Visible world bounds: compute from screen corners.
-    const auto tl = camera.ScreenToWorld({0, 0});
-    const auto br = camera.ScreenToWorld(
-        {(float)camera.ViewportWidth(), (float)camera.ViewportHeight()});
-
+    const auto tl = camera.ScreenToWorld({0.0f, 0.0f});
+    const auto br =
+        camera.ScreenToWorld({static_cast<float>(camera.ViewportWidth()),
+                              static_cast<float>(camera.ViewportHeight())});
     const float minX = std::min(tl.x, br.x);
     const float maxX = std::max(tl.x, br.x);
     const float minY = std::min(tl.y, br.y);
     const float maxY = std::max(tl.y, br.y);
 
-    const float step = 1.0f;
-    const ImU32 lineColor = IM_COL32(80, 90, 100, 200);
-    const ImU32 axisColor = IM_COL32(200, 100, 120, 255);
+    // --- cell indices covering the visible region ---------------------------
+    const int x0 = static_cast<int>(std::floor(minX));
+    const int x1 = static_cast<int>(std::ceil(maxX));
+    const int y0 = static_cast<int>(std::floor(minY));
+    const int y1 = static_cast<int>(std::ceil(maxY));
 
-    for (float x = std::floor(minX / step) * step; x <= maxX; x += step) {
-      const auto a = camera.WorldToScreen({x, minY});
-      const auto b = camera.WorldToScreen({x, maxY});
-      draw->AddLine({a.x, a.y}, {b.x, b.y},
-                    std::abs(x) < 0.001f ? axisColor : lineColor);
+    // --- guardrail: don't spam quads when zoomed way out --------------------
+    constexpr int kMaxCells = 4096;
+    const int cols = x1 - x0;
+    const int rows = y1 - y0;
+    if (cols * rows > kMaxCells)
+      return;
+
+    // --- palette ------------------------------------------------------------
+    const glm::vec4 evenCell{0.13f, 0.17f, 0.24f, 1.0f};
+    const glm::vec4 oddCell{0.16f, 0.20f, 0.28f, 1.0f};
+    const glm::vec4 axisCell{0.20f, 0.24f, 0.34f, 1.0f};
+
+    engine::Transform t{};
+    engine::Sprite s{};
+    t.scale = {1.0f, 1.0f};
+
+    for (int y = y0; y < y1; ++y) {
+      for (int x = x0; x < x1; ++x) {
+        t.position = {static_cast<float>(x) + 0.5f,
+                      static_cast<float>(y) + 0.5f};
+
+        if (x == 0 || y == 0) {
+          s.color = axisCell; // axis row/col
+        } else {
+          s.color = ((x + y) & 1) ? oddCell : evenCell; // checkerboard
+        }
+        m_Batch->DrawQuad(t, s);
+      }
     }
-
-    for (float y = std::floor(minY / step) * step; y <= maxY; y += step) {
-      const auto a = camera.WorldToScreen({minX, y});
-      const auto b = camera.WorldToScreen({maxX, y});
-      draw->AddLine({a.x, a.y}, {b.x, b.y},
-                    std::abs(y) < 0.001f ? axisColor : lineColor);
-    }
-
-    // Mark world origin
-    const auto origin = camera.WorldToScreen({0, 0});
-    draw->AddCircleFilled({origin.x, origin.y}, 4.0f,
-                          IM_COL32(255, 100, 100, 255));
-  }
-
-  void DrawCameraControls() {
-    ImGui::Begin("Camera");
-    auto &cam = GetCamera();
-    auto p = cam.Position();
-    ImGui::Text("Pos:  (%.2f, %.2f)", p.x, p.y);
-    ImGui::Text("Zoom: %.2f", cam.Zoom());
-    ImGui::Text("Rot:  %.2f rad", cam.Rotation());
-    ImGui::Text("Ortho half-height: %.2f", cam.OrthoSize());
-    ImGui::Separator();
-    ImGui::Text("WASD  move");
-    ImGui::Text("Q / E rotate");
-    ImGui::Text("Wheel zoom at cursor");
-    ImGui::End();
   }
 
   void BuildDemoScene() {
@@ -213,45 +207,23 @@ private:
     scene.SpriteOf(m_Enemy).color = {0.9f, 0.9f, 0.3f, 1.0f};
   }
 
-  void DrawScene() {
-    auto &camera = GetCamera();
-    auto *draw = ImGui::GetBackgroundDrawList();
-
-    GetScene().ForEach([&](engine::Entity, const engine::Transform &t,
-                           const engine::Sprite &s) {
-      const float c = std::cos(t.rotation);
-      const float sn = std::sin(t.rotation);
-      const glm::vec2 half = t.scale * 0.5f;
-
-      auto rotate = [&](glm::vec2 p) {
-        return glm::vec2(p.x * c - p.y * sn, p.x * sn + p.y * c);
-      };
-
-      glm::vec2 corners[4] = {
-          rotate({-half.x, -half.y}) + t.position,
-          rotate({half.x, -half.y}) + t.position,
-          rotate({half.x, half.y}) + t.position,
-          rotate({-half.x, half.y}) + t.position,
-      };
-
-      ImVec2 pts[4];
-
-      for (int i = 0; i < 4; ++i) {
-        auto p = camera.WorldToScreen(corners[i]);
-        pts[i] = {p.x, p.y};
-      }
-
-      const ImU32 col = ImGui::ColorConvertFloat4ToU32(
-          ImVec4(s.color.r, s.color.g, s.color.b, s.color.a));
-
-      draw->AddTriangleFilled(pts[0], pts[1], pts[2], col);
-      draw->AddTriangleFilled(pts[0], pts[2], pts[3], col);
-    });
-  }
-
   void DrawSceneDebug() {
-    ImGui::Begin("Scene");
-    ImGui::Text("Entities: %zu", GetScene().Size());
+    ImGui::Begin("Renderer");
+    ImGui::Text("Draw calls: %u", m_Batch->LastDrawCalls());
+    ImGui::Text("Quads:      %u", m_Batch->LastQuadCount());
+    ImGui::Separator();
+
+    auto &cam = GetCamera();
+    auto p = cam.Position();
+    ImGui::Text("Cam pos: (%.2f, %.2f)", p.x, p.y);
+    ImGui::Text("Cam zoom: %.2f", cam.Zoom());
+    ImGui::Text("Rot:  %.2f rad", cam.Rotation());
+    ImGui::Text("Ortho half-height: %.2f", cam.OrthoSize());
+    ImGui::Separator();
+    ImGui::Text("WASD  move");
+    ImGui::Text("Q / E rotate");
+    ImGui::Text("Wheel zoom at cursor");
+
     if (ImGui::Button("Spawn entity")) {
       auto e = GetScene().CreateEntity("Spawned");
       auto &t = GetScene().TransformOf(e);
@@ -260,9 +232,6 @@ private:
       t.scale = {0.5f, 0.5f};
       s.color = {(rand() % 100) / 100.0f, (rand() % 100) / 100.0f,
                  (rand() % 100) / 100.0f, 1.0f};
-    }
-    if (ImGui::Button("Destroy 'Hero'") && GetScene().IsAlive(m_Hero)) {
-      GetScene().DestroyEntity(m_Hero);
     }
     ImGui::End();
   }

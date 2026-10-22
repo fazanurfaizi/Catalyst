@@ -3,8 +3,8 @@ add_library(engine STATIC
   src/core/Game.cpp
   src/graphics/Camera.cpp
   src/scene/Scene.cpp
-  # src/graphics/Renderer.cpp
-  # src/graphics/Shader.cpp
+  src/graphics/Shader.cpp
+  src/graphics/SpriteBatch.cpp
 )
 
 # Public include root. Consumers see: include <glgame/core/Logger.hpp>
