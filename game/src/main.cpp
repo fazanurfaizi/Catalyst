@@ -1,4 +1,5 @@
 #include "engine/core/Game.hpp"
+#include "engine/graphics/Camera.hpp"
 #include <engine/core/Logger.hpp>
 
 #include <glad/gl.h>
@@ -15,7 +16,32 @@ public:
         }()) {}
 
 protected:
-  void OnInitialize() override { engine::Logger::Info("OnInitialize"); }
+  void OnInitialize() override {
+    engine::Logger::Info("OnInitialize");
+
+    engine::Camera camera;
+    camera.SetViewport(1280, 720);
+    camera.SetOrthoSize(10.0f); // Half-height = 10 world units
+    camera.SetPosition({0, 0, 0});
+
+    auto viewProjection = camera.ViewProjectionMatrix();
+    engine::Logger::Info("View Projection %.2f %.2f %.2f %.2f",
+                         viewProjection[0][0], viewProjection[1][0],
+                         viewProjection[2][0], viewProjection[3][0]);
+
+    auto centre = camera.WorldToScreen({0, 0});
+    engine::Logger::Info("World(0, 0) -> Screen(%.2f, %.2f)", centre.x,
+                         centre.y);
+
+    // World (17.78, 10) should map to the top-right pixel.
+    auto tr = camera.WorldToScreen({10.0f * (16.0f / 9.0f), 10.0f});
+    engine::Logger::Info("World(17.78, 10) -> screen(%.2f, %.2f)", tr.x, tr.y);
+
+    // Round-trip: screen -> world -> screen must match.
+    auto back = camera.ScreenToWorld({640.0f, 360.0f});
+    engine::Logger::Info("Screen(640,360) -> world(%.2f, %.2f)", back.x,
+                         back.y);
+  }
 
   void OnUpdate(double /*dt*/) override { IsKeyDown(GLFW_KEY_W); }
 
