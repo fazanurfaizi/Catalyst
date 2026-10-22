@@ -47,8 +47,8 @@ Game::Game(const WindowConfig &config) : m_Config(config) {
     m_Config.height = mode->height;
   }
 
-  m_Window = glfwCreateWindow(mode->width, mode->height, m_Config.title.c_str(),
-                              targetMonitor, nullptr);
+  m_Window = glfwCreateWindow(m_Config.width, m_Config.height,
+                              m_Config.title.c_str(), nullptr, nullptr);
 
   if (!m_Window) {
     Logger::Error("glfwCreateWindow failed");
@@ -73,6 +73,9 @@ Game::Game(const WindowConfig &config) : m_Config(config) {
     glfwTerminate();
     return;
   }
+
+  m_Camera.SetViewport(m_Config.width, m_Config.height);
+  m_Camera.SetOrthoSize(10.0f);
 
   if (m_Config.enableImGui) {
     IMGUI_CHECKVERSION();
@@ -198,6 +201,7 @@ void Game::ThunkScroll(GLFWwindow *window, double x, double y) {
 
 void Game::ThunkFramebufferSize(GLFWwindow *window, int width, int height) {
   if (Game *self = FromWindow(window)) {
+    self->m_Camera.SetViewport(width, height);
     self->OnResize(width, height);
     glViewport(0, 0, width, height);
   }
