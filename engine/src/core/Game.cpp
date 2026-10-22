@@ -124,6 +124,7 @@ bool Game::Run() {
     const double dt = now - last;
     last = now;
 
+    m_Scene.Update(dt);
     OnUpdate(dt);
     OnRender();
 

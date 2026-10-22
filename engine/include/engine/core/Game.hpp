@@ -1,6 +1,7 @@
 #pragma once
 
 #include "engine/graphics/Camera.hpp"
+#include "engine/scene/Scene.hpp"
 #include <array>
 #include <string>
 
@@ -50,10 +51,14 @@ protected:
   Camera &GetCamera() { return m_Camera; }
   const Camera &GetCamera() const { return m_Camera; }
 
+  Scene &GetScene() { return m_Scene; }
+  const Scene &GetScene() const { return m_Scene; }
+
 private:
   WindowConfig m_Config{};
   GLFWwindow *m_Window{nullptr};
   Camera m_Camera;
+  Scene m_Scene;
   bool m_Running{false};
   bool m_ImguiInited{false};
   double m_FpsAccum = 0.0;

@@ -17,7 +17,9 @@ public:
           engine::WindowConfig cfg;
           cfg.title = "Kingdom Rush Frontiers";
           return cfg;
-        }()) {}
+        }()) {
+    BuildDemoScene();
+  }
 
 protected:
   void OnInitialize() override {
@@ -66,6 +68,13 @@ protected:
 
     if (IsKeyDown(GLFW_KEY_ESCAPE))
       glfwSetWindowShouldClose(Window(), GLFW_TRUE);
+
+    if (GetScene().IsAlive(m_Enemy)) {
+      auto &t = GetScene().TransformOf(m_Enemy);
+      const float angle = glfwGetTime() * 1.0f;
+      t.position = {std::cos(angle) * 6.0f, std::sin(angle) * 4.0f};
+      t.rotation = angle;
+    }
   }
 
   void OnRender() override {
@@ -119,10 +128,18 @@ protected:
 
   void OnImGui() override {
     DrawWorldGrid();
+    DrawScene();
     DrawCameraControls();
+#ifdef DEBUG
+    DrawSceneDebug();
+#endif // DEBUG
   }
 
 private:
+  engine::Entity m_Tower = engine::kInvalidEntity;
+  engine::Entity m_Hero = engine::kInvalidEntity;
+  engine::Entity m_Enemy = engine::kInvalidEntity;
+
   void DrawWorldGrid() {
     auto &camera = GetCamera();
     auto *draw = ImGui::GetBackgroundDrawList();
@@ -173,6 +190,80 @@ private:
     ImGui::Text("WASD  move");
     ImGui::Text("Q / E rotate");
     ImGui::Text("Wheel zoom at cursor");
+    ImGui::End();
+  }
+
+  void BuildDemoScene() {
+    auto &scene = GetScene();
+
+    // Red Tower
+    m_Tower = scene.CreateEntity("Tower");
+    scene.TransformOf(m_Tower).position = {-4.0f, -2.0f};
+    scene.TransformOf(m_Tower).scale = {1.5f, 1.5f};
+    scene.SpriteOf(m_Tower).color = {0.9f, 0.3f, 0.3f, 1.0f};
+
+    // Green Hero
+    m_Hero = scene.CreateEntity("Hero");
+    scene.TransformOf(m_Hero).scale = {0.7f, 0.7f};
+    scene.SpriteOf(m_Hero).color = {0.3f, 0.9f, 0.3f, 1.0f};
+
+    // Yellow Enemy
+    m_Enemy = scene.CreateEntity("Enemy");
+    scene.TransformOf(m_Enemy).scale = {0.5f, 0.5f};
+    scene.SpriteOf(m_Enemy).color = {0.9f, 0.9f, 0.3f, 1.0f};
+  }
+
+  void DrawScene() {
+    auto &camera = GetCamera();
+    auto *draw = ImGui::GetBackgroundDrawList();
+
+    GetScene().ForEach([&](engine::Entity, const engine::Transform &t,
+                           const engine::Sprite &s) {
+      const float c = std::cos(t.rotation);
+      const float sn = std::sin(t.rotation);
+      const glm::vec2 half = t.scale * 0.5f;
+
+      auto rotate = [&](glm::vec2 p) {
+        return glm::vec2(p.x * c - p.y * sn, p.x * sn + p.y * c);
+      };
+
+      glm::vec2 corners[4] = {
+          rotate({-half.x, -half.y}) + t.position,
+          rotate({half.x, -half.y}) + t.position,
+          rotate({half.x, half.y}) + t.position,
+          rotate({-half.x, half.y}) + t.position,
+      };
+
+      ImVec2 pts[4];
+
+      for (int i = 0; i < 4; ++i) {
+        auto p = camera.WorldToScreen(corners[i]);
+        pts[i] = {p.x, p.y};
+      }
+
+      const ImU32 col = ImGui::ColorConvertFloat4ToU32(
+          ImVec4(s.color.r, s.color.g, s.color.b, s.color.a));
+
+      draw->AddTriangleFilled(pts[0], pts[1], pts[2], col);
+      draw->AddTriangleFilled(pts[0], pts[2], pts[3], col);
+    });
+  }
+
+  void DrawSceneDebug() {
+    ImGui::Begin("Scene");
+    ImGui::Text("Entities: %zu", GetScene().Size());
+    if (ImGui::Button("Spawn entity")) {
+      auto e = GetScene().CreateEntity("Spawned");
+      auto &t = GetScene().TransformOf(e);
+      auto &s = GetScene().SpriteOf(e);
+      t.position = {(float)(rand() % 20 - 10), (float)(rand() % 14 - 7)};
+      t.scale = {0.5f, 0.5f};
+      s.color = {(rand() % 100) / 100.0f, (rand() % 100) / 100.0f,
+                 (rand() % 100) / 100.0f, 1.0f};
+    }
+    if (ImGui::Button("Destroy 'Hero'") && GetScene().IsAlive(m_Hero)) {
+      GetScene().DestroyEntity(m_Hero);
+    }
     ImGui::End();
   }
 };

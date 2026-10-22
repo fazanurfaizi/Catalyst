@@ -2,6 +2,7 @@ add_library(engine STATIC
   src/core/Logger.cpp
   src/core/Game.cpp
   src/graphics/Camera.cpp
+  src/scene/Scene.cpp
   # src/graphics/Renderer.cpp
   # src/graphics/Shader.cpp
 )
