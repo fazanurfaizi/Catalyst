@@ -7,6 +7,7 @@ add_library(engine STATIC
   src/graphics/SpriteBatch.cpp
   src/graphics/Texture.cpp
   src/graphics/TextureAtlas.cpp
+  src/graphics/Renderer.cpp
   src/graphics/stbi_image_impl.cpp
   src/animation/AnimationLibrary.cpp
 )

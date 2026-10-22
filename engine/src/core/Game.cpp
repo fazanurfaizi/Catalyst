@@ -1,6 +1,7 @@
 #include "engine/core/Game.hpp"
 
 #include "engine/core/Logger.hpp"
+#include "engine/graphics/Renderer.hpp"
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
@@ -9,6 +10,7 @@
 #include <glad/gl.h>
 
 #include <cstdio>
+#include <memory>
 
 namespace engine {
 
@@ -77,6 +79,8 @@ Game::Game(const WindowConfig &config) : m_Config(config) {
   m_Camera.SetViewport(m_Config.width, m_Config.height);
   m_Camera.SetOrthoSize(10.0f);
 
+  m_Renderer = std::make_unique<Renderer>(4096);
+
   if (m_Config.enableImGui) {
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
@@ -100,6 +104,8 @@ Game::~Game() {
     ImGui_ImplGlfw_Shutdown();
     ImGui::DestroyContext();
   }
+
+  m_Renderer.reset();
 
   if (m_Window) {
     glfwDestroyWindow(m_Window);
@@ -126,7 +132,14 @@ bool Game::Run() {
 
     m_Scene.Update(dt);
     OnUpdate(dt);
+
+    glClearColor(m_ClearColor.r, m_ClearColor.g, m_ClearColor.b,
+                 m_ClearColor.a);
+    glClear(GL_COLOR_BUFFER_BIT);
+
+    m_Renderer->Begin(m_Camera);
     OnRender();
+    m_Renderer->End();
 
     if (m_Config.showFps) {
       m_FpsAccum += dt;

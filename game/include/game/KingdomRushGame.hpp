@@ -4,7 +4,7 @@
 #include "engine/animation/AnimationLibrary.hpp"
 #include "engine/core/Game.hpp"
 #include "engine/graphics/Camera.hpp"
-#include "engine/graphics/SpriteBatch.hpp"
+#include "engine/graphics/Renderer.hpp"
 #include "engine/graphics/TextureAtlas.hpp"
 #include <engine/core/Logger.hpp>
 
@@ -12,11 +12,10 @@
 #include <imgui.h>
 
 #include <cmath>
-#include <memory>
 #include <string>
 
 namespace {
-void DrawWorldGrid(engine::SpriteBatch &batch, const engine::Camera &camera,
+void DrawWorldGrid(engine::Renderer &renderer, const engine::Camera &camera,
                    const engine::TextureAtlas &atlas) {
   auto *region = atlas.GetRegion("solidWhite");
   if (!region)
@@ -66,7 +65,7 @@ void DrawWorldGrid(engine::SpriteBatch &batch, const engine::Camera &camera,
       } else {
         s.color = ((x + y) & 1) ? oddCell : evenCell; // checkerboard
       }
-      batch.DrawQuad(t, s);
+      renderer.Draw(t, s);
     }
   }
 }
@@ -84,7 +83,8 @@ public:
 protected:
   void OnInitialize() override {
     engine::Logger::Info("OnInitialize");
-    m_Batch = std::make_unique<engine::SpriteBatch>(4096);
+
+    SetClearColor({0.15f, 0.20f, 0.30f, 1.0f});
 
     m_Atlas.AddCheckerboard("checkerRed", 8, 0xCC3333FF, 0x661111FF);
     m_Atlas.AddCheckerboard("checkerBlue", 8, 0x3366CCFF, 0x112244FF);
@@ -144,28 +144,14 @@ protected:
   }
 
   void OnRender() override {
-    glClearColor(0.15f, 0.20f, 0.30f, 1.0f);
-    glClear(GL_COLOR_BUFFER_BIT);
-
+    auto &renderer = GetRenderer();
     auto &camera = GetCamera();
-    m_Batch->Begin(camera);
 
-    DrawWorldGrid(*m_Batch, camera, m_Atlas);
-
-    GetScene().ForEach([&](engine::Entity e, const engine::Transform &t,
-                           const engine::Sprite &s) {
-      // clang-format off
-      m_Batch->DrawQuad(t, s);
-      // clang-format on
-    });
-
-    m_Batch->End();
+    DrawWorldGrid(renderer, camera, m_Atlas);
+    renderer.DrawScene(GetScene());
   }
 
-  void OnShutdown() override {
-    m_Batch.reset();
-    engine::Logger::Info("OnShutdown");
-  }
+  void OnShutdown() override { engine::Logger::Info("OnShutdown"); }
 
   void OnKey(int key, int scancode, int action, int mods) override {
     (void)scancode;
@@ -216,7 +202,6 @@ protected:
   }
 
 private:
-  std::unique_ptr<engine::SpriteBatch> m_Batch;
   engine::TextureAtlas m_Atlas;
   engine::AnimationLibrary m_Animations;
 
@@ -272,8 +257,8 @@ private:
 
   void DrawSceneDebug() {
     ImGui::Begin("Renderer");
-    ImGui::Text("Draw calls: %u", m_Batch->LastDrawCalls());
-    ImGui::Text("Quads:      %u", m_Batch->LastQuadCount());
+    ImGui::Text("Draw calls: %u", GetRenderer().DrawCalls());
+    ImGui::Text("Quads:      %u", GetRenderer().QuadCount());
     ImGui::Text("Clips: %d", m_Animations.Count());
     if (GetScene().IsAlive(m_Coin)) {
       auto &a = GetScene().AnimatorOf(m_Coin);

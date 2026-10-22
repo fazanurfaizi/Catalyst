@@ -3,9 +3,14 @@
 #include "engine/graphics/Camera.hpp"
 #include "engine/scene/Scene.hpp"
 #include <array>
+#include <memory>
 #include <string>
 
 #include <GLFW/glfw3.h>
+
+namespace engine {
+class Renderer;
+}
 
 namespace engine {
 
@@ -28,6 +33,8 @@ public:
   Game &operator=(const Game &) = delete;
 
   bool Run();
+
+  void SetClearColor(const glm::vec4 &color) { m_ClearColor = color; }
 
 protected:
   virtual void OnInitialize() {}
@@ -54,11 +61,17 @@ protected:
   Scene &GetScene() { return m_Scene; }
   const Scene &GetScene() const { return m_Scene; }
 
+  Renderer &GetRenderer() { return *m_Renderer; }
+  const Renderer &GetRenderer() const { return *m_Renderer; }
+
 private:
   WindowConfig m_Config{};
   GLFWwindow *m_Window{nullptr};
   Camera m_Camera;
   Scene m_Scene;
+  std::unique_ptr<Renderer> m_Renderer;
+  glm::vec4 m_ClearColor{0.15f, 0.20f, 0.30f, 1.0f};
+
   bool m_Running{false};
   bool m_ImguiInited{false};
   double m_FpsAccum = 0.0;
