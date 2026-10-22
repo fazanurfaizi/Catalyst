@@ -189,9 +189,19 @@ void SpriteBatch::DrawQuad(const Transform &t, const Sprite &s) {
       rotate({half.x, half.y}) + t.position,
       rotate({-half.x, half.y}) + t.position,
   };
-
   const glm::vec2 uvs[4] = {
-      {0.0f, 1.0f}, {1.0f, 1.0f}, {1.0f, 0.0f}, {0.0f, 0.0f}};
+      {s.uvMin.x, s.uvMin.y}, // BL  (was {0,1})
+      {s.uvMax.x, s.uvMin.y}, // BR  (was {1,1})
+      {s.uvMax.x, s.uvMax.y}, // TR  (was {1,0})
+      {s.uvMin.x, s.uvMax.y}, // TL  (was {0,0})
+  };
+
+  // const glm::vec2 uvs[4] = {
+  //     {s.uvMin.x, s.uvMin.y},
+  //     {s.uvMax.x, s.uvMin.y},
+  //     {s.uvMax.x, s.uvMax.y},
+  //     {s.uvMin.x, s.uvMax.y},
+  // };
 
   Vertex *dst = &m_Vertices[m_QuadCount * 4];
   for (int i = 0; i < 4; ++i) {

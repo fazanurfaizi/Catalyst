@@ -4,7 +4,7 @@
 #include "engine/core/Game.hpp"
 #include "engine/graphics/Camera.hpp"
 #include "engine/graphics/SpriteBatch.hpp"
-#include "engine/graphics/Texture.hpp"
+#include "engine/graphics/TextureAtlas.hpp"
 #include <engine/core/Logger.hpp>
 
 #include <glad/gl.h>
@@ -14,7 +14,12 @@
 #include <memory>
 
 namespace {
-void DrawWorldGrid(engine::SpriteBatch &batch, const engine::Camera &camera) {
+void DrawWorldGrid(engine::SpriteBatch &batch, const engine::Camera &camera,
+                   const engine::TextureAtlas &atlas) {
+  auto *region = atlas.GetRegion("solidWhite");
+  if (!region)
+    return;
+
   // Visible world bounds: compute from screen corners.
   const auto tl = camera.ScreenToWorld({0.0f, 0.0f});
   const auto br =
@@ -45,6 +50,9 @@ void DrawWorldGrid(engine::SpriteBatch &batch, const engine::Camera &camera) {
 
   engine::Transform t{};
   engine::Sprite s{};
+  s.texture = &atlas.GetTexture();
+  s.uvMin = region->uvMin;
+  s.uvMax = region->uvMax;
   t.scale = {1.0f, 1.0f};
 
   for (int y = y0; y < y1; ++y) {
@@ -76,8 +84,14 @@ protected:
     engine::Logger::Info("OnInitialize");
     m_Batch = std::make_unique<engine::SpriteBatch>(4096);
 
-    m_checkerRed.CreateCheckerboard(8, 0xCC3333FF, 0x661111FF);
-    m_checkerBlue.CreateCheckerboard(8, 0x3366CCFF, 0x112244FF);
+    m_Atlas.AddCheckerboard("checkerRed", 8, 0xCC3333FF, 0x661111FF);
+    m_Atlas.AddCheckerboard("checkerBlue", 8, 0x3366CCFF, 0x112244FF);
+    m_Atlas.AddSolid("tower", 0xE65555FF, 16);
+    m_Atlas.AddSolid("solidWhite", 0xFFFFFFFF, 16);
+
+    if (!m_Atlas.Pack()) {
+      engine::Logger::Error("Atlas pack failed");
+    }
 
     BuildDemoScene();
   }
@@ -102,8 +116,7 @@ protected:
     if (IsKeyDown(GLFW_KEY_ESCAPE))
       glfwSetWindowShouldClose(Window(), GLFW_TRUE);
 
-    if (GetScene().IsAlive(m_Enemy)) {
-      auto &t = GetScene().TransformOf(m_Enemy);
+    if (GetScene().IsAlive(m_Hero)) {
       double mx, my;
       glfwGetCursorPos(Window(), &mx, &my);
       const auto world = camera.ScreenToWorld(
@@ -127,19 +140,14 @@ protected:
     auto &camera = GetCamera();
     m_Batch->Begin(camera);
 
-    DrawWorldGrid(*m_Batch, camera);
+    DrawWorldGrid(*m_Batch, camera, m_Atlas);
 
     GetScene().ForEach([&](engine::Entity e, const engine::Transform &t,
                            const engine::Sprite &s) {
-      if (e == m_Hero)
-        return;
+      // clang-format off
       m_Batch->DrawQuad(t, s);
+      // clang-format on
     });
-
-    if (GetScene().IsAlive(m_Hero)) {
-      m_Batch->DrawQuad(GetScene().TransformOf(m_Hero),
-                        GetScene().SpriteOf(m_Hero));
-    }
 
     m_Batch->End();
   }
@@ -199,12 +207,23 @@ protected:
 
 private:
   std::unique_ptr<engine::SpriteBatch> m_Batch;
-  engine::Texture m_checkerRed;
-  engine::Texture m_checkerBlue;
+  engine::TextureAtlas m_Atlas;
 
   engine::Entity m_Tower = engine::kInvalidEntity;
   engine::Entity m_Hero = engine::kInvalidEntity;
   engine::Entity m_Enemy = engine::kInvalidEntity;
+
+  void ApplyRegion(engine::Entity e, const char *region) {
+    auto *r = m_Atlas.GetRegion(region);
+    if (!r) {
+      engine::Logger::Warn("[Game] unknown region: %s", region);
+      return;
+    }
+    auto &s = GetScene().SpriteOf(e);
+    s.texture = &m_Atlas.GetTexture();
+    s.uvMin = r->uvMin;
+    s.uvMax = r->uvMax;
+  }
 
   void BuildDemoScene() {
     auto &scene = GetScene();
@@ -214,18 +233,19 @@ private:
     scene.TransformOf(m_Tower).position = {-4.0f, -2.0f};
     scene.TransformOf(m_Tower).scale = {1.5f, 1.5f};
     scene.SpriteOf(m_Tower).color = {0.9f, 0.3f, 0.3f, 1.0f};
+    ApplyRegion(m_Tower, "tower");
 
     // Green Hero
     m_Hero = scene.CreateEntity("Hero");
     scene.TransformOf(m_Hero).scale = {0.7f, 0.7f};
     scene.SpriteOf(m_Hero).color = {1.0f, 1.0f, 1.0f, 1.0f};
-    scene.SpriteOf(m_Hero).texture = &m_checkerRed;
+    ApplyRegion(m_Hero, "checkerRed");
 
     // Yellow Enemy
     m_Enemy = scene.CreateEntity("Enemy");
     scene.TransformOf(m_Enemy).scale = {0.5f, 0.5f};
     scene.SpriteOf(m_Enemy).color = {0.9f, 0.9f, 0.3f, 1.0f};
-    scene.SpriteOf(m_Enemy).texture = &m_checkerBlue;
+    ApplyRegion(m_Enemy, "checkerBlue");
   }
 
   void DrawSceneDebug() {
@@ -251,8 +271,8 @@ private:
       auto &s = GetScene().SpriteOf(e);
       t.position = {(float)(rand() % 20 - 10), (float)(rand() % 14 - 7)};
       t.scale = {0.5f, 0.5f};
-      s.color = {(rand() % 100) / 100.0f, (rand() % 100) / 100.0f,
-                 (rand() % 100) / 100.0f, 1.0f};
+      ApplyRegion(e, (rand() & 1) ? "checkerRed" : "checkerBlue");
+      s.color = {1, 1, 1, 1};
     }
     ImGui::End();
   }
