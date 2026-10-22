@@ -40,7 +40,7 @@ FetchContent_Declare(
 FetchContent_Declare(
   glad
   GIT_REPOSITORY https://github.com/Dav1dde/glad.git
-  GIT_TAG        v2.0.6
+  GIT_TAG        v2.0.8
   GIT_SHALLOW    TRUE
   SOURCE_SUBDIR  cmake
 )
@@ -66,7 +66,12 @@ target_include_directories(stb_image INTERFACE ${stb_SOURCE_DIR})
 
 # glad2 - populate, add its cmake module path, then generate loader
 FetchContent_MakeAvailable(glad)
-glad_add_library(glad REPRODUCIBLE API gl:core=3.3)
+glad_add_library(glad_gl_core_33 REPRODUCIBLE EXCLUDE_FROM_ALL API gl:core=3.3)
+target_include_directories(glad_gl_core_33 PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>
+)
+
+add_library(glad ALIAS glad_gl_core_33)
 
 # ImGui - recent versions ship a CMakeLists.txt that builds `imgui`
 FetchContent_MakeAvailable(imgui)
@@ -82,6 +87,14 @@ if(NOT TARGET imgui)
   )
   add_library(imgui STATIC ${IMGUI_CORE_SOURCES})
   target_include_directories(imgui PUBLIC ${imgui_SOURCE_DIR})
+endif()
+
+if(TARGET glad)
+    get_target_property(_glad_inc glad INTERFACE_INCLUDE_DIRECTORIES)
+    message(STATUS "[vendor] glad target EXISTS")
+    message(STATUS "[vendor] glad INTERFACE_INCLUDE_DIRECTORIES = ${_glad_inc}")
+else()
+    message(FATAL_ERROR "[vendor] glad target does NOT exist")
 endif()
 
 # Add the backends the game needs (ImGui's CMake does not build these by default)

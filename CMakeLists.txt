@@ -19,7 +19,6 @@ endif()
 
 # Configure variables   
 set(GAME_EXE_NAME ${PROJECT_NAME} CACHE STRING "Kingdom Rush Frontiers base executable name")
-
 set(GAME_EXE_TARGET_NAME  ${GAME_EXE_NAME})
 
 option(GAME_ENABLE_DEBUG "Enable debug build" OFF)
@@ -29,27 +28,21 @@ option(GAME_ENABLE_WARNING "Enable warning messages." ${GAME_IS_TOP_LEVEL})
 
 # Set required C/C++ standard
 set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_EXTENTIONS OFF)
-set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
+set(CMAKE_CXX_STANDARD_REQUIRED  ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+set(CMAKE_EXPORT_COMPILE_COMMANDS   ON)
 
 
 # Configurations
 # Default to build type "Release" unless debug is enabled
-if(NOT CMAKE_BUILD_TYPE)
-	if (NOT GAME_ENABLE_DEBUG)
-		message(STATUS "No build type selected, default to Release")
-		set(CMAKE_BUILD_TYPE "Release")
-	else()
-		message(STATUS "No build type selected but tests are being built, default to Debug")
+if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
+	if (GAME_ENABLE_DEBUG)
 		set(CMAKE_BUILD_TYPE "Debug")
+	else()
+		set(CMAKE_BUILD_TYPE "Release")
 	endif()
-endif()
-
-# Add compiler warnings
-if(GAME_ENABLE_WARNINGS)
-  if(CMAKE_CXX_COMPILER_ID MATCHES "(GNU|Clang)")
-    set(COMPILER_WARNINGS -Werror -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion)
-  endif()
+	message(STATUS "Build type not set, defaulting to ${CMAKE_BUILD_TYPE}")
 endif()
 
 # Output directories for a build tree
@@ -57,10 +50,30 @@ if(NOT DEFINED CMAKE_RUNTIME_OUTPUT_DIRECTORY)
   set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
 endif()
 
-# Add Subdirectories
+# Add compiler warnings
+set(GAME_WARNING_FLAGS "")
+if(GAME_ENABLE_WARNINGS)
+  if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+    list(APPEND GAME_WARNING_FLAGS
+      -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion)
+  elseif(MSVC)
+    list(APPEND GAME_WARNING_FLAGS /W4)
+  endif()
 
+  if(GAME_WARNINGS_AS_ERRORS)
+    if(MSVC)
+      list(APPEND GAME_WARNING_FLAGS /WX)
+    else()
+      list(APPEND GAME_WARNING_FLAGS -Werror)
+    endif()
+  endif()
+endif()
+
+
+# Add Subdirectories
 # Build vendor libraries
 add_subdirectory(vendor)
+add_subdirectory(engine)
 
 # Build the test apps   
 if(GAME_BUILD_TESTS)
@@ -70,21 +83,65 @@ if(GAME_BUILD_TESTS)
 endif()
 
 # Build targets
-include_directories("." "./include" "vendor/imgui" "vendor/glm" "vendor/glfw/include" "vendor/glad/include" "vendor/stb-image/include")
-
-set(GAME_SOURCE_FILES "src/main.cpp")
+set(GAME_SOURCE_FILES "game/src/main.cpp")
 
 # Add executable
 add_executable("${GAME_EXE_TARGET_NAME}" "${GAME_SOURCE_FILES}")
-target_compile_definitions("${GAME_EXE_TARGET_NAME}" PUBLIC GLFW_INCLUDE_NONE=1)
-target_link_libraries("${GAME_EXE_TARGET_NAME}" glm glfw glad imgui)
+
+target_compile_definitions("${GAME_EXE_TARGET_NAME}" PRIVATE GLFW_INCLUDE_NONE=1)
+
+# Warnings
+if(GAME_WARNING_FLAGS)
+  target_compile_options(${GAME_EXE_TARGET_NAME} PRIVATE ${GAME_WARNING_FLAGS})
+endif()
+
+target_link_libraries("${GAME_EXE_TARGET_NAME}" PRIVATE
+  engine
+  imgui
+)
+
+target_include_directories("${GAME_EXE_TARGET_NAME}" PRIVATE
+  "${CMAKE_CURRENT_SOURCE_DIR}/game/include"
+)
 
 if(GAME_PRODUCTION_BUILD)
-	# setup the ASSETS_PATH macro to be in the root folder of your exe
-	target_compile_definitions("${GAME_EXE_TARGET_NAME}" PUBLIC ASSETS_PATH="./assets/") 
-	target_compile_definitions("${GAME_EXE_TARGET_NAME}" PUBLIC PRODUCTION_BUILD=1) 
+  # ASSETS_PATH is relative to the working directory of the running exe.
+  # Ship assets/ next to the executable and launch from that folder.
+  target_compile_definitions(${GAME_EXE_TARGET_NAME} PRIVATE
+    PRODUCTION_BUILD=1
+    ASSETS_PATH="./assets/"
+  )
+
+  # Copy assets next to the executable on every build so `bin/assets` exists.
+  add_custom_command(TARGET ${GAME_EXE_TARGET_NAME} POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+      "${CMAKE_CURRENT_SOURCE_DIR}/assets"
+      "$<TARGET_FILE_DIR:${GAME_EXE_TARGET_NAME}>/assets"
+    COMMENT "Copying assets next to executable"
+  )
+
+  # Also make the IDE debugger start in the exe folder (VS / Xcode).
+  set_target_properties(${GAME_EXE_TARGET_NAME} PROPERTIES
+    VS_DEBUGGER_WORKING_DIRECTORY "$<TARGET_FILE_DIR:${GAME_EXE_TARGET_NAME}>"
+    XCODE_SCHEME_WORKING_DIRECTORY "$<TARGET_FILE_DIR:${GAME_EXE_TARGET_NAME}>"
+  )
 else()
-	# This is useful to get an ASSETS_PATH in your IDE during development
-	target_compile_definitions("${GAME_EXE_TARGET_NAME}" PUBLIC ASSETS_PATH="${CMAKE_CURRENT_SOURCE_DIR}/assets/")
-	target_compile_definitions("${GAME_EXE_TARGET_NAME}" PUBLIC PRODUCTION_BUILD=0) 
+  # Dev mode: assets are read from the source tree, so editing a shader and
+  # pressing F5 is enough — no rebuild or copy step required.
+  target_compile_definitions(${GAME_EXE_TARGET_NAME} PRIVATE
+    PRODUCTION_BUILD=0
+    ASSETS_PATH="${CMAKE_CURRENT_SOURCE_DIR}/assets/"
+  )
+endif()
+
+# ---------------------------------------------------------------------------
+# Install rules (so `cmake --install` produces a shippable layout)
+# ---------------------------------------------------------------------------
+if(GAME_PRODUCTION_BUILD AND GAME_IS_TOP_LEVEL)
+  install(TARGETS ${GAME_EXE_TARGET_NAME}
+    RUNTIME DESTINATION "."
+  )
+  install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/assets/"
+    DESTINATION "assets"
+  )
 endif()
