@@ -1,10 +1,14 @@
 #pragma once
 
-#include "engine/animation/Animator.hpp"
-#include <cstdint>
 #include <optional>
 #include <string>
-#include <vector>
+
+#include "engine/animation/Animator.hpp"
+#include "engine/components/Entity.hpp"
+#include "engine/components/Particle.hpp"
+#include "engine/components/ParticleEmitter.hpp"
+#include "engine/components/Sprite.hpp"
+#include "engine/components/Transform.hpp"
 
 #include <glm/glm.hpp>
 
@@ -13,68 +17,6 @@ class Texture;
 }
 
 namespace engine {
-
-using Entity = std::uint32_t;
-constexpr Entity kInvalidEntity = 0xFFFFFFFFu;
-
-enum class RenderLayer : std::uint8_t {
-  Background = 0, // grid, sky, parallax
-  Ground = 1,     // floor tiles, decor
-  Shadows = 2,    // drop shadows
-  Entities = 3,   // heroes, enemies, towers (default)
-  Overlay = 4,    // effects, particles on top
-  UI = 5,         // HUD, health bars
-  COUNT,
-};
-
-struct Transform {
-  glm::vec2 position{0.0f, 0.0f};
-  glm::vec2 scale{1.0f, 1.0f};
-  float rotation = 0.0f;
-};
-
-struct Sprite {
-  glm::vec4 color{1.0f, 1.0f, 1.0f, 1.0f};
-  const Texture *texture = nullptr;
-  glm::vec2 uvMin{0.0f, 0.0f};
-  glm::vec2 uvMax{1.0f, 1.0f};
-  RenderLayer layer{RenderLayer::Entities};
-  float ySortKey = 0.0f;
-  std::string regionName{};
-};
-
-struct Particle {
-  glm::vec2 velocity{0.0f};
-  float life{1.0f};
-  float maxLife{1.0f};
-  float startScale{1.0f};
-  float endScale{1.0f};
-  glm::vec4 startColor{1.0f};
-  glm::vec4 endColor{1.0f};
-};
-
-struct ParticleEmitter {
-  float emitRate{50.0f};
-  float emitAccumulator{0.0f};
-
-  float duration{2.0f};
-  float timeEmitted{0.0f};
-
-  float minLife{0.5f};
-  float maxLife{1.5f};
-  float minSpeed{1.0f};
-  float maxSpeed{5.0f};
-  float minScale{0.1f};
-  float maxScale{0.3f};
-
-  glm::vec4 startColor{1.0f, 1.0f, 1.0f, 1.0f};
-  glm::vec4 endColor{1.0f, 0.0f, 0.0f, 0.0f};
-
-  const Texture *texture = nullptr;
-  glm::vec2 uvMin{0.0f, 0.0f};
-  glm::vec2 uvMax{1.0f, 1.0f};
-  RenderLayer layer{RenderLayer::Overlay};
-};
 
 class Scene {
 public:
