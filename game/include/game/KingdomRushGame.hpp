@@ -8,6 +8,7 @@
 #include "engine/graphics/Renderer.hpp"
 #include "engine/graphics/TextureAtlas.hpp"
 #include "engine/scene/Scene.hpp"
+#include "engine/scene/SceneSerializer.hpp"
 #include <engine/core/Logger.hpp>
 
 #include <glad/gl.h>
@@ -271,6 +272,7 @@ private:
     s.texture = &m_Atlas.GetTexture();
     s.uvMin = r->uvMin;
     s.uvMax = r->uvMax;
+    s.regionName = region;
   }
 
   void BuildDemoScene() {
@@ -288,6 +290,7 @@ private:
     scene.TransformOf(m_Hero).scale = {1.2f, 1.7f};
     scene.SpriteOf(m_Hero).layer = engine::RenderLayer::Entities;
     scene.SpriteOf(m_Hero).texture = &m_Atlas.GetTexture();
+    ApplyRegion(m_Hero, "hero_idle_0");
 
     // Yellow Enemy
     m_Enemy = scene.CreateEntity("Enemy");
@@ -301,6 +304,7 @@ private:
     scene.SpriteOf(m_Coin).color = {1, 1, 1, 1};
     scene.SpriteOf(m_Coin).texture = &m_Atlas.GetTexture();
     scene.SpriteOf(m_Coin).layer = engine::RenderLayer::Ground;
+    ApplyRegion(m_Coin, "coin_0");
 
     if (auto *idleClip = m_Animations.Get("hero_idle")) {
       scene.AnimatorOf(m_Hero).Play(idleClip);
@@ -324,18 +328,6 @@ private:
       GetRenderer().SetCullingEnabled(cullOn);
     }
 
-    if (GetScene().IsAlive(m_Coin)) {
-      auto &a = GetScene().AnimatorOf(m_Coin);
-      ImGui::Text("Coin frame: %d / %d", a.currentFrame,
-                  a.clip ? a.clip->FrameCount() : 0);
-    }
-    ImGui::Separator();
-
-    ImGui::Text("Atlas packed: %d sources", m_Atlas.SourceCount());
-    ImGui::Text("Regions:");
-    for (const auto &name : m_Atlas.RegionNames()) {
-      ImGui::BulletText("%s", name.c_str());
-    }
     ImGui::Separator();
 
     auto &cam = GetCamera();
@@ -349,13 +341,32 @@ private:
     ImGui::Text("Q / E rotate");
     ImGui::Text("Wheel zoom at cursor");
 
-    if (GetScene().IsAlive(m_Hero)) {
-      auto &a = GetScene().AnimatorOf(m_Hero);
-      const bool isAttack = a.clip && a.clip == m_Animations.Get("hero_attack");
-      ImGui::Text("Hero: %s  frame %d/%d%s", isAttack ? "attack" : "idle",
-                  a.currentFrame, a.clip ? a.clip->FrameCount() : 0,
-                  a.finished ? " (done)" : "");
+    ImGui::Separator();
+
+    if (ImGui::Button("Save Scene")) {
+      engine::SceneSerializer::Save(GetScene(), m_Atlas, "scene.json");
     }
+
+    if (ImGui::Button("Load Scene")) {
+      if (engine::SceneSerializer::Load(GetScene(), m_Atlas, "scene.json")) {
+        m_Tower = GetScene().FindEntity("Tower");
+        m_Hero = GetScene().FindEntity("Hero");
+        m_Enemy = GetScene().FindEntity("Enemy");
+        m_Coin = GetScene().FindEntity("Coin");
+
+        if (GetScene().IsAlive(m_Hero)) {
+          if (auto *idle = m_Animations.Get("hero_idle"))
+            GetScene().AnimatorOf(m_Hero).Play(idle);
+        }
+
+        if (GetScene().IsAlive(m_Coin)) {
+          if (auto *coin = m_Animations.Get("coin_spin"))
+            GetScene().AnimatorOf(m_Coin).Play(coin);
+        }
+      }
+    }
+
+    ImGui::Separator();
 
     if (ImGui::Button("Spawn entity")) {
       auto e = GetScene().CreateEntity("Spawned");

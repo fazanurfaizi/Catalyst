@@ -39,6 +39,7 @@ struct Sprite {
   glm::vec2 uvMax{1.0f, 1.0f};
   RenderLayer layer{RenderLayer::Entities};
   float ySortKey = 0.0f;
+  std::string regionName{};
 };
 
 class Scene {
@@ -50,9 +51,12 @@ public:
 
   Transform &TransformOf(Entity entity);
   const Transform &TransformOf(Entity entity) const;
+
   Sprite &SpriteOf(Entity entity);
   const Sprite &SpriteOf(Entity entity) const;
+
   const std::string &NameOf(Entity entity) const;
+
   Animator &AnimatorOf(Entity entity);
   const Animator &AnimatorOf(Entity entity) const;
 
@@ -66,6 +70,10 @@ public:
   }
 
   void Update(double deltatime);
+
+  void Clear();
+
+  Entity FindEntity(const std::string &name) const;
 
 private:
   struct Entry {

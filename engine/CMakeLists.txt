@@ -10,6 +10,7 @@ add_library(engine STATIC
   src/graphics/Renderer.cpp
   src/graphics/stbi_image_impl.cpp
   src/animation/AnimationLibrary.cpp
+  src/scene/SceneSerializer.cpp
 )
 
 # Public include root. Consumers see: include <glgame/core/Logger.hpp>
@@ -38,6 +39,7 @@ target_link_libraries(engine PUBLIC
 target_link_libraries(engine PRIVATE
   imgui
   stb_image
+  nlohmann_json::nlohmann_json
 )
 
 target_compile_definitions(engine PUBLIC

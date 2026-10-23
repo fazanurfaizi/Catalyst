@@ -1,5 +1,4 @@
 #include "engine/scene/Scene.hpp"
-#include "engine/core/Logger.hpp"
 #include <cassert>
 
 namespace engine {
@@ -51,8 +50,29 @@ void Scene::Update(double deltatime) {
   }
 }
 
+void Scene::Clear() {
+  m_Entries.clear();
+  m_Alive.clear();
+  m_Free.clear();
+  m_LiveCount = 0;
+}
+
+Entity Scene::FindEntity(const std::string &name) const {
+  for (std::size_t i = 0; i < m_Entries.size(); ++i) {
+    if (m_Alive[i] && m_Entries[i].name == name) {
+      return static_cast<Entity>(i);
+    }
+  }
+  return kInvalidEntity;
+}
+
 bool Scene::IsAlive(Entity entity) const {
   return entity < m_Entries.size() && m_Alive[entity] != 0;
+}
+
+const std::string &Scene::NameOf(Entity entity) const {
+  assert(IsAlive(entity) && "NameOf: dead entity");
+  return m_Entries[entity].name;
 }
 
 Transform &Scene::TransformOf(Entity entity) {
