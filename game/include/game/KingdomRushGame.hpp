@@ -6,6 +6,7 @@
 #include "engine/graphics/Camera.hpp"
 #include "engine/graphics/Renderer.hpp"
 #include "engine/graphics/TextureAtlas.hpp"
+#include "engine/scene/Scene.hpp"
 #include <engine/core/Logger.hpp>
 
 #include <glad/gl.h>
@@ -229,6 +230,7 @@ private:
     m_Tower = scene.CreateEntity("Tower");
     scene.TransformOf(m_Tower).position = {-4.0f, -2.0f};
     scene.TransformOf(m_Tower).scale = {1.5f, 1.5f};
+    scene.SpriteOf(m_Tower).layer = engine::RenderLayer::Entities;
     scene.SpriteOf(m_Tower).color = {0.9f, 0.3f, 0.3f, 1.0f};
     ApplyRegion(m_Tower, "tower");
 
@@ -236,12 +238,14 @@ private:
     m_Hero = scene.CreateEntity("Hero");
     scene.TransformOf(m_Hero).scale = {0.7f, 0.7f};
     scene.SpriteOf(m_Hero).color = {1.0f, 1.0f, 1.0f, 1.0f};
+    scene.SpriteOf(m_Hero).layer = engine::RenderLayer::Entities;
     ApplyRegion(m_Hero, "checkerRed");
 
     // Yellow Enemy
     m_Enemy = scene.CreateEntity("Enemy");
     scene.TransformOf(m_Enemy).scale = {0.5f, 0.5f};
     scene.SpriteOf(m_Enemy).color = {0.9f, 0.9f, 0.3f, 1.0f};
+    scene.SpriteOf(m_Enemy).layer = engine::RenderLayer::Entities;
     ApplyRegion(m_Enemy, "checkerBlue");
 
     m_Coin = scene.CreateEntity("Coin");
@@ -249,6 +253,7 @@ private:
     scene.TransformOf(m_Coin).scale = {0.8f, 0.8f};
     scene.SpriteOf(m_Coin).color = {1, 1, 1, 1};
     scene.SpriteOf(m_Coin).texture = &m_Atlas.GetTexture();
+    scene.SpriteOf(m_Coin).layer = engine::RenderLayer::Ground;
 
     auto *coinClip = m_Animations.Get("coin_spin");
     if (coinClip)

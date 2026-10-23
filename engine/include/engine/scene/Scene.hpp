@@ -16,6 +16,16 @@ namespace engine {
 using Entity = std::uint32_t;
 constexpr Entity kInvalidEntity = 0xFFFFFFFFu;
 
+enum class RenderLayer : std::uint8_t {
+  Background = 0, // grid, sky, parallax
+  Ground = 1,     // floor tiles, decor
+  Shadows = 2,    // drop shadows
+  Entities = 3,   // heroes, enemies, towers (default)
+  Overlay = 4,    // effects, particles on top
+  UI = 5,         // HUD, health bars
+  COUNT,
+};
+
 struct Transform {
   glm::vec2 position{0.0f, 0.0f};
   glm::vec2 scale{1.0f, 1.0f};
@@ -27,6 +37,8 @@ struct Sprite {
   const Texture *texture = nullptr;
   glm::vec2 uvMin{0.0f, 0.0f};
   glm::vec2 uvMax{1.0f, 1.0f};
+  RenderLayer layer{RenderLayer::Entities};
+  float ySortKey = 0.0f;
 };
 
 class Scene {
