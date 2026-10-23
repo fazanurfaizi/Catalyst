@@ -18,6 +18,10 @@ Entity Scene::CreateEntity(const std::string &name) {
   entry.name = name;
   entry.transform = {};
   entry.sprite = {};
+  entry.animator = {};
+  entry.particle.reset();
+  entry.emitter.reset();
+
   m_Alive[entity] = 1;
   ++m_LiveCount;
   return entity;
@@ -26,6 +30,7 @@ Entity Scene::CreateEntity(const std::string &name) {
 void Scene::DestroyEntity(Entity entity) {
   if (!IsAlive(entity))
     return;
+
   m_Alive[entity] = 0;
   --m_LiveCount;
   m_Free.push_back(entity);
@@ -103,5 +108,23 @@ Animator &Scene::AnimatorOf(Entity entity) {
 const Animator &Scene::AnimatorOf(Entity entity) const {
   assert(IsAlive(entity) && "AnimatorOf: dead entity");
   return m_Entries[entity].animator;
+}
+
+std::optional<Particle> &Scene::ParticleOf(Entity e) {
+  assert(IsAlive(e) && "ParticleOf: dead entity");
+  return m_Entries[e].particle;
+}
+const std::optional<Particle> &Scene::ParticleOf(Entity e) const {
+  assert(IsAlive(e) && "ParticleOf: dead entity");
+  return m_Entries[e].particle;
+}
+
+std::optional<ParticleEmitter> &Scene::EmitterOf(Entity e) {
+  assert(IsAlive(e) && "EmitterOf: dead entity");
+  return m_Entries[e].emitter;
+}
+const std::optional<ParticleEmitter> &Scene::EmitterOf(Entity e) const {
+  assert(IsAlive(e) && "EmitterOf: dead entity");
+  return m_Entries[e].emitter;
 }
 } // namespace engine

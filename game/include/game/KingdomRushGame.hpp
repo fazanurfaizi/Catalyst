@@ -343,6 +343,32 @@ private:
 
     ImGui::Separator();
 
+    if (ImGui::Button("Spawn Particle Emitter")) {
+      auto e = GetScene().CreateEntity("Emitter");
+      GetScene().TransformOf(e).position = {(float)(rand() % 20 - 10),
+                                            (float)(rand() % 14 - 7)};
+
+      auto &emit = GetScene().EmitterOf(e).emplace();
+      emit.emitRate = 200.0f;
+      emit.minLife = 0.5f;
+      emit.maxLife = 1.5f;
+      emit.minSpeed = 1.0f;
+      emit.maxSpeed = 5.0f;
+      emit.minScale = 0.1f;
+      emit.maxScale = 0.3f;
+      emit.duration = 1.5f;
+
+      emit.startColor = {1.0f, 0.8f, 0.2f, 1.0f};
+      emit.endColor = {1.0f, 0.0f, 0.0f, 0.0f};
+
+      emit.texture = &m_Atlas.GetTexture();
+      if (auto *r = m_Atlas.GetRegion("solidWhite")) {
+        emit.uvMin = r->uvMin;
+        emit.uvMax = r->uvMax;
+      }
+      emit.layer = engine::RenderLayer::Overlay;
+    }
+
     if (ImGui::Button("Save Scene")) {
       engine::SceneSerializer::Save(GetScene(), m_Atlas, "scene.json");
     }

@@ -1,5 +1,6 @@
 #include "engine/core/Game.hpp"
 
+#include "engine/animation/ParticleSystem.hpp"
 #include "engine/core/Logger.hpp"
 #include "engine/graphics/Renderer.hpp"
 #include "imgui.h"
@@ -131,6 +132,7 @@ bool Game::Run() {
     last = now;
 
     m_Scene.Update(dt);
+    ParticleSystem::Update(m_Scene, dt);
     OnUpdate(dt);
 
     glClearColor(m_ClearColor.r, m_ClearColor.g, m_ClearColor.b,
