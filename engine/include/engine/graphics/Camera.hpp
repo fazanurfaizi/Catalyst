@@ -4,6 +4,17 @@
 
 namespace engine {
 
+struct WorldBounds {
+  float minX = 0.0f;
+  float maxX = 0.0f;
+  float minY = 0.0f;
+  float maxY = 0.0f;
+
+  bool Overlaps(float aMinX, float aMaxX, float aMinY, float aMaxY) const {
+    return aMinX <= maxX && aMaxX >= minX && aMinY <= maxY && aMaxY >= minY;
+  }
+};
+
 class Camera {
 public:
   Camera() = default;
@@ -40,6 +51,8 @@ public:
   // Screen coords: top-left origin, Y down.
   glm::vec2 WorldToScreen(const glm::vec2 &world) const;
   glm::vec2 ScreenToWorld(const glm::vec2 &screen) const;
+
+  WorldBounds VisibleWorldBounds() const;
 
 private:
   glm::vec3 m_Position{0.0f};

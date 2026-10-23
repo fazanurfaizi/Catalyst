@@ -67,4 +67,21 @@ glm::vec2 Camera::ScreenToWorld(const glm::vec2 &screen) const {
   return glm::vec2(world) / world.w;
 }
 
+WorldBounds Camera::VisibleWorldBounds() const {
+  const float w = static_cast<float>(m_ViewportW);
+  const float h = static_cast<float>(m_ViewportH);
+
+  const auto tl = ScreenToWorld({0.0f, 0.0f});
+  const auto tr = ScreenToWorld({w, 0.0f});
+  const auto bl = ScreenToWorld({0.0f, h});
+  const auto br = ScreenToWorld({w, h});
+
+  WorldBounds b;
+  b.minX = std::min({tl.x, tr.x, bl.x, br.x});
+  b.maxX = std::max({tl.x, tr.x, bl.x, br.x});
+  b.minY = std::min({tl.y, tr.y, bl.y, br.y});
+  b.maxY = std::max({tl.y, tr.y, bl.y, br.y});
+  return b;
+}
+
 } // namespace engine

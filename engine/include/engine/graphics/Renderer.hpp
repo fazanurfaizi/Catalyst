@@ -27,11 +27,18 @@ public:
   void Draw(const Transform &t, const Sprite &s);
   void DrawScene(const Scene &scene);
 
+  void SetCullingEnabled(bool enabled) { m_cullEnabled = enabled; }
+  bool CullingEnabled() const { return m_cullEnabled; }
+
   std::uint32_t DrawCalls() const;
   std::uint32_t QuadCount() const;
+  std::uint32_t CulledCount() const;
 
 private:
   std::unique_ptr<SpriteBatch> m_batch;
+  const Camera *m_camera = nullptr;
+  std::uint32_t m_lastCulled = 0;
+  bool m_cullEnabled = true;
 };
 
 } // namespace engine

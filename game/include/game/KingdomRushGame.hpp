@@ -45,7 +45,6 @@ void DrawWorldGrid(engine::Renderer &renderer, const engine::Camera &camera,
   if (cols * rows > kMaxCells)
     return;
 
-  // --- palette ------------------------------------------------------------
   const glm::vec4 evenCell{0.13f, 0.17f, 0.24f, 1.0f};
   const glm::vec4 oddCell{0.16f, 0.20f, 0.28f, 1.0f};
   const glm::vec4 axisCell{0.20f, 0.24f, 0.34f, 1.0f};
@@ -105,6 +104,7 @@ protected:
                           /*loop=*/true);
 
     BuildDemoScene();
+    BuildStressScene();
   }
 
   void OnUpdate(double dt) override {
@@ -148,6 +148,7 @@ protected:
     auto &renderer = GetRenderer();
     auto &camera = GetCamera();
 
+    SetClearColor({0.10f, 0.12f, 0.16f, 1.0f});
     DrawWorldGrid(renderer, camera, m_Atlas);
     renderer.DrawScene(GetScene());
   }
@@ -260,11 +261,39 @@ private:
       scene.AnimatorOf(m_Coin).Play(coinClip);
   }
 
+  void BuildStressScene() {
+    auto &scene = GetScene();
+
+    for (int y = -25; y < 25; ++y) {
+      for (int x = -25; x < 25; ++x) {
+        auto e = scene.CreateEntity("stress");
+        auto &t = scene.TransformOf(e);
+        auto &s = scene.SpriteOf(e);
+        t.position = {
+            static_cast<float>(x) * 1.1f,
+            static_cast<float>(y) * 1.1,
+        };
+        t.scale = {0.9f, 0.9f};
+        ApplyRegion(e, ((x + y) & 1) ? "checkerRed" : "checkerBlue");
+        s.color = {1, 1, 1, 1};
+        s.layer = engine::RenderLayer::Entities;
+      }
+    }
+  }
+
   void DrawSceneDebug() {
     ImGui::Begin("Renderer");
     ImGui::Text("Draw calls: %u", GetRenderer().DrawCalls());
     ImGui::Text("Quads:      %u", GetRenderer().QuadCount());
+    ImGui::Text("Culled:     %u", GetRenderer().CulledCount());
+    ImGui::Text("Alive:      %zu", GetScene().Size());
     ImGui::Text("Clips: %d", m_Animations.Count());
+
+    bool cullOn = GetRenderer().CullingEnabled();
+    if (ImGui::Checkbox("Culling", &cullOn)) {
+      GetRenderer().SetCullingEnabled(cullOn);
+    }
+
     if (GetScene().IsAlive(m_Coin)) {
       auto &a = GetScene().AnimatorOf(m_Coin);
       ImGui::Text("Coin frame: %d / %d", a.currentFrame,
