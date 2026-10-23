@@ -1,11 +1,13 @@
 #include "engine/graphics/TextureAtlas.hpp"
 
 #include "engine/core/Logger.hpp"
+#include "glad/gl.h"
 
 #include <algorithm>
 #include <array>
 #include <cmath>
 #include <filesystem>
+#include <numeric>
 #include <stb/stb_image.h>
 #include <system_error>
 #include <utility>
@@ -53,8 +55,15 @@ int TextureAtlas::AddFromDirectory(const std::string &directory) {
     return 0;
   }
 
+  const fs::path root = fs::weakly_canonical(directory, ec);
+  if (ec) {
+    Logger::Error("[TextureAtlas] canonical path failed for %s",
+                  directory.c_str());
+    return 0;
+  }
+
   int added = 0;
-  for (const auto &entry : fs::directory_iterator(directory, ec)) {
+  for (const auto &entry : fs::recursive_directory_iterator(directory, ec)) {
     if (ec)
       break;
     if (!entry.is_regular_file())
@@ -66,7 +75,23 @@ int TextureAtlas::AddFromDirectory(const std::string &directory) {
     if (it == kAllowedImageExtensions.end())
       continue;
 
-    const std::string name = path.stem().string();
+    // Region name = relative path from root, '/' replaced with '_',
+    // extension dropped e.g.:
+    //   hero/idle_0.png      -> hero_idle_0
+    //   hero/idle/0.png      -> hero_idle_0
+    //   hero.png             -> hero
+
+    const fs::path rel = fs::relative(path, root, ec);
+    if (ec)
+      continue;
+
+    std::string name;
+    for (const auto &part : rel) {
+      if (!name.empty())
+        name += "_";
+      name += (part.has_extension() ? part.stem().string() : part.string());
+    }
+
     if (AddFromFile(name, path.string())) {
       ++added;
     }
@@ -89,7 +114,7 @@ bool TextureAtlas::AddFromFile(const std::string &name,
   stbi_uc *data = stbi_load(path.c_str(), &w, &h, &channels, STBI_rgb_alpha);
   if (!data) {
     const char *dsc = stbi_failure_reason() ? stbi_failure_reason() : "?";
-    Logger::Error("[Atlas] failed to load: %s (%s)", path.c_str(), dsc);
+    Logger::Error("[TextureAtlas] failed to load: %s (%s)", path.c_str(), dsc);
     return false;
   }
 
@@ -164,37 +189,85 @@ bool TextureAtlas::Pack() {
     return false;
   }
 
-  int maxDim = 1;
-  for (const auto &s : m_sources) {
-    maxDim = std::max(maxDim, std::max(s.width, s.height));
-  }
-  const int cellSize = NextPowerOf2(maxDim);
+  GLint maxTex = 0;
+  glGetIntegerv(GL_MAX_TEXTURE_SIZE, &maxTex);
+  if (maxTex <= 0)
+    maxTex = 4096;
+  Logger::Info("[TextureAtlas] GL_MAX_TEXTURE_SIZE = %d", maxTex);
 
-  const int n = static_cast<int>(m_sources.size());
-  const int gridSize =
-      static_cast<int>(std::ceil(std::sqrt(static_cast<float>(n))));
-  const int atlasSize = gridSize * cellSize;
+  constexpr int kPad = 1;
+  const std::size_t n = m_sources.size();
+
+  std::vector<std::size_t> order(n);
+  std::iota(order.begin(), order.end(), 0);
+  std::sort(order.begin(), order.end(), [&](std::size_t a, std::size_t b) {
+    return m_sources[a].height > m_sources[b].height;
+  });
+
+  std::vector<glm::ivec2> bestPositions;
+  int bestSize = 0;
+
+  for (int size = 256; size <= maxTex; size *= 2) {
+    std::vector<glm::ivec2> pos(n);
+    int shelfY = 0;
+    int shelfH = 0;
+    int cursorX = 0;
+    bool fits = true;
+
+    for (std::size_t idx : order) {
+      const auto &s = m_sources[idx];
+      const int w = s.width + 2 * kPad;
+      const int h = s.height + 2 * kPad;
+
+      if (w > size || h > size) {
+        fits = false;
+        break;
+      }
+
+      if (cursorX + w > size) {
+        shelfY += shelfH;
+        shelfH = 0;
+        cursorX = 0;
+      }
+      if (shelfY + h > size) {
+        fits = false;
+        break;
+      }
+
+      pos[idx] = {cursorX + kPad, shelfY + kPad};
+      cursorX += w;
+      shelfH = std::max(shelfH, h);
+    }
+
+    if (fits) {
+      bestSize = size;
+      bestPositions = std::move(pos);
+      break;
+    }
+  }
+
+  if (bestSize == 0) {
+    Logger::Error("[TextureAtlas] cannot pack %zu sources within %dx%d", n,
+                  maxTex, maxTex);
+    return false;
+  }
 
   std::vector<std::uint8_t> dst(
-      static_cast<std::size_t>(atlasSize) * atlasSize * 4, 0);
+      static_cast<std::size_t>(bestSize) * bestSize * 4, 0);
 
   m_regions.clear();
 
-  for (int i = 0; i < n; ++i) {
-    const auto &src = m_sources[i];
-    const int cellX = i % gridSize;
-    const int cellY = i / gridSize;
+  for (std::size_t i = 0; i < n; ++i) {
+    const auto &s = m_sources[i];
+    const int px = bestPositions[i].x;
+    const int py = bestPositions[i].y;
 
-    const int offX = (cellSize - src.width) / 2;
-    const int offY = (cellSize - src.height) / 2;
-
-    for (int y = 0; y < cellSize; ++y) {
-      for (int x = 0; x < cellSize; ++x) {
-        const int sx = std::clamp(x - offX, 0, src.width - 1);
-        const int sy = std::clamp(y - offY, 0, src.height - 1);
-        const std::uint8_t *sp = PixelAt(src.rgba8, src.width, sx, sy);
-        std::uint8_t *dp =
-            PixelAt(dst, atlasSize, cellX * cellSize + x, cellY * cellSize + y);
+    for (int yy = -kPad; yy < s.height + kPad; ++yy) {
+      for (int xx = -kPad; xx < s.width + kPad; ++xx) {
+        const int sx = std::clamp(xx, 0, s.width - 1);
+        const int sy = std::clamp(yy, 0, s.height - 1);
+        const auto *sp = PixelAt(s.rgba8, s.width, sx, sy);
+        auto *dp = PixelAt(dst, bestSize, px + xx, py + yy);
         dp[0] = sp[0];
         dp[1] = sp[1];
         dp[2] = sp[2];
@@ -202,20 +275,18 @@ bool TextureAtlas::Pack() {
       }
     }
 
-    AtlasRegion region;
-    region.uvMin.x = static_cast<float>(cellX * cellSize + offX) / atlasSize;
-    region.uvMin.y = static_cast<float>(cellY * cellSize + offY) / atlasSize;
-    region.uvMax.x =
-        static_cast<float>(cellX * cellSize + offX + src.width) / atlasSize;
-    region.uvMax.y =
-        static_cast<float>(cellY * cellSize + offY + src.height) / atlasSize;
-    m_regions[src.name] = region;
+    AtlasRegion r;
+    r.uvMin = {static_cast<float>(px) / bestSize,
+               static_cast<float>(py) / bestSize};
+    r.uvMax = {static_cast<float>(px + s.width) / bestSize,
+               static_cast<float>(py + s.height) / bestSize};
+    m_regions[s.name] = r;
   }
 
-  m_texture.Upload(atlasSize, atlasSize, dst.data(), /*generateMipmaps=*/false);
+  m_texture.Upload(bestSize, bestSize, dst.data(), /*generateMipmaps=*/false);
 
-  Logger::Info("[Atlas] packed %d sources into %d x %d", n, atlasSize,
-               atlasSize);
+  Logger::Info("[TextureAtlas] packed %zu sources into %d x %d", n, bestSize,
+               bestSize);
   return m_texture.IsValid();
 }
 
@@ -224,11 +295,31 @@ const AtlasRegion *TextureAtlas::GetRegion(const std::string &name) const {
   return it == m_regions.end() ? nullptr : &it->second;
 }
 
+bool TextureAtlas::HasSource(const std::string &name) const {
+  for (const auto &s : m_sources) {
+    if (s.name == name)
+      return true;
+  }
+  return false;
+}
+bool TextureAtlas::HasRegion(const std::string &name) const {
+  return m_regions.count(name) > 0;
+}
+
 std::vector<std::string> TextureAtlas::RegionNames() const {
   std::vector<std::string> out;
   out.reserve(m_regions.size());
   for (const auto &[name, _] : m_regions)
     out.push_back(name);
+  std::sort(out.begin(), out.end());
+  return out;
+}
+
+std::vector<std::string> TextureAtlas::SourceNames() const {
+  std::vector<std::string> out;
+  out.reserve(m_sources.size());
+  for (const auto &s : m_sources)
+    out.push_back(s.name);
   std::sort(out.begin(), out.end());
   return out;
 }

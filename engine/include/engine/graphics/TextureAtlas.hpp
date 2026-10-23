@@ -40,16 +40,11 @@ public:
   const Texture &GetTexture() const { return m_texture; }
   bool IsPacked() const { return m_texture.IsValid(); }
   int SourceCount() const { return static_cast<int>(m_sources.size()); }
-  bool HasRegion(const std::string &name) const {
-    if (m_regions.count(name) > 0)
-      return true;
-    for (const auto &s : m_sources) {
-      if (s.name == name)
-        return true;
-    }
-    return false;
-  }
+  bool HasSource(const std::string &name) const; // pre-pack
+  bool HasRegion(const std::string &name) const; // post-pack
+
   std::vector<std::string> RegionNames() const;
+  std::vector<std::string> SourceNames() const;
 
 private:
   struct Source {

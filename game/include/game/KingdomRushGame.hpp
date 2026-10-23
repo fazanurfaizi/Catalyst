@@ -33,13 +33,11 @@ void DrawWorldGrid(engine::Renderer &renderer, const engine::Camera &camera,
   const float minY = std::min(tl.y, br.y);
   const float maxY = std::max(tl.y, br.y);
 
-  // --- cell indices covering the visible region ---------------------------
   const int x0 = static_cast<int>(std::floor(minX));
   const int x1 = static_cast<int>(std::ceil(maxX));
   const int y0 = static_cast<int>(std::floor(minY));
   const int y1 = static_cast<int>(std::ceil(maxY));
 
-  // --- guardrail: don't spam quads when zoomed way out --------------------
   constexpr int kMaxCells = 4096;
   const int cols = x1 - x0;
   const int rows = y1 - y0;
@@ -87,6 +85,8 @@ protected:
     SetClearColor({0.15f, 0.20f, 0.30f, 1.0f});
 
     const int loaded = m_Atlas.AddFromDirectory(engine::AssetPath("sprites"));
+    for (const auto &n : m_Atlas.SourceNames())
+      engine::Logger::Info("[Game] loaded source: %s", n.c_str());
 
     m_Atlas.AddSolid("solidWhite", 0xFFFFFFFF, 16);
 
@@ -94,10 +94,20 @@ protected:
       m_Atlas.AddCheckerboard("checkerRed", 8, 0xCC3333FF, 0x661111FF);
     if (!m_Atlas.HasRegion("checkerBlue"))
       m_Atlas.AddCheckerboard("checkerBlue", 8, 0x3366CCFF, 0x112244FF);
-    if (!m_Atlas.HasRegion("tower"))
+    if (!m_Atlas.HasSource("tower"))
       m_Atlas.AddSolid("tower", 0xE65555FF, 16);
 
-    if (!m_Atlas.HasRegion("coin_0")) {
+    if (!m_Atlas.HasSource("hero_idle_0"))
+      for (int i = 0; i < 9; ++i)
+        m_Atlas.AddCheckerboard("hero_idle_" + std::to_string(i), 9 + i,
+                                0xCC3333FF, 0x661111FF);
+
+    if (!m_Atlas.HasSource("hero_attack_0"))
+      for (int i = 0; i < 9; ++i)
+        m_Atlas.AddCheckerboard("hero_attack_" + std::to_string(i), 9 + i,
+                                0xFFDD66FF, 0xAA8800FF);
+
+    if (!m_Atlas.HasSource("coin_0")) {
       for (int i = 0; i < 6; ++i) {
         m_Atlas.AddCheckerboard("coin_" + std::to_string(i), 4 + 1, 0xFFDD66FF,
                                 0xAA8800FF);
@@ -111,6 +121,11 @@ protected:
     m_Animations.AddStrip("coin_spin", m_Atlas, "coin", 6, 0.2f,
                           /*loop=*/true);
 
+    m_Animations.AddStrip("hero_idle", m_Atlas, "hero_idle", 10, 0.15f, true);
+    m_Animations.AddStrip("hero_attack", m_Atlas, "hero_attack", 10, 0.08f,
+                          false);
+    m_Animations.AddStrip("coin_spin", m_Atlas, "coin", 6, 0.08f, true);
+
     engine::Logger::Info(
         loaded > 0
             ? "[Game] using %d real PNGs + fallbacks"
@@ -118,7 +133,6 @@ protected:
         loaded);
 
     BuildDemoScene();
-    // BuildStressScene();
   }
 
   void OnUpdate(double dt) override {
@@ -147,6 +161,14 @@ protected:
       const auto world = camera.ScreenToWorld(
           {static_cast<float>(mx), static_cast<float>(my)});
       GetScene().TransformOf(m_Hero).position = world;
+
+      auto &a = GetScene().AnimatorOf(m_Hero);
+      auto *idleClip = m_Animations.Get("hero_idle");
+      auto *attackClip = m_Animations.Get("hero_attack");
+
+      if (idleClip && attackClip && a.finished && a.clip == attackClip) {
+        a.Play(idleClip);
+      }
     }
 
     // Enemy orbits origin.
@@ -197,8 +219,21 @@ protected:
 
   void OnMouseButton(int button, int action, int mods) override {
     (void)mods;
+
     if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS) {
-      engine::Logger::Info("Left click");
+      if (!GetScene().IsAlive(m_Hero))
+        return;
+
+      auto &animation = GetScene().AnimatorOf(m_Hero);
+      auto *idleClip = m_Animations.Get("hero_idle");
+      auto *attackClip = m_Animations.Get("hero_attack");
+      if (!idleClip || !attackClip)
+        return;
+
+      if (animation.clip != idleClip)
+        return;
+
+      animation.Play(attackClip);
     }
   }
 
@@ -246,20 +281,17 @@ private:
     scene.TransformOf(m_Tower).position = {-4.0f, -2.0f};
     scene.TransformOf(m_Tower).scale = {1.5f, 1.5f};
     scene.SpriteOf(m_Tower).layer = engine::RenderLayer::Entities;
-    // scene.SpriteOf(m_Tower).color = {0.9f, 0.3f, 0.3f, 1.0f};
     ApplyRegion(m_Tower, "tower");
 
     // Green Hero
     m_Hero = scene.CreateEntity("Hero");
     scene.TransformOf(m_Hero).scale = {1.2f, 1.7f};
     scene.SpriteOf(m_Hero).layer = engine::RenderLayer::Entities;
-    // scene.SpriteOf(m_Hero).color = {1.0f, 1.0f, 1.0f, 1.0f};
-    ApplyRegion(m_Hero, "hero");
+    scene.SpriteOf(m_Hero).texture = &m_Atlas.GetTexture();
 
     // Yellow Enemy
     m_Enemy = scene.CreateEntity("Enemy");
     scene.TransformOf(m_Enemy).scale = {0.9f, 1.0f};
-    // scene.SpriteOf(m_Enemy).color = {0.9f, 0.9f, 0.3f, 1.0f};
     scene.SpriteOf(m_Enemy).layer = engine::RenderLayer::Entities;
     ApplyRegion(m_Enemy, "enemy");
 
@@ -270,29 +302,13 @@ private:
     scene.SpriteOf(m_Coin).texture = &m_Atlas.GetTexture();
     scene.SpriteOf(m_Coin).layer = engine::RenderLayer::Ground;
 
+    if (auto *idleClip = m_Animations.Get("hero_idle")) {
+      scene.AnimatorOf(m_Hero).Play(idleClip);
+    }
+
     auto *coinClip = m_Animations.Get("coin_spin");
     if (coinClip)
       scene.AnimatorOf(m_Coin).Play(coinClip);
-  }
-
-  void BuildStressScene() {
-    auto &scene = GetScene();
-
-    for (int y = -25; y < 25; ++y) {
-      for (int x = -25; x < 25; ++x) {
-        auto e = scene.CreateEntity("stress");
-        auto &t = scene.TransformOf(e);
-        auto &s = scene.SpriteOf(e);
-        t.position = {
-            static_cast<float>(x) * 1.1f,
-            static_cast<float>(y) * 1.1,
-        };
-        t.scale = {0.9f, 0.9f};
-        ApplyRegion(e, ((x + y) & 1) ? "checkerRed" : "checkerBlue");
-        s.color = {1, 1, 1, 1};
-        s.layer = engine::RenderLayer::Entities;
-      }
-    }
   }
 
   void DrawSceneDebug() {
@@ -332,6 +348,14 @@ private:
     ImGui::Text("WASD  move");
     ImGui::Text("Q / E rotate");
     ImGui::Text("Wheel zoom at cursor");
+
+    if (GetScene().IsAlive(m_Hero)) {
+      auto &a = GetScene().AnimatorOf(m_Hero);
+      const bool isAttack = a.clip && a.clip == m_Animations.Get("hero_attack");
+      ImGui::Text("Hero: %s  frame %d/%d%s", isAttack ? "attack" : "idle",
+                  a.currentFrame, a.clip ? a.clip->FrameCount() : 0,
+                  a.finished ? " (done)" : "");
+    }
 
     if (ImGui::Button("Spawn entity")) {
       auto e = GetScene().CreateEntity("Spawned");
