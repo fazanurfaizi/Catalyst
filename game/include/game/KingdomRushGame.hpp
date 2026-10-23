@@ -2,6 +2,7 @@
 
 #include "GLFW/glfw3.h"
 #include "engine/animation/AnimationLibrary.hpp"
+#include "engine/assets/AssetPath.hpp"
 #include "engine/core/Game.hpp"
 #include "engine/graphics/Camera.hpp"
 #include "engine/graphics/Renderer.hpp"
@@ -83,28 +84,41 @@ public:
 protected:
   void OnInitialize() override {
     engine::Logger::Info("OnInitialize");
-
     SetClearColor({0.15f, 0.20f, 0.30f, 1.0f});
 
-    m_Atlas.AddCheckerboard("checkerRed", 8, 0xCC3333FF, 0x661111FF);
-    m_Atlas.AddCheckerboard("checkerBlue", 8, 0x3366CCFF, 0x112244FF);
-    m_Atlas.AddSolid("tower", 0xE65555FF, 16);
+    const int loaded = m_Atlas.AddFromDirectory(engine::AssetPath("sprites"));
+
     m_Atlas.AddSolid("solidWhite", 0xFFFFFFFF, 16);
 
-    for (int i = 0; i < 6; ++i) {
-      const std::string name = "coin_" + std::to_string(i);
-      m_Atlas.AddCheckerboard(name, 4 + 1, 0xFFDD66FF, 0xAA8800FF);
+    if (!m_Atlas.HasRegion("checkerRed"))
+      m_Atlas.AddCheckerboard("checkerRed", 8, 0xCC3333FF, 0x661111FF);
+    if (!m_Atlas.HasRegion("checkerBlue"))
+      m_Atlas.AddCheckerboard("checkerBlue", 8, 0x3366CCFF, 0x112244FF);
+    if (!m_Atlas.HasRegion("tower"))
+      m_Atlas.AddSolid("tower", 0xE65555FF, 16);
+
+    if (!m_Atlas.HasRegion("coin_0")) {
+      for (int i = 0; i < 6; ++i) {
+        m_Atlas.AddCheckerboard("coin_" + std::to_string(i), 4 + 1, 0xFFDD66FF,
+                                0xAA8800FF);
+      }
     }
 
     if (!m_Atlas.Pack()) {
       engine::Logger::Error("Atlas pack failed");
     }
 
-    m_Animations.AddStrip("coin_spin", m_Atlas, "coin", 6, 0.08f,
+    m_Animations.AddStrip("coin_spin", m_Atlas, "coin", 6, 0.2f,
                           /*loop=*/true);
 
+    engine::Logger::Info(
+        loaded > 0
+            ? "[Game] using %d real PNGs + fallbacks"
+            : "[Game] no assets/sprites/*.png — using procedural fallbacks",
+        loaded);
+
     BuildDemoScene();
-    BuildStressScene();
+    // BuildStressScene();
   }
 
   void OnUpdate(double dt) override {
@@ -232,22 +246,22 @@ private:
     scene.TransformOf(m_Tower).position = {-4.0f, -2.0f};
     scene.TransformOf(m_Tower).scale = {1.5f, 1.5f};
     scene.SpriteOf(m_Tower).layer = engine::RenderLayer::Entities;
-    scene.SpriteOf(m_Tower).color = {0.9f, 0.3f, 0.3f, 1.0f};
+    // scene.SpriteOf(m_Tower).color = {0.9f, 0.3f, 0.3f, 1.0f};
     ApplyRegion(m_Tower, "tower");
 
     // Green Hero
     m_Hero = scene.CreateEntity("Hero");
-    scene.TransformOf(m_Hero).scale = {0.7f, 0.7f};
-    scene.SpriteOf(m_Hero).color = {1.0f, 1.0f, 1.0f, 1.0f};
+    scene.TransformOf(m_Hero).scale = {1.2f, 1.7f};
     scene.SpriteOf(m_Hero).layer = engine::RenderLayer::Entities;
-    ApplyRegion(m_Hero, "checkerRed");
+    // scene.SpriteOf(m_Hero).color = {1.0f, 1.0f, 1.0f, 1.0f};
+    ApplyRegion(m_Hero, "hero");
 
     // Yellow Enemy
     m_Enemy = scene.CreateEntity("Enemy");
-    scene.TransformOf(m_Enemy).scale = {0.5f, 0.5f};
-    scene.SpriteOf(m_Enemy).color = {0.9f, 0.9f, 0.3f, 1.0f};
+    scene.TransformOf(m_Enemy).scale = {0.9f, 1.0f};
+    // scene.SpriteOf(m_Enemy).color = {0.9f, 0.9f, 0.3f, 1.0f};
     scene.SpriteOf(m_Enemy).layer = engine::RenderLayer::Entities;
-    ApplyRegion(m_Enemy, "checkerBlue");
+    ApplyRegion(m_Enemy, "enemy");
 
     m_Coin = scene.CreateEntity("Coin");
     scene.TransformOf(m_Coin).position = {3.0f, 3.0f};
@@ -298,6 +312,13 @@ private:
       auto &a = GetScene().AnimatorOf(m_Coin);
       ImGui::Text("Coin frame: %d / %d", a.currentFrame,
                   a.clip ? a.clip->FrameCount() : 0);
+    }
+    ImGui::Separator();
+
+    ImGui::Text("Atlas packed: %d sources", m_Atlas.SourceCount());
+    ImGui::Text("Regions:");
+    for (const auto &name : m_Atlas.RegionNames()) {
+      ImGui::BulletText("%s", name.c_str());
     }
     ImGui::Separator();
 

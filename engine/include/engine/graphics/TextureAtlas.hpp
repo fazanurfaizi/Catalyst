@@ -26,6 +26,7 @@ public:
   TextureAtlas &operator=(TextureAtlas &&) noexcept = default;
   TextureAtlas(TextureAtlas &&) noexcept = default;
 
+  int AddFromDirectory(const std::string &directory);
   bool AddFromFile(const std::string &name, const std::string &path);
   bool AddFromPixels(const std::string &name, int w, int h,
                      const std::uint8_t *rgba8);
@@ -39,6 +40,16 @@ public:
   const Texture &GetTexture() const { return m_texture; }
   bool IsPacked() const { return m_texture.IsValid(); }
   int SourceCount() const { return static_cast<int>(m_sources.size()); }
+  bool HasRegion(const std::string &name) const {
+    if (m_regions.count(name) > 0)
+      return true;
+    for (const auto &s : m_sources) {
+      if (s.name == name)
+        return true;
+    }
+    return false;
+  }
+  std::vector<std::string> RegionNames() const;
 
 private:
   struct Source {

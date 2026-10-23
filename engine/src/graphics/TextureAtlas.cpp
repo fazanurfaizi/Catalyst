@@ -3,13 +3,18 @@
 #include "engine/core/Logger.hpp"
 
 #include <algorithm>
+#include <array>
 #include <cmath>
+#include <filesystem>
 #include <stb/stb_image.h>
+#include <system_error>
 #include <utility>
 
 namespace engine {
 
 namespace {
+
+std::array<std::string, 3> kAllowedImageExtensions = {".png", ".jpg", ".jpeg"};
 
 int NextPowerOf2(int v) {
   int p = 1;
@@ -36,6 +41,44 @@ void Unpack(std::uint32_t c, std::uint8_t out[4]) {
 }
 
 } // namespace
+
+int TextureAtlas::AddFromDirectory(const std::string &directory) {
+  namespace fs = std::filesystem;
+
+  std::error_code ec;
+  if (!fs::is_directory(directory, ec) || ec) {
+    Logger::Info(
+        "[TextureAtlas] no directory at %s - using precedural fallback",
+        directory.c_str());
+    return 0;
+  }
+
+  int added = 0;
+  for (const auto &entry : fs::directory_iterator(directory, ec)) {
+    if (ec)
+      break;
+    if (!entry.is_regular_file())
+      continue;
+
+    const auto &path = entry.path();
+    auto it = std::find(kAllowedImageExtensions.begin(),
+                        kAllowedImageExtensions.end(), path.extension());
+    if (it == kAllowedImageExtensions.end())
+      continue;
+
+    const std::string name = path.stem().string();
+    if (AddFromFile(name, path.string())) {
+      ++added;
+    }
+  }
+
+  if (added > 0) {
+    Logger::Info("[TextureAtlas] loaded %d Image(s) from %s", added,
+                 directory.c_str());
+  }
+
+  return added;
+}
 
 bool TextureAtlas::AddFromFile(const std::string &name,
                                const std::string &path) {
@@ -150,8 +193,8 @@ bool TextureAtlas::Pack() {
         const int sx = std::clamp(x - offX, 0, src.width - 1);
         const int sy = std::clamp(y - offY, 0, src.height - 1);
         const std::uint8_t *sp = PixelAt(src.rgba8, src.width, sx, sy);
-        std::uint8_t *dp = PixelAt(dst, atlasSize, cellX * cellSize + x,
-                                   cellY * cellSize + y);
+        std::uint8_t *dp =
+            PixelAt(dst, atlasSize, cellX * cellSize + x, cellY * cellSize + y);
         dp[0] = sp[0];
         dp[1] = sp[1];
         dp[2] = sp[2];
@@ -179,6 +222,15 @@ bool TextureAtlas::Pack() {
 const AtlasRegion *TextureAtlas::GetRegion(const std::string &name) const {
   auto it = m_regions.find(name);
   return it == m_regions.end() ? nullptr : &it->second;
+}
+
+std::vector<std::string> TextureAtlas::RegionNames() const {
+  std::vector<std::string> out;
+  out.reserve(m_regions.size());
+  for (const auto &[name, _] : m_regions)
+    out.push_back(name);
+  std::sort(out.begin(), out.end());
+  return out;
 }
 
 } // namespace engine
