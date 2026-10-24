@@ -120,7 +120,7 @@ bool Game::Run() {
     return false;
   }
 
-  OnInitialize();
+  OnStart();
 
   m_Running = true;
   double last = glfwGetTime();
@@ -131,16 +131,14 @@ bool Game::Run() {
     const double dt = now - last;
     last = now;
 
-    m_Scene.Update(dt);
-    ParticleSystem::Update(m_Scene, dt);
-    OnUpdate(dt);
+    m_stateManager.Update(*this, dt);
 
     glClearColor(m_ClearColor.r, m_ClearColor.g, m_ClearColor.b,
                  m_ClearColor.a);
     glClear(GL_COLOR_BUFFER_BIT);
 
     m_Renderer->Begin(m_Camera);
-    OnRender();
+    m_stateManager.Render(*this);
     m_Renderer->End();
 
     if (m_Config.showFps) {
@@ -163,7 +161,7 @@ bool Game::Run() {
       ImGui_ImplGlfw_NewFrame();
       ImGui::NewFrame();
 
-      OnImGui();
+      m_stateManager.OnImGui(*this);
 
       ImGui::Render();
       ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
@@ -196,29 +194,29 @@ void Game::ThunkKey(GLFWwindow *window, int key, int scancode, int action,
       self->m_Keys[key] = false;
   }
 
-  self->OnKey(key, scancode, action, mods);
+  self->m_stateManager.OnKey(*self, key, scancode, action, mods);
 }
 
 void Game::ThunkMouseButton(GLFWwindow *window, int button, int action,
                             int mods) {
   if (Game *self = FromWindow(window))
-    self->OnMouseButton(button, action, mods);
+    self->m_stateManager.OnMouseButton(*self, button, action, mods);
 }
 
 void Game::ThunkCursorPos(GLFWwindow *window, double x, double y) {
   if (Game *self = FromWindow(window))
-    self->OnMouseMove(x, y);
+    self->m_stateManager.OnMouseMove(*self, x, y);
 }
 
 void Game::ThunkScroll(GLFWwindow *window, double x, double y) {
   if (Game *self = FromWindow(window))
-    self->OnScroll(x, y);
+    self->m_stateManager.OnScroll(*self, x, y);
 }
 
 void Game::ThunkFramebufferSize(GLFWwindow *window, int width, int height) {
   if (Game *self = FromWindow(window)) {
     self->m_Camera.SetViewport(width, height);
-    self->OnResize(width, height);
+    self->m_stateManager.OnResize(*self, width, height);
     glViewport(0, 0, width, height);
   }
 }

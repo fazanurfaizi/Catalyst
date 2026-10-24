@@ -74,6 +74,7 @@ endif()
 # Build vendor libraries
 add_subdirectory(vendor)
 add_subdirectory(engine)
+add_subdirectory(game)
 
 # Build the test apps   
 if(GAME_BUILD_TESTS)
@@ -97,11 +98,8 @@ endif()
 
 target_link_libraries("${GAME_EXE_TARGET_NAME}" PRIVATE
   engine
+  game
   imgui
-)
-
-target_include_directories("${GAME_EXE_TARGET_NAME}" PRIVATE
-  "${CMAKE_CURRENT_SOURCE_DIR}/game/include"
 )
 
 if(GAME_PRODUCTION_BUILD)
