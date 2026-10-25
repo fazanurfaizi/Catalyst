@@ -9,6 +9,7 @@
 #include "engine/components/ParticleEmitter.hpp"
 #include "engine/components/Sprite.hpp"
 #include "engine/components/Transform.hpp"
+#include "engine/components/Velocity.hpp"
 
 #include <glm/glm.hpp>
 
@@ -30,6 +31,9 @@ public:
 
   Sprite &SpriteOf(Entity entity);
   const Sprite &SpriteOf(Entity entity) const;
+
+  Velocity &VelocityOf(Entity entity);
+  const Velocity &VelocityOf(Entity entity) const;
 
   const std::string &NameOf(Entity entity) const;
 
@@ -57,12 +61,16 @@ public:
 
   Entity FindEntity(const std::string &name) const;
 
+  Entity GetTopEntityAt(const glm::vec2 &worldPos,
+                        RenderLayer minLayer = RenderLayer::Ground) const;
+
 private:
   struct Entry {
     std::string name;
     Transform transform;
     Sprite sprite;
     Animator animator;
+    Velocity velocity;
     std::optional<Particle> particle;
     std::optional<ParticleEmitter> emitter;
   };

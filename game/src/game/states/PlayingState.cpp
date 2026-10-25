@@ -1,5 +1,6 @@
 #include "game/states/PlayingState.hpp"
 
+#include "GLFW/glfw3.h"
 #include "engine/animation/ParticleSystem.hpp"
 #include "engine/assets/AssetPath.hpp"
 #include "engine/components/Sprite.hpp"
@@ -84,8 +85,11 @@ void PlayingState::BuildDemoScene(engine::Game &game) {
   // Green Hero
   m_hero = m_scene.CreateEntity("Hero");
   m_scene.TransformOf(m_hero).scale = {1.2f, 1.7f};
+  m_scene.TransformOf(m_hero).position = {4.0f, -2.0f};
   m_scene.SpriteOf(m_hero).layer = engine::RenderLayer::Entities;
   m_scene.SpriteOf(m_hero).texture = &m_atlas.GetTexture();
+  m_scene.VelocityOf(m_hero).targetPosition =
+      m_scene.TransformOf(m_hero).position;
   ApplyRegion(m_hero, "hero_idle_0");
 
   // Yellow Enemy
@@ -169,6 +173,7 @@ void PlayingState::OnEnter(engine::Game &game) {
   m_animations.AddStrip("hero_idle", m_atlas, "hero_idle", 10, 0.15f, true);
   m_animations.AddStrip("hero_attack", m_atlas, "hero_attack", 10, 0.08f,
                         false);
+  m_animations.AddStrip("hero_move", m_atlas, "hero_move", 10, 0.1f, true);
   m_animations.AddStrip("coin_spin", m_atlas, "coin", 6, 0.08f, true);
 
   engine::Logger::Info(
@@ -200,18 +205,40 @@ void PlayingState::OnUpdate(engine::Game &game, double dt) {
     glfwSetWindowShouldClose(game.Window(), GLFW_TRUE);
 
   if (m_scene.IsAlive(m_hero)) {
-    double mx, my;
-    glfwGetCursorPos(game.Window(), &mx, &my);
-    const auto world =
-        camera.ScreenToWorld({static_cast<float>(mx), static_cast<float>(my)});
-    m_scene.TransformOf(m_hero).position = world;
-
     auto &a = m_scene.AnimatorOf(m_hero);
+    auto &t = m_scene.TransformOf(m_hero);
+    auto &v = m_scene.VelocityOf(m_hero);
+
     auto *idleClip = m_animations.Get("hero_idle");
     auto *attackClip = m_animations.Get("hero_attack");
+    auto *moveClip = m_animations.Get("hero_move");
 
     if (idleClip && attackClip && a.finished && a.clip == attackClip) {
       a.Play(idleClip);
+    }
+
+    const glm::vec2 delta = v.targetPosition - t.position;
+    const float dist = glm::length(delta);
+    const bool isMoving = dist > 0.05f;
+
+    if (isMoving) {
+      const float step = std::min(v.speed * static_cast<float>(dt), dist);
+      t.position += (delta / dist) * step;
+
+      if (delta.x > 0)
+        t.scale.x = std::abs(t.scale.x);
+      else if (delta.x < 0)
+        t.scale.x = -std::abs(t.scale.x);
+
+      if (idleClip && a.clip != attackClip && a.clip != moveClip && moveClip) {
+        a.Play(moveClip);
+      }
+    } else {
+      t.position = v.targetPosition;
+
+      if (idleClip && a.clip != attackClip && a.clip != idleClip) {
+        a.Play(idleClip);
+      }
     }
   }
 
@@ -247,9 +274,6 @@ void PlayingState::OnRender(engine::Game &game) {
 
   m_textRenderer.Draw(m_font, "Kingdom Rush Frontiers", {1260.0f, 100.0f}, 2.0f,
                       {1.0f, 0.85f, 0.2f, 1.0f}, uiProjection);
-
-  m_textRenderer.Draw(m_font, "Adinda Salshabila Gunawan", {1260.0f, 300.0f},
-                      2.0f, {1.0f, 0.85f, 0.2f, 1.0f}, uiProjection);
 }
 
 void PlayingState::OnImGui(engine::Game &game) {
@@ -288,10 +312,14 @@ void PlayingState::OnScroll(engine::Game &game, double dx, double dy) {
 void PlayingState::OnMouseButton(engine::Game &game, int button, int action,
                                  int mods) {
   (void)mods;
+  double mx, my;
+  glfwGetCursorPos(game.Window(), &mx, &my);
+  auto &camera = game.GetCamera();
+  glm::vec2 worldPos =
+      camera.ScreenToWorld({static_cast<float>(mx), static_cast<float>(my)});
 
   if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS) {
-    if (!m_scene.IsAlive(m_hero))
-      return;
+    engine::Entity clicked = m_scene.GetTopEntityAt(worldPos);
 
     auto &animation = m_scene.AnimatorOf(m_hero);
     auto *idleClip = m_animations.Get("hero_idle");
@@ -303,6 +331,10 @@ void PlayingState::OnMouseButton(engine::Game &game, int button, int action,
       return;
 
     animation.Play(attackClip);
+  }
+
+  if (button == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_PRESS) {
+    m_scene.VelocityOf(m_hero).targetPosition = worldPos;
   }
 }
 

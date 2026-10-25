@@ -1,5 +1,6 @@
 #pragma once
 
+#include "engine/math/Rect.hpp"
 #include <glm/glm.hpp>
 
 namespace engine {
@@ -53,6 +54,8 @@ public:
   glm::vec2 ScreenToWorld(const glm::vec2 &screen) const;
 
   WorldBounds VisibleWorldBounds() const;
+
+  Rect GetViewportBounds() const;
 
 private:
   glm::vec3 m_Position{0.0f};

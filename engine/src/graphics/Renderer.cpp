@@ -68,12 +68,17 @@ void Renderer::DrawScene(const Scene &scene) {
   if (m_cullEnabled)
     view = m_camera->VisibleWorldBounds();
 
+  Rect viewRect = m_camera->GetViewportBounds();
+
   scene.ForEach([&](Entity, const Transform &t, const Sprite &s) {
     if (m_cullEnabled) {
       float ex, ey;
       HalfExtents(t, ex, ey);
-      if (!view.Overlaps(t.position.x - ex, t.position.x + ex,
-                         t.position.y - ey, t.position.y + ey)) {
+
+      Rect entityRect(t.position.x - ex, t.position.y - ey, ex * 2.0f,
+                      ey * 2.0f);
+
+      if (!viewRect.Intersects(entityRect)) {
         ++culled;
         return;
       }

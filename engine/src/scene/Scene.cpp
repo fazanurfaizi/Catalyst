@@ -1,4 +1,5 @@
 #include "engine/scene/Scene.hpp"
+#include "engine/math/Rect.hpp"
 #include <cassert>
 
 namespace engine {
@@ -71,6 +72,43 @@ Entity Scene::FindEntity(const std::string &name) const {
   return kInvalidEntity;
 }
 
+Entity Scene::GetTopEntityAt(const glm::vec2 &worldPos,
+                             RenderLayer minLayer) const {
+  Entity bestEntity = kInvalidEntity;
+  int highestLayer = -1;
+  float highestY = -FLT_MIN;
+
+  glm::vec2 mousePos(worldPos.x, worldPos.y);
+
+  for (std::size_t i = 0; i < m_Entries.size(); ++i) {
+    if (!m_Alive[i])
+      continue;
+    const auto &entry = m_Entries[i];
+
+    if (entry.sprite.layer < minLayer)
+      continue;
+
+    // Calculate AABB
+    // @NOTE: for simplicity, ignore rotation for now
+    Rect entityAABB = Rect::FromCenter(
+        {entry.transform.position.x, entry.transform.position.y},
+        entry.transform.scale.x, entry.transform.scale.y);
+
+    if (entityAABB.Contains(mousePos)) {
+      // Prioritize by Layer
+      int layer = static_cast<int>(entry.sprite.layer);
+      float ySort = entry.transform.position.y;
+
+      if (layer > highestLayer || (layer == highestLayer && ySort > highestY)) {
+        bestEntity = static_cast<Entity>(i);
+        highestLayer = layer;
+        highestY = ySort;
+      }
+    }
+  }
+  return bestEntity;
+}
+
 bool Scene::IsAlive(Entity entity) const {
   return entity < m_Entries.size() && m_Alive[entity] != 0;
 }
@@ -88,6 +126,16 @@ Transform &Scene::TransformOf(Entity entity) {
 const Transform &Scene::TransformOf(Entity entity) const {
   assert(IsAlive(entity) && "TransformOf: dead entity");
   return m_Entries[entity].transform;
+}
+
+Velocity &Scene::VelocityOf(Entity entity) {
+  assert(IsAlive(entity) && "VelocityOf: dead entity");
+  return m_Entries[entity].velocity;
+}
+
+const Velocity &Scene::VelocityOf(Entity entity) const {
+  assert(IsAlive(entity) && "VelocityOf: dead entity");
+  return m_Entries[entity].velocity;
 }
 
 Sprite &Scene::SpriteOf(Entity entity) {
@@ -123,6 +171,7 @@ std::optional<ParticleEmitter> &Scene::EmitterOf(Entity e) {
   assert(IsAlive(e) && "EmitterOf: dead entity");
   return m_Entries[e].emitter;
 }
+
 const std::optional<ParticleEmitter> &Scene::EmitterOf(Entity e) const {
   assert(IsAlive(e) && "EmitterOf: dead entity");
   return m_Entries[e].emitter;

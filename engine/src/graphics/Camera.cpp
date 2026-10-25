@@ -84,4 +84,18 @@ WorldBounds Camera::VisibleWorldBounds() const {
   return b;
 }
 
+Rect Camera::GetViewportBounds() const {
+  const float w = static_cast<float>(m_ViewportW);
+  const float h = static_cast<float>(m_ViewportH);
+  const auto tl = ScreenToWorld({0.0f, 0.0f});
+  const auto br = ScreenToWorld({w, h});
+
+  float minX = std::min(tl.x, br.x);
+  float maxX = std::max(tl.x, br.x);
+  float minY = std::min(tl.y, br.y);
+  float maxY = std::max(tl.y, br.y);
+
+  return Rect(minX, minY, maxX - minX, maxY - minY);
+}
+
 } // namespace engine

@@ -16,6 +16,7 @@ add_library(engine STATIC
   src/animation/AnimationLibrary.cpp
   src/scene/SceneSerializer.cpp
   src/animation/ParticleSystem.cpp
+  src/math/Rect.cpp
 )
 
 # Public include root. Consumers see: include <glgame/core/Logger.hpp>
