@@ -26,6 +26,9 @@ public:
 
   void Draw(const Transform &t, const Sprite &s);
   void DrawScene(const Scene &scene);
+  // void DrawText(const Font &font, const std::string &text,
+  //               const glm::vec2 &position,
+  //               const glm::vec4 &color = {1, 1, 1, 1}, float scale = 1.0f);
 
   void SetCullingEnabled(bool enabled) { m_cullEnabled = enabled; }
   bool CullingEnabled() const { return m_cullEnabled; }

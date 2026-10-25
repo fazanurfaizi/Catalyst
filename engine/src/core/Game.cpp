@@ -51,7 +51,7 @@ Game::Game(const WindowConfig &config) : m_Config(config) {
   }
 
   m_Window = glfwCreateWindow(m_Config.width, m_Config.height,
-                              m_Config.title.c_str(), nullptr, nullptr);
+                              m_Config.title.c_str(), targetMonitor, nullptr);
 
   if (!m_Window) {
     Logger::Error("glfwCreateWindow failed");

@@ -1,5 +1,7 @@
 #include "engine/graphics/Renderer.hpp"
 
+#include "engine/components/Sprite.hpp"
+#include "engine/components/Transform.hpp"
 #include "engine/graphics/SpriteBatch.hpp"
 #include "engine/scene/Scene.hpp"
 #include <algorithm>
@@ -95,6 +97,46 @@ void Renderer::DrawScene(const Scene &scene) {
 
   m_lastCulled = culled;
 }
+
+// void Renderer::DrawText(const Font &font, const std::string &text,
+//                         const glm::vec2 &position, const glm::vec4 &color,
+//                         float scale) {
+//   float cursorX = position.x;
+//   float cursorY = position.y;
+//
+//   for (char c : text) {
+//     if (c == '\n') {
+//       cursorX = position.x;
+//       cursorY -= font.LineHeight() * scale;
+//       continue;
+//     }
+//
+//     const Glyph *g = font.GetGlyph(c);
+//     if (!g)
+//       continue;
+//
+//     if (c != ' ') {
+//       Transform t;
+//       t.position = {
+//           cursorX + (g->width * scale * 0.5f),
+//           cursorY + (g->height * scale * 0.5f),
+//       };
+//       t.scale = {
+//           static_cast<float>(g->width) * scale,
+//           static_cast<float>(g->height) * scale,
+//       };
+//
+//       Sprite s;
+//       s.texture = &font.GetTexture();
+//       s.uvMin = g->uvMin;
+//       s.uvMax = g->uvMax;
+//       s.color = color;
+//
+//       m_batch->DrawQuad(t, s);
+//     }
+//     cursorX += (g->advance * scale);
+//   }
+// }
 
 std::uint32_t Renderer::DrawCalls() const { return m_batch->LastDrawCalls(); }
 std::uint32_t Renderer::QuadCount() const { return m_batch->LastQuadCount(); }

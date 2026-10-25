@@ -9,7 +9,10 @@ add_library(engine STATIC
   src/graphics/Texture.cpp
   src/graphics/TextureAtlas.cpp
   src/graphics/Renderer.cpp
+  src/graphics/TextRenderer.cpp
+  src/graphics/Font.cpp
   src/graphics/stbi_image_impl.cpp
+  src/graphics/stb_truetype_impl.cpp
   src/animation/AnimationLibrary.cpp
   src/scene/SceneSerializer.cpp
   src/animation/ParticleSystem.cpp

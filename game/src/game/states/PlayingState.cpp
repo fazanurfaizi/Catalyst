@@ -10,6 +10,7 @@
 #include "engine/graphics/Renderer.hpp"
 #include "engine/graphics/TextureAtlas.hpp"
 #include "engine/scene/SceneSerializer.hpp"
+#include "glm/ext/matrix_clip_space.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -128,8 +129,7 @@ void PlayingState::OnEnter(engine::Game &game) {
   game.SetClearColor({0.15f, 0.20f, 0.30f, 1.0f});
 
   const int loaded = m_atlas.AddFromDirectory(engine::AssetPath("sprites"));
-  for (const auto &n : m_atlas.SourceNames())
-    engine::Logger::Info("[Game] loaded source: %s", n.c_str());
+  m_font.LoadFromFile(engine::AssetPath("fonts/Roboto-Regular.ttf"), 32.0f);
 
   m_atlas.AddSolid("solidWhite", 0xFFFFFFFF, 16);
 
@@ -232,8 +232,24 @@ void PlayingState::OnRender(engine::Game &game) {
   auto &camera = game.GetCamera();
 
   game.SetClearColor({0.10f, 0.12f, 0.16f, 1.0f});
+
+  renderer.Begin(camera);
   DrawWorldGrid(renderer, camera, m_atlas);
   renderer.DrawScene(m_scene);
+  renderer.End();
+
+  glm::mat4 uiProjection =
+      glm::ortho(0.0f, (float)camera.ViewportWidth(),
+                 (float)camera.ViewportHeight(), 0.0f, -1.0f, 1.0f);
+
+  m_textRenderer.Draw(m_font, "Gold: 100", {60.0f, 100.0f}, 2.0f,
+                      {1.0f, 0.85f, 0.2f, 1.0f}, uiProjection);
+
+  m_textRenderer.Draw(m_font, "Kingdom Rush Frontiers", {1260.0f, 100.0f}, 2.0f,
+                      {1.0f, 0.85f, 0.2f, 1.0f}, uiProjection);
+
+  m_textRenderer.Draw(m_font, "Adinda Salshabila Gunawan", {1260.0f, 300.0f},
+                      2.0f, {1.0f, 0.85f, 0.2f, 1.0f}, uiProjection);
 }
 
 void PlayingState::OnImGui(engine::Game &game) {

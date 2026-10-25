@@ -3,6 +3,8 @@
 #include "engine/animation/AnimationLibrary.hpp"
 #include "engine/core/Game.hpp"
 #include "engine/core/GameState.hpp"
+#include "engine/graphics/Font.hpp"
+#include "engine/graphics/TextRenderer.hpp"
 #include "engine/graphics/TextureAtlas.hpp"
 #include "engine/scene/Scene.hpp"
 
@@ -26,6 +28,8 @@ private:
   engine::Scene m_scene;
   engine::TextureAtlas m_atlas;
   engine::AnimationLibrary m_animations;
+  engine::TextRenderer m_textRenderer;
+  engine::Font m_font;
 
   engine::Entity m_coin = engine::kInvalidEntity;
   engine::Entity m_tower = engine::kInvalidEntity;

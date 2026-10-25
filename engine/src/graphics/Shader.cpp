@@ -12,8 +12,10 @@ namespace engine {
 namespace {
 GLuint CompileStage(GLenum type, const std::string &src) {
   const GLuint shader = glCreateShader(type);
-  if (shader == 0)
+  if (shader == 0) {
+    Logger::Error("[Shader] Failed to create shader");
     return 0;
+  }
 
   const char *srcPtr = src.c_str();
   glShaderSource(shader, 1, &srcPtr, nullptr);
