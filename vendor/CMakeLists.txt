@@ -78,6 +78,15 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(nlohmann_json)
 
+# Miniaudio
+FetchContent_Declare(
+  miniaudio
+  GIT_REPOSITORY https://github.com/mackron/miniaudio.git
+  GIT_TAG        0.11.22
+  GIT_SHALLOW    TRUE
+)
+FetchContent_MakeAvailable(miniaudio)
+
 if(NOT TARGET imgui)
   # Fallback for older ImGui tags without CMakeLists.txt
   file(GLOB IMGUI_CORE_SOURCES

@@ -102,6 +102,8 @@ Game::~Game() {
     ImGui::DestroyContext();
   }
 
+  m_audio.Shutdown();
+
   m_Renderer.reset();
 
   if (m_Window) {

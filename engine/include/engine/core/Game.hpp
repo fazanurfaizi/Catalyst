@@ -1,5 +1,6 @@
 #pragma once
 
+#include "engine/audio/AudioEngine.hpp"
 #include "engine/core/GameStateManager.hpp"
 #include <array>
 #include <memory>
@@ -48,10 +49,10 @@ public:
   graphics::Renderer &GetRenderer() { return *m_Renderer; }
   const graphics::Renderer &GetRenderer() const { return *m_Renderer; }
 
+  audio::AudioEngine &GetAudio() { return m_audio; }
+
 protected:
   virtual void OnStart() {}
-  // virtual void OnUpdate(double deltaTime) {}
-  // virtual void OnRender() {}
   virtual void OnShutdown() {}
 
 private:
@@ -59,6 +60,7 @@ private:
   GLFWwindow *m_Window{nullptr};
 
   GameStateManager m_stateManager;
+  audio::AudioEngine m_audio;
   std::unique_ptr<graphics::Renderer> m_Renderer;
 
   glm::vec4 m_ClearColor{0.15f, 0.20f, 0.30f, 1.0f};

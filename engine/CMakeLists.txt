@@ -1,6 +1,8 @@
 add_library(engine STATIC
   src/assets/AnimationLibrary.cpp
 
+  src/audio/AudioEngine.cpp
+
   src/core/Game.cpp
   src/core/GameStateManager.cpp
 
@@ -48,6 +50,7 @@ target_link_libraries(engine PRIVATE
   imgui
   stb_image
   nlohmann_json::nlohmann_json
+  miniaudio
 )
 
 target_compile_definitions(engine PUBLIC

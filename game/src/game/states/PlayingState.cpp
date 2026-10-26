@@ -140,6 +140,8 @@ void PlayingState::OnEnter(engine::core::Game &game) {
   m_animations.AddStrip("hero_move", m_atlas, "hero_move", 10, 0.1f, true);
   m_animations.AddStrip("coin_spin", m_atlas, "coin", 6, 0.08f, true);
 
+  game.GetAudio().PlayMusic(engine::AssetPath("audio/bg_theme.mp3"));
+
   engine::Logger::Info(
       loaded > 0
           ? "[Game] using %d real PNGs + fallbacks"
@@ -148,6 +150,7 @@ void PlayingState::OnEnter(engine::core::Game &game) {
 
   BuildDemoScene(game);
 }
+
 void PlayingState::OnUpdate(engine::core::Game &game, double dt) {
   auto &reg = m_world.Registry();
   auto &camera = reg.Get<engine::components::Camera2D>(m_camera);
