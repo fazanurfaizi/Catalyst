@@ -1,6 +1,7 @@
 #pragma once
 
 #include "SpareSet.hpp"
+#include "engine/utils/Logger.hpp"
 
 #include <cassert>
 #include <cstdint>
@@ -37,7 +38,7 @@ public:
     return Entity{index, generations_[index]};
   }
 
-  void Destry(Entity e) noexcept {
+  void Destroy(Entity e) noexcept {
     if (!IsAlive(e))
       return;
     for (auto &[ti, storage] : storages_) {
@@ -56,7 +57,7 @@ public:
 
   void FlushDeferred() {
     for (auto e : pending_destroy_) {
-      Destry(e);
+      Destroy(e);
     }
     pending_destroy_.clear();
   }

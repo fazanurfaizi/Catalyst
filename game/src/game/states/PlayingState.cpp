@@ -413,65 +413,34 @@ void PlayingState::DrawSceneDebug(engine::core::Game &game) {
 
   ImGui::Separator();
 
-  // if (ImGui::Button("Spawn Particle Emitter")) {
-  //   auto e = m_scene.CreateEntity("Emitter");
-  //   m_scene.TransformOf(e).position = {(float)(rand() % 20 - 10),
-  //                                      (float)(rand() % 14 - 7)};
-  //
-  //   auto &emit = m_scene.EmitterOf(e).emplace();
-  //   emit.emitRate = 200.0f;
-  //   emit.minLife = 0.5f;
-  //   emit.maxLife = 1.5f;
-  //   emit.minSpeed = 1.0f;
-  //   emit.maxSpeed = 5.0f;
-  //   emit.minScale = 0.1f;
-  //   emit.maxScale = 0.3f;
-  //   emit.duration = 1.5f;
-  //
-  //   emit.startColor = {1.0f, 0.8f, 0.2f, 1.0f};
-  //   emit.endColor = {1.0f, 0.0f, 0.0f, 0.0f};
-  //
-  //   emit.texture = &m_atlas.GetTexture();
-  //   if (auto *r = m_atlas.GetRegion("solidWhite")) {
-  //     emit.uvMin = r->uvMin;
-  //     emit.uvMax = r->uvMax;
-  //   }
-  //   emit.layer = engine::RenderLayer::Overlay;
-  // }
+  if (ImGui::Button("Spawn Particle Emitter")) {
+    auto e = m_world.CreateEntity("Emitter");
+    reg.Emplace<engine::components::Transform>(
+        e,
+        engine::components::Transform{
+            .position = {(float)(rand() % 20 - 10), (float)(rand() % 14 - 7)}});
 
-  // if (ImGui::Button("Save Scene")) {
-  //   engine::SceneSerializer::Save(m_scene, m_atlas, "scene.json");
-  // }
-  //
-  // if (ImGui::Button("Load Scene")) {
-  //   if (engine::SceneSerializer::Load(m_scene, m_atlas, "scene.json")) {
-  //     m_tower = m_scene.FindEntity("Tower");
-  //     m_hero = m_scene.FindEntity("Hero");
-  //     m_enemy = m_scene.FindEntity("Enemy");
-  //     m_coin = m_scene.FindEntity("Coin");
-  //
-  //     if (m_scene.IsAlive(m_hero)) {
-  //       if (auto *idle = m_animations.Get("hero_idle"))
-  //         m_scene.AnimatorOf(m_hero).Play(idle);
-  //     }
-  //
-  //     if (m_scene.IsAlive(m_coin)) {
-  //       if (auto *coin = m_animations.Get("coin_spin"))
-  //         m_scene.AnimatorOf(m_coin).Play(coin);
-  //     }
-  //   }
-  // }
+    reg.Emplace<engine::components::ParticleEmitter>(
+        e, engine::components::ParticleEmitter{
+               .emitRate = 200.0f,
+               .duration = 1.5f,
+               .minLife = 0.5f,
+               .maxLife = 1.5f,
+               .minSpeed = 1.0f,
+               .maxSpeed = 5.0f,
+               .minScale = 0.1f,
+               .maxScale = 0.3f,
+               .startColor = {1.0f, 0.8f, 0.2f, 1.0f},
+               .endColor = {1.0f, 0.0f, 0.0f, 0.0f},
+               .texture = &m_atlas.GetTexture()});
 
-  // ImGui::Separator();
-  //
-  // if (ImGui::Button("Spawn entity")) {
-  //   auto e = m_scene.CreateEntity("Spawned");
-  //   auto &t = m_scene.TransformOf(e);
-  //   auto &s = m_scene.SpriteOf(e);
-  //   t.position = {(float)(rand() % 20 - 10), (float)(rand() % 14 - 7)};
-  //   t.scale = {0.5f, 0.5f};
-  //   ApplyRegion(e, (rand() & 1) ? "checkerRed" : "checkerBlue");
-  //   s.color = {1, 1, 1, 1};
-  // }
+    if (auto *r = m_atlas.GetRegion("solidWhite")) {
+      reg.Get<engine::components::ParticleEmitter>(e).uvMin = r->uvMin;
+      reg.Get<engine::components::ParticleEmitter>(e).uvMax = r->uvMax;
+    }
+  }
+
+  ImGui::Separator();
+
   ImGui::End();
 }
