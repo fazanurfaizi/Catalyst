@@ -20,6 +20,7 @@ Entity Scene::CreateEntity(const std::string &name) {
   entry.transform = {};
   entry.sprite = {};
   entry.animator = {};
+  entry.velocity = {};
   entry.particle.reset();
   entry.emitter.reset();
 
