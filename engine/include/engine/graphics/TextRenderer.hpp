@@ -6,7 +6,7 @@
 #include <glm/glm.hpp>
 #include <string>
 
-namespace engine {
+namespace engine::graphics {
 
 class TextRenderer {
 public:
@@ -23,4 +23,4 @@ private:
   Shader m_shader;
 };
 
-} // namespace engine
+} // namespace engine::graphics

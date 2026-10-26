@@ -2,7 +2,6 @@
 
 #include "engine/core/Game.hpp"
 #include "engine/core/GameState.hpp"
-#include "engine/core/Logger.hpp"
 
 #include "game/states/MenuState.hpp"
 
@@ -11,11 +10,11 @@
 
 #include <cmath>
 
-class KingdomRushGame final : public engine::Game {
+class KingdomRushGame final : public engine::core::Game {
 public:
   KingdomRushGame()
-      : engine::Game([] {
-          engine::WindowConfig cfg;
+      : engine::core::Game([] {
+          engine::core::WindowConfig cfg;
           cfg.title = "Kingdom Rush Frontiers";
           return cfg;
         }()) {}

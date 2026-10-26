@@ -1,38 +1,37 @@
 #pragma once
 
+#include "engine/assets/AnimationLibrary.hpp"
 #include "engine/core/Game.hpp"
 #include "engine/core/GameState.hpp"
 #include "engine/ecs/Entity.hpp"
 #include "engine/graphics/Font.hpp"
 #include "engine/graphics/TextRenderer.hpp"
 #include "engine/graphics/TextureAtlas.hpp"
+#include "engine/scene/World.hpp"
 
-#include "game/World.hpp"
-#include "game/assets/AnimationLibrary.hpp"
-
-class PlayingState final : public engine::GameState {
+class PlayingState final : public engine::core::GameState {
 public:
-  void OnEnter(engine::Game &game) override;
+  void OnEnter(engine::core::Game &game) override;
 
-  void OnUpdate(engine::Game &game, double dt) override;
-  void OnRender(engine::Game &game) override;
-  void OnImGui(engine::Game &game) override;
+  void OnUpdate(engine::core::Game &game, double dt) override;
+  void OnRender(engine::core::Game &game) override;
+  void OnImGui(engine::core::Game &game) override;
 
-  void OnKey(engine::Game &game, int key, int scancode, int action,
+  void OnKey(engine::core::Game &game, int key, int scancode, int action,
              int mods) override;
-  void OnScroll(engine::Game &game, double dx, double dy) override;
-  void OnMouseButton(engine::Game &game, int button, int action,
+  void OnScroll(engine::core::Game &game, double dx, double dy) override;
+  void OnMouseButton(engine::core::Game &game, int button, int action,
                      int mods) override;
-  void OnMouseMove(engine::Game &game, double x, double y) override;
-  void OnResize(engine::Game &game, int width, int height) override;
+  void OnMouseMove(engine::core::Game &game, double x, double y) override;
+  void OnResize(engine::core::Game &game, int width, int height) override;
 
 private:
-  game::World m_world;
-  game::AnimationLibrary m_animations;
+  engine::scene::World m_world;
+  engine::assets::AnimationLibrary m_animations;
 
-  engine::TextureAtlas m_atlas;
-  engine::TextRenderer m_textRenderer;
-  engine::Font m_font;
+  engine::graphics::TextureAtlas m_atlas;
+  engine::graphics::TextRenderer m_textRenderer;
+  engine::graphics::Font m_font;
 
   engine::ecs::Entity m_camera{};
   engine::ecs::Entity m_coin{};
@@ -40,7 +39,7 @@ private:
   engine::ecs::Entity m_hero{};
   engine::ecs::Entity m_enemy{};
 
-  void BuildDemoScene(engine::Game &game);
+  void BuildDemoScene(engine::core::Game &game);
   void ApplyRegion(engine::ecs::Entity e, const char *region);
-  void DrawSceneDebug(engine::Game &game);
+  void DrawSceneDebug(engine::core::Game &game);
 };

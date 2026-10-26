@@ -5,7 +5,7 @@
 #include <map>
 #include <string>
 
-namespace engine {
+namespace engine::graphics {
 
 struct Character {
   GLuint textureId;
@@ -28,4 +28,4 @@ private:
   std::map<char, Character> m_characters;
 };
 
-} // namespace engine
+} // namespace engine::graphics

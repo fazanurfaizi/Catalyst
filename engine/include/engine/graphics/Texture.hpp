@@ -3,7 +3,7 @@
 #include <cstdint>
 #include <string>
 
-namespace engine {
+namespace engine::graphics {
 
 class Texture {
 public:
@@ -41,4 +41,4 @@ private:
   int m_Height = 0;
 };
 
-} // namespace engine
+} // namespace engine::graphics

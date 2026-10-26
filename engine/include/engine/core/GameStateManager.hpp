@@ -4,7 +4,7 @@
 
 #include "engine/core/GameState.hpp"
 
-namespace engine {
+namespace engine::core {
 
 class Game;
 
@@ -33,4 +33,4 @@ private:
   bool m_hasPending = false;
 };
 
-} // namespace engine
+} // namespace engine::core

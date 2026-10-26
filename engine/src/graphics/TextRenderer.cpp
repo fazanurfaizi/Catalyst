@@ -1,12 +1,12 @@
 #include "engine/graphics/TextRenderer.hpp"
 
-#include "engine/core/Logger.hpp"
+#include "engine/utils/Logger.hpp"
 #include "glad/gl.h"
 
 #include <glm/gtc/type_ptr.hpp>
 #include <vector>
 
-namespace engine {
+namespace engine::graphics {
 
 const char *vShaderSrc = R"(
 #version 330 core
@@ -137,4 +137,4 @@ void TextRenderer::Draw(const Font &font, const std::string &text,
   m_shader.Unbind();
 }
 
-} // namespace engine
+} // namespace engine::graphics

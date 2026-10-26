@@ -1,13 +1,13 @@
 #include "engine/graphics/Shader.hpp"
 
-#include "engine/core/Logger.hpp"
+#include "engine/utils/Logger.hpp"
 
 #include <glad/gl.h>
 #include <glm/gtc/type_ptr.hpp>
 
 #include <vector>
 
-namespace engine {
+namespace engine::graphics {
 
 namespace {
 GLuint CompileStage(GLenum type, const std::string &src) {
@@ -107,4 +107,4 @@ void Shader::SetInt(const char *name, int v) {
   glUniform1i(glGetUniformLocation(m_Program, name), v);
 }
 
-} // namespace engine
+} // namespace engine::graphics

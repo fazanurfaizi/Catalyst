@@ -3,7 +3,7 @@
 
 #include "Math.hpp"
 
-namespace engine {
+namespace engine::math {
 
 /// Floating-point RGBA. 1.0 == full intensity.
 struct Color {
@@ -29,13 +29,13 @@ struct Color {
   }
 };
 
-inline constexpr Color kWhite{1.0f, 1.0f, 1.0f, 1.0f};
-inline constexpr Color kBlack{0.0f, 0.0f, 0.0f, 1.0f};
-inline constexpr Color kTransparent{0.0f, 0.0f, 0.0f, 0.0f};
+inline constexpr Color kColorWhite{1.0f, 1.0f, 1.0f, 1.0f};
+inline constexpr Color kColorBlack{0.0f, 0.0f, 0.0f, 1.0f};
+inline constexpr Color kColorTransparent{0.0f, 0.0f, 0.0f, 0.0f};
 
 inline Color lerp(const Color &a, const Color &b, float t) {
   return {lerpf(a.r, b.r, t), lerpf(a.g, b.g, t), lerpf(a.b, b.b, t),
           lerpf(a.a, b.a, t)};
 }
 
-} // namespace engine
+} // namespace engine::math

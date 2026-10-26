@@ -3,21 +3,24 @@
 #include "GLFW/glfw3.h"
 
 #include "engine/assets/AssetPath.hpp"
+#include "engine/components/Sprite.hpp"
+#include "engine/components/Transform.hpp"
 #include "engine/core/Game.hpp"
-#include "engine/core/Logger.hpp"
 #include "engine/graphics/Renderer.hpp"
 #include "engine/graphics/TextureAtlas.hpp"
+#include "engine/math/Color.hpp"
 #include "engine/scene/SceneSerializer.hpp"
+#include "engine/utils/Logger.hpp"
 
-#include "game/components/Animator.hpp"
-#include "game/components/Camera2D.hpp"
-#include "game/components/RenderLayer.hpp"
-#include "game/components/Velocity.hpp"
-#include "game/systems/AnimationSystem.hpp"
-#include "game/systems/CameraFollowSystem.hpp"
-#include "game/systems/MovementSystem.hpp"
-#include "game/systems/ParticleSystem.hpp"
-#include "game/systems/RenderSystem.hpp"
+#include "engine/components/Animator.hpp"
+#include "engine/components/Camera2D.hpp"
+#include "engine/components/RenderLayer.hpp"
+#include "engine/components/Velocity.hpp"
+#include "engine/systems/AnimationSystem.hpp"
+#include "engine/systems/CameraFollowSystem.hpp"
+#include "engine/systems/MovementSystem.hpp"
+#include "engine/systems/ParticleSystem.hpp"
+#include "engine/systems/RenderSystem.hpp"
 #include "glm/ext/matrix_clip_space.hpp"
 
 #include <algorithm>
@@ -28,8 +31,9 @@
 #include <imgui.h>
 
 namespace {
-void DrawWorldGrid(engine::Renderer &renderer, const game::Camera2D &camera,
-                   const engine::TextureAtlas &atlas) {
+void DrawWorldGrid(engine::graphics::Renderer &renderer,
+                   const engine::components::Camera2D &camera,
+                   const engine::graphics::TextureAtlas &atlas) {
   auto *region = atlas.GetRegion("solidWhite");
   if (!region)
     return;
@@ -55,14 +59,14 @@ void DrawWorldGrid(engine::Renderer &renderer, const game::Camera2D &camera,
   if (cols * rows > kMaxCells)
     return;
 
-  const engine::Color evenCell{0.13f, 0.17f, 0.24f, 1.0f};
-  const engine::Color oddCell{0.16f, 0.20f, 0.28f, 1.0f};
-  const engine::Color axisCell{0.20f, 0.24f, 0.34f, 1.0f};
+  const engine::math::Color evenCell{0.13f, 0.17f, 0.24f, 1.0f};
+  const engine::math::Color oddCell{0.16f, 0.20f, 0.28f, 1.0f};
+  const engine::math::Color axisCell{0.20f, 0.24f, 0.34f, 1.0f};
   const auto *tex = &atlas.GetTexture();
 
   for (int y = y0; y < y1; ++y) {
     for (int x = x0; x < x1; ++x) {
-      engine::Color color;
+      engine::math::Color color;
       if (x == 0 || y == 0)
         color = axisCell;
       else
@@ -73,13 +77,13 @@ void DrawWorldGrid(engine::Renderer &renderer, const game::Camera2D &camera,
                     {1.0f, 1.0f},                   // scale
                     0.0f,                           // rotation
                     color, tex, region->uvMin, region->uvMax,
-                    static_cast<int>(game::RenderLayer::Ground));
+                    static_cast<int>(engine::components::RenderLayer::Ground));
     }
   }
 }
 } // namespace
 
-void PlayingState::OnEnter(engine::Game &game) {
+void PlayingState::OnEnter(engine::core::Game &game) {
   engine::Logger::Info("OnInitialize");
 
   auto &reg = m_world.Registry();
@@ -87,7 +91,7 @@ void PlayingState::OnEnter(engine::Game &game) {
 
   game.SetClearColor({0.15f, 0.20f, 0.30f, 1.0f});
 
-  auto &cam = reg.Emplace<game::Camera2D>(m_camera);
+  auto &cam = reg.Emplace<engine::components::Camera2D>(m_camera);
   cam.SetViewport(game.Config().width, game.Config().height);
   cam.orthoSize = 10.0f;
   cam.active = true;
@@ -144,9 +148,9 @@ void PlayingState::OnEnter(engine::Game &game) {
 
   BuildDemoScene(game);
 }
-void PlayingState::OnUpdate(engine::Game &game, double dt) {
+void PlayingState::OnUpdate(engine::core::Game &game, double dt) {
   auto &reg = m_world.Registry();
-  auto &camera = reg.Get<game::Camera2D>(m_camera);
+  auto &camera = reg.Get<engine::components::Camera2D>(m_camera);
 
   const float speed = 5.0f * static_cast<float>(dt);
 
@@ -167,9 +171,9 @@ void PlayingState::OnUpdate(engine::Game &game, double dt) {
     glfwSetWindowShouldClose(game.Window(), GLFW_TRUE);
 
   if (reg.IsAlive(m_hero)) {
-    auto &a = reg.Get<game::Animator>(m_hero);
-    auto &t = reg.Get<game::Transform>(m_hero);
-    auto &v = reg.Get<game::Velocity>(m_hero);
+    auto &a = reg.Get<engine::components::Animator>(m_hero);
+    auto &t = reg.Get<engine::components::Transform>(m_hero);
+    auto &v = reg.Get<engine::components::Velocity>(m_hero);
 
     auto *idleClip = m_animations.Get("hero_idle");
     auto *attackClip = m_animations.Get("hero_attack");
@@ -195,24 +199,24 @@ void PlayingState::OnUpdate(engine::Game &game, double dt) {
   // Enemy orbits origin.
   if (reg.IsAlive(m_enemy)) {
     const float angle = static_cast<float>(glfwGetTime());
-    auto &t = reg.Get<game::Transform>(m_enemy);
+    auto &t = reg.Get<engine::components::Transform>(m_enemy);
     t.position = {std::cos(angle) * 6.0f, std::sin(angle) * 4.0f};
     t.rotation = angle;
   }
 
-  game::systems::AnimationSystem(reg, dt);
-  game::systems::ParticleSystem(reg, dt);
-  game::systems::MoveTowardTargetSytem(reg, dt);
-  game::systems::CameraFollowSystem(reg, dt);
+  engine::systems::AnimationSystem(reg, dt);
+  engine::systems::ParticleSystem(reg, dt);
+  engine::systems::MoveTowardTargetSytem(reg, dt);
+  engine::systems::CameraFollowSystem(reg, dt);
 
   reg.FlushDeferred();
 }
 
-void PlayingState::OnRender(engine::Game &game) {
+void PlayingState::OnRender(engine::core::Game &game) {
   auto &renderer = game.GetRenderer();
   auto &reg = m_world.Registry();
 
-  auto &camera = reg.Get<game::Camera2D>(m_camera);
+  auto &camera = reg.Get<engine::components::Camera2D>(m_camera);
 
   glm::mat4 viewProj = camera.ViewProjectionMatrix();
 
@@ -222,7 +226,7 @@ void PlayingState::OnRender(engine::Game &game) {
 
   DrawWorldGrid(renderer, camera, m_atlas);
 
-  game::RenderSystem(m_world, renderer, camera);
+  engine::systems::RenderSystem(m_world, renderer, camera);
 
   renderer.End();
 
@@ -234,14 +238,14 @@ void PlayingState::OnRender(engine::Game &game) {
                       {1.0f, 0.85f, 0.2f, 1.0f}, uiProjection);
 }
 
-void PlayingState::OnImGui(engine::Game &game) {
+void PlayingState::OnImGui(engine::core::Game &game) {
 #ifndef DEBUG
   DrawSceneDebug(game);
 #endif // DEBUG
 }
 
-void PlayingState::OnKey(engine::Game &game, int key, int scancode, int action,
-                         int mods) {
+void PlayingState::OnKey(engine::core::Game &game, int key, int scancode,
+                         int action, int mods) {
   (void)scancode;
   (void)mods;
   if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS) {
@@ -252,11 +256,11 @@ void PlayingState::OnKey(engine::Game &game, int key, int scancode, int action,
   }
 }
 
-void PlayingState::OnScroll(engine::Game &game, double dx, double dy) {
+void PlayingState::OnScroll(engine::core::Game &game, double dx, double dy) {
   (void)dx;
   // Zoom around the cursor for natural feel.
   auto &reg = m_world.Registry();
-  auto &camera = reg.Get<game::Camera2D>(m_camera);
+  auto &camera = reg.Get<engine::components::Camera2D>(m_camera);
   double mx, my;
   glfwGetCursorPos(game.Window(), &mx, &my);
   const auto before =
@@ -268,11 +272,11 @@ void PlayingState::OnScroll(engine::Game &game, double dx, double dy) {
   camera.Move({delta.x, delta.y});
 }
 
-void PlayingState::OnMouseButton(engine::Game &game, int button, int action,
-                                 int mods) {
+void PlayingState::OnMouseButton(engine::core::Game &game, int button,
+                                 int action, int mods) {
   (void)mods;
   auto &reg = m_world.Registry();
-  auto &camera = reg.Get<game::Camera2D>(m_camera);
+  auto &camera = reg.Get<engine::components::Camera2D>(m_camera);
 
   double mx, my;
   glfwGetCursorPos(game.Window(), &mx, &my);
@@ -281,7 +285,7 @@ void PlayingState::OnMouseButton(engine::Game &game, int button, int action,
       camera.ScreenToWorld({static_cast<float>(mx), static_cast<float>(my)});
 
   if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS) {
-    auto &animation = reg.Get<game::Animator>(m_hero);
+    auto &animation = reg.Get<engine::components::Animator>(m_hero);
     auto *idleClip = m_animations.Get("hero_idle");
     auto *attackClip = m_animations.Get("hero_attack");
     if (idleClip && attackClip && animation.clip == idleClip) {
@@ -290,62 +294,78 @@ void PlayingState::OnMouseButton(engine::Game &game, int button, int action,
   }
 
   if (button == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_PRESS) {
-    if (auto *val = reg.TryGet<game::Velocity>(m_hero)) {
+    if (auto *val = reg.TryGet<engine::components::Velocity>(m_hero)) {
       val->targetPosition = worldPos;
     }
   }
 }
 
-void PlayingState::OnMouseMove(engine::Game &game, double x, double y) {
+void PlayingState::OnMouseMove(engine::core::Game &game, double x, double y) {
   (void)x;
   (void)y;
 }
 
-void PlayingState::OnResize(engine::Game &game, int w, int h) {
+void PlayingState::OnResize(engine::core::Game &game, int w, int h) {
   engine::Logger::Info("Resized to %d x %d", w, h);
 }
 
-void PlayingState::BuildDemoScene(engine::Game &game) {
+void PlayingState::BuildDemoScene(engine::core::Game &game) {
   auto &reg = m_world.Registry();
-  auto &cam = reg.Emplace<game::Camera2D>(m_camera);
+  auto &cam = reg.Emplace<engine::components::Camera2D>(m_camera);
 
   // Tower
   m_tower = m_world.CreateEntity("Tower");
-  reg.Get<game::Transform>(m_tower).position = {-4.0f, -2.0f};
-  reg.Get<game::Transform>(m_tower).scale = {1.5f, 1.5f};
-  reg.Get<game::Sprite>(m_tower).layer = game::RenderLayer::Entities;
+  reg.Emplace<engine::components::Transform>(m_tower,
+                                             engine::components::Transform{
+                                                 .position = {-4.0f, -2.0f},
+                                                 .scale = {1.5f, 1.5f},
+                                             });
+  reg.Emplace<engine::components::Sprite>(
+      m_tower, engine::components::Sprite{
+                   .layer = engine::components::RenderLayer::Entities});
   ApplyRegion(m_tower, "tower");
 
   // Hero
   m_hero = m_world.CreateEntity("Hero");
-  reg.Get<game::Transform>(m_hero).scale = {1.2f, 1.7f};
-  reg.Get<game::Transform>(m_hero).position = {4.0f, -2.0f};
-  reg.Get<game::Sprite>(m_hero).layer = game::RenderLayer::Entities;
-  reg.Get<game::Sprite>(m_hero).texture = &m_atlas.GetTexture();
-  reg.Emplace<game::Velocity>(m_hero);
+  reg.Emplace<engine::components::Transform>(
+      m_hero, engine::components::Transform{.position = {4.0f, -2.0f},
+                                            .scale = {1.2f, 1.7f}});
+  reg.Emplace<engine::components::Sprite>(
+      m_hero, engine::components::Sprite{
+                  .texture = &m_atlas.GetTexture(),
+                  .layer = engine::components::RenderLayer::Entities});
+  reg.Emplace<engine::components::Velocity>(m_hero);
+  reg.Emplace<engine::components::Animator>(m_hero);
   ApplyRegion(m_hero, "hero_idle_0");
   cam.SetViewport(game.Config().width, game.Config().height);
   cam.followTarget = m_hero;
 
   // Enemy
   m_enemy = m_world.CreateEntity("Enemy");
-  reg.Get<game::Transform>(m_enemy).scale = {0.9f, 1.0f};
-  reg.Get<game::Sprite>(m_enemy).layer = game::RenderLayer::Entities;
+  reg.Emplace<engine::components::Transform>(
+      m_enemy, engine::components::Transform{.scale = {0.9f, 1.0f}});
+  reg.Emplace<engine::components::Sprite>(
+      m_enemy, engine::components::Sprite{
+                   .layer = engine::components::RenderLayer::Entities});
   ApplyRegion(m_enemy, "enemy");
 
   // Coin
   m_coin = m_world.CreateEntity("Coin");
-  reg.Get<game::Transform>(m_coin).position = {3.0f, 3.0f};
-  reg.Get<game::Transform>(m_coin).scale = {0.8f, 0.8f};
-  reg.Get<game::Sprite>(m_coin).color = {1, 1, 1, 1};
-  reg.Get<game::Sprite>(m_coin).texture = &m_atlas.GetTexture();
-  reg.Get<game::Sprite>(m_coin).layer = game::RenderLayer::Ground;
+  reg.Emplace<engine::components::Transform>(
+      m_coin, engine::components::Transform{.position = {3.0f, 3.0f},
+                                            .scale = {0.8f, 0.8f}});
+  reg.Emplace<engine::components::Sprite>(
+      m_coin, engine::components::Sprite{
+                  .color = engine::math::kColorWhite,
+                  .texture = &m_atlas.GetTexture(),
+                  .layer = engine::components::RenderLayer::Ground});
+  reg.Emplace<engine::components::Animator>(m_coin);
   ApplyRegion(m_coin, "coin_0");
 
   if (auto *idleClip = m_animations.Get("hero_idle"))
-    reg.Get<game::Animator>(m_hero).Play(idleClip);
+    reg.Get<engine::components::Animator>(m_hero).Play(idleClip);
   if (auto *coinClip = m_animations.Get("coin_spin"))
-    reg.Get<game::Animator>(m_coin).Play(coinClip);
+    reg.Get<engine::components::Animator>(m_coin).Play(coinClip);
 }
 
 void PlayingState::ApplyRegion(engine::ecs::Entity e, const char *region) {
@@ -355,7 +375,7 @@ void PlayingState::ApplyRegion(engine::ecs::Entity e, const char *region) {
     return;
   }
   auto &reg = m_world.Registry();
-  auto &s = reg.Get<game::Sprite>(e);
+  auto &s = reg.Get<engine::components::Sprite>(e);
 
   s.texture = &m_atlas.GetTexture();
   s.uvMin = r->uvMin;
@@ -363,7 +383,7 @@ void PlayingState::ApplyRegion(engine::ecs::Entity e, const char *region) {
   // s.regionId =
 }
 
-void PlayingState::DrawSceneDebug(engine::Game &game) {
+void PlayingState::DrawSceneDebug(engine::core::Game &game) {
   auto &reg = m_world.Registry();
 
   ImGui::Begin("Renderer");
@@ -380,7 +400,7 @@ void PlayingState::DrawSceneDebug(engine::Game &game) {
 
   ImGui::Separator();
 
-  auto &camera = reg.Get<game::Camera2D>(m_camera);
+  auto &camera = reg.Get<engine::components::Camera2D>(m_camera);
   auto p = camera.position;
   ImGui::Text("Cam pos: (%.2f, %.2f)", p.x, p.y);
   ImGui::Text("Cam zoom: %.2f", camera.zoom);

@@ -8,11 +8,11 @@
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
 
-namespace engine {
+namespace engine::graphics {
 class Renderer;
 }
 
-namespace engine {
+namespace engine::core {
 
 struct WindowConfig {
   int width = 1280;
@@ -45,8 +45,8 @@ public:
   GLFWwindow *Window() const { return m_Window; }
   const WindowConfig &Config() const { return m_Config; }
 
-  Renderer &GetRenderer() { return *m_Renderer; }
-  const Renderer &GetRenderer() const { return *m_Renderer; }
+  graphics::Renderer &GetRenderer() { return *m_Renderer; }
+  const graphics::Renderer &GetRenderer() const { return *m_Renderer; }
 
 protected:
   virtual void OnStart() {}
@@ -59,7 +59,7 @@ private:
   GLFWwindow *m_Window{nullptr};
 
   GameStateManager m_stateManager;
-  std::unique_ptr<Renderer> m_Renderer;
+  std::unique_ptr<graphics::Renderer> m_Renderer;
 
   glm::vec4 m_ClearColor{0.15f, 0.20f, 0.30f, 1.0f};
 
@@ -83,4 +83,4 @@ private:
   std::array<bool, GLFW_KEY_LAST + 1> m_Keys{};
 };
 
-} // namespace engine
+} // namespace engine::core

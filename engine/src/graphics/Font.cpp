@@ -1,13 +1,13 @@
 #include "engine/graphics/Font.hpp"
 
-#include "engine/core/Logger.hpp"
+#include "engine/utils/Logger.hpp"
 #include "glad/gl.h"
 
 #include <fstream>
 #include <stb/stb_truetype.h>
 #include <vector>
 
-namespace engine {
+namespace engine::graphics {
 
 namespace {
 constexpr int kAtlasW = 1024;
@@ -105,4 +105,4 @@ bool Font::LoadFromFile(const std::string &path, float fontSize) {
 
 const Character &Font::GetCharacter(char c) const { return m_characters.at(c); }
 
-} // namespace engine
+} // namespace engine::graphics

@@ -1,7 +1,7 @@
 #include "engine/core/Game.hpp"
 
-#include "engine/core/Logger.hpp"
 #include "engine/graphics/Renderer.hpp"
+#include "engine/utils/Logger.hpp"
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
@@ -12,7 +12,7 @@
 #include <cstdio>
 #include <memory>
 
-namespace engine {
+namespace engine::core {
 
 namespace {
 void GlfwErrorCallback(int code, const char *desc) {
@@ -76,7 +76,7 @@ Game::Game(const WindowConfig &config) : m_Config(config) {
     return;
   }
 
-  m_Renderer = std::make_unique<Renderer>(4096);
+  m_Renderer = std::make_unique<graphics::Renderer>(4096);
 
   if (m_Config.enableImGui) {
     IMGUI_CHECKVERSION();
@@ -215,4 +215,4 @@ void Game::ThunkFramebufferSize(GLFWwindow *window, int width, int height) {
   }
 }
 
-} // namespace engine
+} // namespace engine::core

@@ -1,6 +1,6 @@
 #include "engine/graphics/TextureAtlas.hpp"
 
-#include "engine/core/Logger.hpp"
+#include "engine/utils/Logger.hpp"
 #include "glad/gl.h"
 
 #include <algorithm>
@@ -12,7 +12,7 @@
 #include <system_error>
 #include <utility>
 
-namespace engine {
+namespace engine::graphics {
 
 namespace {
 
@@ -324,4 +324,4 @@ std::vector<std::string> TextureAtlas::SourceNames() const {
   return out;
 }
 
-} // namespace engine
+} // namespace engine::graphics

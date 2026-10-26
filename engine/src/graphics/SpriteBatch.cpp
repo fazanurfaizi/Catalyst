@@ -1,12 +1,12 @@
 #include "engine/graphics/SpriteBatch.hpp"
-#include "engine/core/Logger.hpp"
+#include "engine/utils/Logger.hpp"
 #include "glad/gl.h"
 
 #include <cmath>
 #include <cstddef>
 #include <vector>
 
-namespace engine {
+namespace engine::graphics {
 
 namespace {
 constexpr const char *kVertexShaderSrc = R"glsl(
@@ -159,7 +159,7 @@ void SpriteBatch::Begin(const glm::mat4 &viewProjection) {
 }
 
 void SpriteBatch::DrawQuad(const glm::vec2 &position, const glm::vec2 &scale,
-                           float rotation, const Color &color,
+                           float rotation, const math::Color &color,
                            const Texture *texture, const glm::vec2 &uvMin,
                            const glm::vec2 &uvMax) {
   const Texture *tex = texture ? texture : &m_DefaultTexture;
@@ -236,4 +236,4 @@ void SpriteBatch::End() {
   m_CurrentTexture = nullptr;
 }
 
-} // namespace engine
+} // namespace engine::graphics

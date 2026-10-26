@@ -1,6 +1,6 @@
 #include "engine/math/Rect.hpp"
 
-namespace engine {
+namespace engine::math {
 
 bool Rect::Contains(const glm::vec2 &p) const {
   const bool hitX = p.x >= x && p.x <= x + width;
@@ -16,4 +16,4 @@ bool Rect::Intersects(const Rect &other) const {
            other.y > this->Bottom() || other.Bottom() < this->y);
 }
 
-} // namespace engine
+} // namespace engine::math

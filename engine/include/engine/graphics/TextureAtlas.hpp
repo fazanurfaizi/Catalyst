@@ -9,7 +9,7 @@
 #include <unordered_map>
 #include <vector>
 
-namespace engine {
+namespace engine::graphics {
 
 struct AtlasRegion {
   glm::vec2 uvMin{0.0f, 0.0f};
@@ -59,4 +59,4 @@ private:
   Texture m_texture;
 };
 
-} // namespace engine
+} // namespace engine::graphics

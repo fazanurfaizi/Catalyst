@@ -3,7 +3,7 @@
 #include "engine/core/Game.hpp"
 #include "engine/core/GameState.hpp"
 
-namespace engine {
+namespace engine::core {
 
 GameStateManager::GameStateManager() = default;
 GameStateManager::~GameStateManager() = default;
@@ -66,4 +66,4 @@ void GameStateManager::OnResize(Game &game, int width, int height) {
     m_current->OnResize(game, width, height);
 }
 
-} // namespace engine
+} // namespace engine::core

@@ -1,6 +1,6 @@
 #pragma once
 
-namespace engine {
+namespace engine::core {
 
 class Game;
 
@@ -25,4 +25,4 @@ public:
   virtual void OnResize(Game &game, int width, int height) {}
 };
 
-} // namespace engine
+} // namespace engine::core

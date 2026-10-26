@@ -1,19 +1,24 @@
 add_library(engine STATIC
-  src/core/Logger.cpp
+  src/assets/AnimationLibrary.cpp
+
   src/core/Game.cpp
   src/core/GameStateManager.cpp
+
+  src/graphics/Font.cpp
+  src/graphics/Renderer.cpp
   src/graphics/Shader.cpp
   src/graphics/SpriteBatch.cpp
+  src/graphics/TextRenderer.cpp
   src/graphics/Texture.cpp
   src/graphics/TextureAtlas.cpp
-  src/graphics/Renderer.cpp
-  src/graphics/TextRenderer.cpp
-  src/graphics/Font.cpp
   src/graphics/stbi_image_impl.cpp
   src/graphics/stb_truetype_impl.cpp
-  # src/animation/AnimationLibrary.cpp
-  # src/scene/SceneSerializer.cpp
+  
   src/math/Rect.cpp
+
+  src/scene/World.cpp
+
+  src/utils/Logger.cpp
 )
 
 # Public include root. Consumers see: include <glgame/core/Logger.hpp>

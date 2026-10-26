@@ -8,7 +8,7 @@
 #include <glm/glm.hpp>
 #include <vector>
 
-namespace engine {
+namespace engine::graphics {
 
 class SpriteBatch {
 public:
@@ -22,8 +22,9 @@ public:
   void Begin(const glm::mat4 &viewProjection);
 
   void DrawQuad(const glm::vec2 &position, const glm::vec2 &scale,
-                float rotation, const Color &color, const Texture *texture,
-                const glm::vec2 &uvMin, const glm::vec2 &uvMax);
+                float rotation, const math::Color &color,
+                const Texture *texture, const glm::vec2 &uvMin,
+                const glm::vec2 &uvMax);
 
   void End();
 
@@ -57,4 +58,4 @@ private:
   std::uint32_t m_LastQuadCount = 0;
 };
 
-} // namespace engine
+} // namespace engine::graphics

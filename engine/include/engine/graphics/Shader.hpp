@@ -5,7 +5,7 @@
 #include <cstdint>
 #include <string>
 
-namespace engine {
+namespace engine::graphics {
 
 class Shader {
 public:
@@ -35,4 +35,4 @@ private:
   std::uint32_t m_Program = 0;
 };
 
-} // namespace engine
+} // namespace engine::graphics

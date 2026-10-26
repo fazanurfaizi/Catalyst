@@ -1,13 +1,13 @@
 #include "engine/graphics/Texture.hpp"
 
-#include "engine/core/Logger.hpp"
+#include "engine/utils/Logger.hpp"
 
 #include <glad/gl.h>
 #include <stb/stb_image.h>
 
 #include <vector>
 
-namespace engine {
+namespace engine::graphics {
 
 Texture::~Texture() { Release(); }
 
@@ -137,4 +137,4 @@ void Texture::Bind(std::uint32_t unit) const {
   glBindTexture(GL_TEXTURE_2D, m_Id);
 }
 
-} // namespace engine
+} // namespace engine::graphics

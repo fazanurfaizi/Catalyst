@@ -7,7 +7,7 @@
 #include <cstdint>
 #include <memory>
 
-namespace engine {
+namespace engine::graphics {
 
 class SpriteBatch;
 class Scene;
@@ -24,8 +24,8 @@ public:
   void End();
 
   void Draw(const glm::vec2 &position, const glm::vec2 &scale, float rotation,
-            const Color color, const Texture *texture, const glm::vec2 &uvMin,
-            const glm::vec2 &uvMax, int layer);
+            const math::Color color, const Texture *texture,
+            const glm::vec2 &uvMin, const glm::vec2 &uvMax, int layer);
 
   std::uint32_t DrawCalls() const;
   std::uint32_t QuadCount() const;
@@ -35,4 +35,4 @@ private:
   glm::mat4 m_viewProjection{1.0f};
 };
 
-} // namespace engine
+} // namespace engine::graphics

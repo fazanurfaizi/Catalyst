@@ -2,7 +2,7 @@
 
 #include <glm/glm.hpp>
 
-namespace engine {
+namespace engine::math {
 
 /// Axis-aligned bounding box, used for both UI hit-testing and sprite layout.
 /// Coordinates are top-left origin with +Y pointing down (matches the camera).
@@ -42,4 +42,4 @@ struct Rect {
   Rect expanded(float amount) const { return Inset(-amount); }
 };
 
-} // namespace engine
+} // namespace engine::math
