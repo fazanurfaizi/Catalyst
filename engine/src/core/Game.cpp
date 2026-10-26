@@ -76,9 +76,6 @@ Game::Game(const WindowConfig &config) : m_Config(config) {
     return;
   }
 
-  m_Camera.SetViewport(m_Config.width, m_Config.height);
-  m_Camera.SetOrthoSize(10.0f);
-
   m_Renderer = std::make_unique<Renderer>(4096);
 
   if (m_Config.enableImGui) {
@@ -136,9 +133,7 @@ bool Game::Run() {
                  m_ClearColor.a);
     glClear(GL_COLOR_BUFFER_BIT);
 
-    m_Renderer->Begin(m_Camera);
     m_stateManager.Render(*this);
-    m_Renderer->End();
 
     if (m_Config.showFps) {
       m_FpsAccum += dt;
@@ -214,7 +209,7 @@ void Game::ThunkScroll(GLFWwindow *window, double x, double y) {
 
 void Game::ThunkFramebufferSize(GLFWwindow *window, int width, int height) {
   if (Game *self = FromWindow(window)) {
-    self->m_Camera.SetViewport(width, height);
+    glViewport(0, 0, width, height);
     self->m_stateManager.OnResize(*self, width, height);
     glViewport(0, 0, width, height);
   }

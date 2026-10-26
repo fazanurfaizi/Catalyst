@@ -1,12 +1,12 @@
 #pragma once
 
-#include "engine/animation/AnimationClip.hpp"
 #include "engine/graphics/TextureAtlas.hpp"
+#include "game/components/AnimationClip.hpp"
 
 #include <string>
 #include <unordered_map>
 
-namespace engine {
+namespace game {
 
 class AnimationLibrary {
 public:
@@ -18,7 +18,7 @@ public:
 
   void Add(AnimationClip clip);
 
-  bool AddStrip(const std::string &clipName, const TextureAtlas &atlas,
+  bool AddStrip(const std::string &clipName, const engine::TextureAtlas &atlas,
                 const std::string &regionPrefix, int frameCount,
                 float frameDurationSec, bool loop = true);
 
@@ -29,4 +29,4 @@ private:
   std::unordered_map<std::string, AnimationClip> m_clips;
 };
 
-} // namespace engine
+} // namespace game

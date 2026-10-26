@@ -1,6 +1,5 @@
 #include "engine/graphics/SpriteBatch.hpp"
 #include "engine/core/Logger.hpp"
-#include "engine/scene/Scene.hpp"
 #include "glad/gl.h"
 
 #include <cmath>
@@ -120,11 +119,10 @@ SpriteBatch::SpriteBatch(SpriteBatch &&other) noexcept
     : m_Vao(other.m_Vao), m_Vbo(other.m_Vbo), m_Ibo(other.m_Ibo),
       m_MaxQuads(other.m_MaxQuads), m_Vertices(std::move(other.m_Vertices)),
       m_QuadCount(other.m_QuadCount), m_Shader(std::move(other.m_Shader)),
-      m_Camera(other.m_Camera) {
+      m_viewProjection(other.m_viewProjection) {
   other.m_Vao = other.m_Vbo = other.m_Ibo = 0;
   other.m_MaxQuads = 0;
   other.m_QuadCount = 0;
-  other.m_Camera = nullptr;
 }
 
 SpriteBatch &SpriteBatch::operator=(SpriteBatch &&other) noexcept {
@@ -143,26 +141,28 @@ SpriteBatch &SpriteBatch::operator=(SpriteBatch &&other) noexcept {
     m_Vertices = std::move(other.m_Vertices);
     m_QuadCount = other.m_QuadCount;
     m_Shader = std::move(other.m_Shader);
-    m_Camera = other.m_Camera;
+    m_viewProjection = other.m_viewProjection;
 
     other.m_Vao = other.m_Vbo = other.m_Ibo = 0;
     other.m_MaxQuads = 0;
     other.m_QuadCount = 0;
-    other.m_Camera = nullptr;
   }
   return *this;
 }
 
-void SpriteBatch::Begin(const Camera &camera) {
-  m_Camera = &camera;
+void SpriteBatch::Begin(const glm::mat4 &viewProjection) {
+  m_viewProjection = viewProjection;
   m_QuadCount = 0;
   m_CurrentTexture = nullptr;
   m_LastDrawCalls = 0;
   m_LastQuadCount = 0;
 }
 
-void SpriteBatch::DrawQuad(const Transform &t, const Sprite &s) {
-  const Texture *tex = s.texture ? s.texture : &m_DefaultTexture;
+void SpriteBatch::DrawQuad(const glm::vec2 &position, const glm::vec2 &scale,
+                           float rotation, const Color &color,
+                           const Texture *texture, const glm::vec2 &uvMin,
+                           const glm::vec2 &uvMax) {
+  const Texture *tex = texture ? texture : &m_DefaultTexture;
 
   if (tex != m_CurrentTexture) {
     Flush();
@@ -175,45 +175,38 @@ void SpriteBatch::DrawQuad(const Transform &t, const Sprite &s) {
     m_QuadCount = 0;
   }
 
-  const float c = std::cos(t.rotation);
-  const float sn = std::sin(t.rotation);
-  const glm::vec2 half = t.scale * 0.5f;
+  const float c = std::cos(rotation);
+  const float sn = std::sin(rotation);
+  const glm::vec2 half = scale * 0.5f;
 
   auto rotate = [&](glm::vec2 p) {
     return glm::vec2(p.x * c - p.y * sn, p.x * sn + p.y * c);
   };
 
   const glm::vec2 corners[4] = {
-      rotate({-half.x, -half.y}) + t.position,
-      rotate({half.x, -half.y}) + t.position,
-      rotate({half.x, half.y}) + t.position,
-      rotate({-half.x, half.y}) + t.position,
+      rotate({-half.x, -half.y}) + position,
+      rotate({half.x, -half.y}) + position,
+      rotate({half.x, half.y}) + position,
+      rotate({-half.x, half.y}) + position,
   };
   const glm::vec2 uvs[4] = {
-      {s.uvMin.x, s.uvMin.y}, // BL  (was {0,1})
-      {s.uvMax.x, s.uvMin.y}, // BR  (was {1,1})
-      {s.uvMax.x, s.uvMax.y}, // TR  (was {1,0})
-      {s.uvMin.x, s.uvMax.y}, // TL  (was {0,0})
+      {uvMin.x, uvMin.y}, // BL  (was {0,1})
+      {uvMax.x, uvMin.y}, // BR  (was {1,1})
+      {uvMax.x, uvMax.y}, // TR  (was {1,0})
+      {uvMin.x, uvMax.y}, // TL  (was {0,0})
   };
-
-  // const glm::vec2 uvs[4] = {
-  //     {s.uvMin.x, s.uvMin.y},
-  //     {s.uvMax.x, s.uvMin.y},
-  //     {s.uvMax.x, s.uvMax.y},
-  //     {s.uvMin.x, s.uvMax.y},
-  // };
 
   Vertex *dst = &m_Vertices[m_QuadCount * 4];
   for (int i = 0; i < 4; ++i) {
     dst[i].position = corners[i];
     dst[i].uv = uvs[i];
-    dst[i].color = s.color;
+    dst[i].color = color.toVec4();
   }
   ++m_QuadCount;
 }
 
 void SpriteBatch::Flush() {
-  if (m_QuadCount == 0 || !m_Camera)
+  if (m_QuadCount == 0)
     return;
 
   glBindVertexArray(m_Vao);
@@ -223,7 +216,7 @@ void SpriteBatch::Flush() {
                   m_Vertices.data());
 
   m_Shader.Bind();
-  m_Shader.SetMat4("uViewProjection", m_Camera->ViewProjectionMatrix());
+  m_Shader.SetMat4("uViewProjection", m_viewProjection);
 
   const Texture *tex = m_CurrentTexture ? m_CurrentTexture : &m_DefaultTexture;
   tex->Bind(0);
@@ -240,16 +233,7 @@ void SpriteBatch::Flush() {
 void SpriteBatch::End() {
   Flush();
   m_QuadCount = 0;
-  m_Camera = nullptr;
   m_CurrentTexture = nullptr;
-}
-
-void SpriteBatch::Render(const Scene &scnene, const Camera &camera) {
-  Begin(camera);
-  scnene.ForEach([this](engine::Entity, const Transform &t, const Sprite &s) {
-    DrawQuad(t, s);
-  });
-  End();
 }
 
 } // namespace engine

@@ -1,17 +1,17 @@
 #pragma once
 
+#include "engine/math/Color.hpp"
 #include <glm/glm.hpp>
 #include <string>
 
-namespace engine {
+namespace game {
 
 class Font;
 
 struct TextComponent {
   std::string text;
   const Font *font = nullptr;
-  glm::vec4 color{1.0f, 1.0f, 1.0f, 1.0f};
-  float scale = 1.0f;
+  engine::Color color = engine::kWhite;
 };
 
-} // namespace engine
+} // namespace game

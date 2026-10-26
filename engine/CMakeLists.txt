@@ -2,8 +2,6 @@ add_library(engine STATIC
   src/core/Logger.cpp
   src/core/Game.cpp
   src/core/GameStateManager.cpp
-  src/graphics/Camera.cpp
-  src/scene/Scene.cpp
   src/graphics/Shader.cpp
   src/graphics/SpriteBatch.cpp
   src/graphics/Texture.cpp
@@ -13,9 +11,8 @@ add_library(engine STATIC
   src/graphics/Font.cpp
   src/graphics/stbi_image_impl.cpp
   src/graphics/stb_truetype_impl.cpp
-  src/animation/AnimationLibrary.cpp
-  src/scene/SceneSerializer.cpp
-  src/animation/ParticleSystem.cpp
+  # src/animation/AnimationLibrary.cpp
+  # src/scene/SceneSerializer.cpp
   src/math/Rect.cpp
 )
 
@@ -25,8 +22,8 @@ target_include_directories(engine PUBLIC
   $<INSTALL_INTERFACE:include>
 )
 
-# C++17 propagates to consumers automatically
-target_compile_features(engine PUBLIC cxx_std_17)
+# C++20 propagates to consumers automatically
+target_compile_features(engine PUBLIC cxx_std_20)
 
 # Vendored include dirs the engine uses internally (not part of the public API)
 target_include_directories(engine PRIVATE

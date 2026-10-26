@@ -1,8 +1,9 @@
 #pragma once
 
+#include "engine/math/Color.hpp"
 #include <glm/glm.hpp>
 
-namespace engine {
+namespace game {
 
 struct Particle {
   glm::vec2 velocity{0.0f};
@@ -10,8 +11,8 @@ struct Particle {
   float maxLife{1.0f};
   float startScale{1.0f};
   float endScale{1.0f};
-  glm::vec4 startColor{1.0f};
-  glm::vec4 endColor{1.0f};
+  engine::Color startColor = engine::kWhite;
+  engine::Color endColor = engine::kWhite;
 };
 
-} // namespace engine
+} // namespace game

@@ -1,12 +1,14 @@
 #pragma once
 
-#include "engine/animation/AnimationLibrary.hpp"
 #include "engine/core/Game.hpp"
 #include "engine/core/GameState.hpp"
+#include "engine/ecs/Entity.hpp"
 #include "engine/graphics/Font.hpp"
 #include "engine/graphics/TextRenderer.hpp"
 #include "engine/graphics/TextureAtlas.hpp"
-#include "engine/scene/Scene.hpp"
+
+#include "game/World.hpp"
+#include "game/assets/AnimationLibrary.hpp"
 
 class PlayingState final : public engine::GameState {
 public:
@@ -25,18 +27,20 @@ public:
   void OnResize(engine::Game &game, int width, int height) override;
 
 private:
-  engine::Scene m_scene;
+  game::World m_world;
+  game::AnimationLibrary m_animations;
+
   engine::TextureAtlas m_atlas;
-  engine::AnimationLibrary m_animations;
   engine::TextRenderer m_textRenderer;
   engine::Font m_font;
 
-  engine::Entity m_coin = engine::kInvalidEntity;
-  engine::Entity m_tower = engine::kInvalidEntity;
-  engine::Entity m_hero = engine::kInvalidEntity;
-  engine::Entity m_enemy = engine::kInvalidEntity;
+  engine::ecs::Entity m_camera{};
+  engine::ecs::Entity m_coin{};
+  engine::ecs::Entity m_tower{};
+  engine::ecs::Entity m_hero{};
+  engine::ecs::Entity m_enemy{};
 
   void BuildDemoScene(engine::Game &game);
-  void ApplyRegion(engine::Entity e, const char *region);
+  void ApplyRegion(engine::ecs::Entity e, const char *region);
   void DrawSceneDebug(engine::Game &game);
 };

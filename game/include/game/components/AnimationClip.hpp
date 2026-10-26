@@ -5,7 +5,7 @@
 #include <string>
 #include <vector>
 
-namespace engine {
+namespace game {
 
 struct AnimationFrame {
   glm::vec2 uvMin{0.0f, 0.0f};
@@ -18,9 +18,12 @@ struct AnimationClip {
   std::vector<AnimationFrame> frames;
   bool loop = true;
 
-  bool IsValid() const { return !frames.empty(); }
-  int FrameCount() const { return static_cast<int>(frames.size()); }
-  float TotalDuration() const {
+  [[nodiscard]] bool IsValid() const noexcept { return !frames.empty(); }
+  [[nodiscard]] int FrameCount() const noexcept {
+    return static_cast<int>(frames.size());
+  }
+
+  [[nodiscard]] float TotalDuration() const noexcept {
     float t = 0.0f;
     for (const auto &f : frames) {
       t += f.durationSec;
@@ -29,4 +32,4 @@ struct AnimationClip {
   }
 };
 
-} // namespace engine
+} // namespace game

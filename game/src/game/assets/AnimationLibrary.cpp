@@ -1,21 +1,25 @@
-#include "engine/animation/AnimationLibrary.hpp"
 
-#include "engine/animation/AnimationClip.hpp"
+#include "game/assets/AnimationLibrary.hpp"
+
 #include "engine/core/Logger.hpp"
+#include "engine/graphics/TextureAtlas.hpp"
+#include "game/components/AnimationClip.hpp"
+#include <algorithm>
 #include <string>
 #include <utility>
 
-namespace engine {
+namespace game {
 
 void AnimationLibrary::Add(AnimationClip clip) {
   if (clip.name.empty()) {
-    Logger::Warn("[AnimationLibrary] Add() called with empty name - ignored");
+    engine::Logger::Warn(
+        "[AnimationLibrary] Add() called with empty name - ignored");
     return;
   }
 
   if (!clip.IsValid()) {
-    Logger::Warn("[AnimationLibrary] clip '%s' has no frames - ignored",
-                 clip.name.c_str());
+    engine::Logger::Warn("[AnimationLibrary] clip '%s' has no frames - ignored",
+                         clip.name.c_str());
     return;
   }
 
@@ -23,12 +27,12 @@ void AnimationLibrary::Add(AnimationClip clip) {
 }
 
 bool AnimationLibrary::AddStrip(const std::string &clipName,
-                                const TextureAtlas &atlas,
+                                const engine::TextureAtlas &atlas,
                                 const std::string &regionPrefix, int frameCount,
                                 float frameDurationSec, bool loop) {
   if (frameCount <= 0 || frameDurationSec <= 0.0f) {
-    Logger::Error("[AnimationLibrary] AddStrip invalid args: %s",
-                  clipName.c_str());
+    engine::Logger::Error("[AnimationLibrary] AddStrip invalid args: %s",
+                          clipName.c_str());
     return false;
   }
 
@@ -39,9 +43,9 @@ bool AnimationLibrary::AddStrip(const std::string &clipName,
 
   for (int i = 0; i < frameCount; ++i) {
     const std::string regionName = regionPrefix + "_" + std::to_string(i);
-    const AtlasRegion *r = atlas.GetRegion(regionName);
+    const engine::AtlasRegion *r = atlas.GetRegion(regionName);
     if (!r) {
-      Logger::Error(
+      engine::Logger::Error(
           "[AnimationLibrary] mission atlas region '%s' for clip '%s'",
           regionName.c_str(), clipName.c_str());
       return false;
@@ -59,7 +63,7 @@ bool AnimationLibrary::AddStrip(const std::string &clipName,
 
 const AnimationClip *AnimationLibrary::Get(const std::string &name) const {
   auto it = m_clips.find(name);
-  return it == m_clips.end() ? nullptr : &it->second;
+  return it != m_clips.end() ? &it->second : nullptr;
 }
 
-} // namespace engine
+} // namespace game

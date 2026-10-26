@@ -1,17 +1,18 @@
 #pragma once
 
-#include "engine/animation/AnimationClip.hpp"
+#include "AnimationClip.hpp"
 
-namespace engine {
+namespace game {
 
 struct Animator {
   const AnimationClip *clip = nullptr;
   int currentFrame = 0;
   float elapsedSec = 0.0f;
+  float currentFrameDuration = 0.0f;
   bool playing = true;
   bool finished = false;
 
-  bool IsActive() const {
+  [[nodiscard]] bool IsActive() const noexcept {
     return clip != nullptr && clip->IsValid() && playing;
   }
 
@@ -21,6 +22,7 @@ struct Animator {
     elapsedSec = 0.0f;
     playing = (c != nullptr && c->IsValid());
     finished = false;
+    currentFrameDuration = playing ? c->frames[0].durationSec : 0.0f;
   }
 
   void Stop() {
@@ -29,6 +31,7 @@ struct Animator {
     finished = false;
     elapsedSec = 0.0f;
     currentFrame = 0;
+    currentFrameDuration = 0.0f;
   }
 
   void Advance(float deltaTime) {
@@ -37,23 +40,30 @@ struct Animator {
 
     elapsedSec += deltaTime;
 
-    while (elapsedSec >= clip->frames[currentFrame].durationSec) {
-      elapsedSec -= clip->frames[currentFrame].durationSec;
+    if (elapsedSec < currentFrameDuration)
+      return;
+
+    const int n = clip->FrameCount();
+
+    while (elapsedSec >= currentFrameDuration) {
+      elapsedSec -= currentFrameDuration;
       ++currentFrame;
 
-      if (currentFrame >= clip->FrameCount()) {
+      if (currentFrame >= n) {
         if (clip->loop) {
           currentFrame = 0;
         } else {
-          currentFrame = clip->FrameCount() - 1;
+          currentFrame = n - 1;
           playing = false;
           finished = true;
           elapsedSec = 0.0f;
+          currentFrameDuration = clip->frames[currentFrame].durationSec;
           return;
         }
       }
+      currentFrameDuration = clip->frames[currentFrame].durationSec;
     }
   }
 };
 
-} // namespace engine
+} // namespace game

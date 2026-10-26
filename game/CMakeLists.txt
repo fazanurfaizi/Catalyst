@@ -1,5 +1,7 @@
 add_library(game STATIC
   src/game/states/PlayingState.cpp
+  src/game/assets/AnimationLibrary.cpp
+  src/game/World.cpp
 )
 
 target_include_directories(game PUBLIC

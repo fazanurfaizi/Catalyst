@@ -2,7 +2,7 @@
 
 #include <cstdint>
 
-namespace engine {
+namespace game {
 
 enum class RenderLayer : std::uint8_t {
   Background = 0, // grid, sky, parallax

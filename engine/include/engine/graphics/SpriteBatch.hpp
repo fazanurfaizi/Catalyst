@@ -1,9 +1,8 @@
 #pragma once
 
-#include "engine/graphics/Camera.hpp"
 #include "engine/graphics/Shader.hpp"
 #include "engine/graphics/Texture.hpp"
-#include "engine/scene/Scene.hpp"
+#include "engine/math/Color.hpp"
 #include "glad/gl.h"
 #include <cstdint>
 #include <glm/glm.hpp>
@@ -20,13 +19,13 @@ public:
   SpriteBatch &operator=(const SpriteBatch &) = delete;
   ~SpriteBatch();
 
-  void Begin(const Camera &camera);
+  void Begin(const glm::mat4 &viewProjection);
 
-  void DrawQuad(const Transform &t, const Sprite &s);
+  void DrawQuad(const glm::vec2 &position, const glm::vec2 &scale,
+                float rotation, const Color &color, const Texture *texture,
+                const glm::vec2 &uvMin, const glm::vec2 &uvMax);
 
   void End();
-
-  void Render(const Scene &scene, const Camera &camera);
 
   std::uint32_t LastDrawCalls() const { return m_LastDrawCalls; }
   std::uint32_t LastQuadCount() const { return m_LastQuadCount; }
@@ -49,7 +48,7 @@ private:
   std::uint32_t m_QuadCount = 0;
 
   Shader m_Shader;
-  const Camera *m_Camera = nullptr;
+  glm::mat4 m_viewProjection{1.0f};
 
   Texture m_DefaultTexture;
   const Texture *m_CurrentTexture = nullptr;
