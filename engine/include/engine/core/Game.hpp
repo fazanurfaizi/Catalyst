@@ -1,12 +1,12 @@
 #pragma once
 
 #include "engine/core/GameStateManager.hpp"
-#include "engine/graphics/Camera.hpp"
 #include <array>
 #include <memory>
 #include <string>
 
 #include <GLFW/glfw3.h>
+#include <glm/glm.hpp>
 
 namespace engine {
 class Renderer;

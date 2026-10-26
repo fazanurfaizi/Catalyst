@@ -222,7 +222,7 @@ void PlayingState::OnRender(engine::Game &game) {
 
   DrawWorldGrid(renderer, camera, m_atlas);
 
-  game::RenderSystem(m_world, renderer);
+  game::RenderSystem(m_world, renderer, camera);
 
   renderer.End();
 

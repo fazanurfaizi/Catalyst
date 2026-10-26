@@ -2,14 +2,18 @@
 
 #include "engine/graphics/Renderer.hpp"
 #include "game/World.hpp"
+#include "game/components/Camera2D.hpp"
 #include "game/components/Sprite.hpp"
 #include "game/components/Transform.hpp"
 #include <algorithm>
+#include <cmath>
+#include <cstdlib>
 #include <vector>
 
 namespace game {
 
-inline void RenderSystem(World &world, engine::Renderer &renderer) {
+inline void RenderSystem(World &world, engine::Renderer &renderer,
+                         const Camera2D camera) {
   auto &reg = world.Registry();
 
   struct RenderCmd {
@@ -21,8 +25,25 @@ inline void RenderSystem(World &world, engine::Renderer &renderer) {
   std::vector<RenderCmd> commands;
   commands.reserve(reg.View<Transform, Sprite>().Size());
 
+  const auto view = camera.VisibleWorldBounds();
+
   for (auto [e, s, t] : reg.View<Sprite, Transform>()) {
-    // @TODO: enable culling camera=
+    const float hx = t.scale.x * 0.5;
+    const float hy = t.scale.y * 0.5;
+    float ex = hx;
+    float ey = hy;
+
+    if (t.rotation != 0.0f) {
+      const float c = std::cos(t.rotation);
+      const float sn = std::sin(t.rotation);
+      ex = std::abs(hx * c) + std::abs(hy * sn);
+      ey = std::abs(hx * sn) + std::abs(hy * c);
+    }
+
+    if (!view.Overlaps(t.position.x - ex, t.position.x + ex, t.position.y - ey,
+                       t.position.y + ey)) {
+      continue;
+    }
 
     const float key = (s.ySortKey != 0.0f) ? s.ySortKey : t.position.y;
     commands.push_back({&t, &s, key});
