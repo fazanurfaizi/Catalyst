@@ -39,6 +39,8 @@ private:
   engine::ecs::Entity m_hero{};
   engine::ecs::Entity m_enemy{};
 
+  bool m_isMouseOverUI = false;
+
   void BuildDemoScene(engine::core::Game &game);
   void ApplyRegion(engine::ecs::Entity e, const char *region);
   void DrawSceneDebug(engine::core::Game &game);
