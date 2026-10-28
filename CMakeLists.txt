@@ -7,7 +7,7 @@ set(GAME_VERSION_STRING ${GAME_VERSION_MAJOR}.${GAME_VERSION_MINOR}.${GAME_VERSI
 
 project(KingdomRushFrontiers
   VERSION ${GAME_VERSION_STRING}
-  DESCRIPTION "Kingdom Rush Frontiers"
+  DESCRIPTION "Catalyst"
   LANGUAGES C CXX
 )
 
@@ -18,7 +18,7 @@ else()
 endif()
 
 # Configure variables   
-set(GAME_EXE_NAME ${PROJECT_NAME} CACHE STRING "Kingdom Rush Frontiers base executable name")
+set(GAME_EXE_NAME ${PROJECT_NAME} CACHE STRING "Catalyst base executable name")
 set(GAME_EXE_TARGET_NAME  ${GAME_EXE_NAME})
 
 option(GAME_ENABLE_DEBUG "Enable debug build" OFF)

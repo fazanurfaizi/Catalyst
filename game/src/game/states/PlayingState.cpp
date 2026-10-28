@@ -1,8 +1,6 @@
 #include "game/states/PlayingState.hpp"
 
 #include "engine/assets/AssetPath.hpp"
-#include "engine/components/Sprite.hpp"
-#include "engine/components/Transform.hpp"
 #include "engine/core/Game.hpp"
 #include "engine/graphics/Renderer.hpp"
 #include "engine/graphics/TextureAtlas.hpp"
@@ -13,7 +11,10 @@
 #include "engine/components/Animator.hpp"
 #include "engine/components/Camera2D.hpp"
 #include "engine/components/RenderLayer.hpp"
+#include "engine/components/Sprite.hpp"
+#include "engine/components/Transform.hpp"
 #include "engine/components/Velocity.hpp"
+
 #include "engine/systems/AnimationSystem.hpp"
 #include "engine/systems/CameraFollowSystem.hpp"
 #include "engine/systems/MovementSystem.hpp"
@@ -37,10 +38,10 @@ void DrawWorldGrid(engine::graphics::Renderer &renderer,
   // Visible world bounds: compute from screen corners.
   const auto bounds = camera.VisibleWorldBounds();
 
-  const int x0 = static_cast<int>(std::floor(bounds.minX));
-  const int x1 = static_cast<int>(std::ceil(bounds.maxX));
-  const int y0 = static_cast<int>(std::floor(bounds.minY));
-  const int y1 = static_cast<int>(std::ceil(bounds.maxY));
+  const int x0 = static_cast<int>(std::floor(bounds.Left()));
+  const int x1 = static_cast<int>(std::ceil(bounds.Right()));
+  const int y0 = static_cast<int>(std::floor(bounds.Top()));
+  const int y1 = static_cast<int>(std::ceil(bounds.Bottom()));
 
   constexpr int kMaxCells = 4096;
   const int cols = x1 - x0;
@@ -285,8 +286,6 @@ void PlayingState::OnMouseButton(engine::core::Game &game,
   if (button == engine::input::MouseButton::Right) {
     if (auto *val = reg.TryGet<engine::components::Velocity>(m_hero)) {
       val->targetPosition = worldPos;
-      engine::Logger::Info("target=(%.2f,%.2f) speed=%.2f", worldPos.x,
-                           worldPos.y, val->speed);
     }
   }
 }

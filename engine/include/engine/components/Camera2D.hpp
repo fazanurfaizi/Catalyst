@@ -1,28 +1,13 @@
 #pragma once
 
 #include "engine/ecs/Entity.hpp"
+#include "engine/math/Rect.hpp"
 #include "engine/platform/Display.hpp"
 #include <algorithm>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
 namespace engine::components {
-
-struct WorldBounds {
-  float minX = 0.0f;
-  float maxX = 0.0f;
-  float minY = 0.0f;
-  float maxY = 0.0f;
-
-  [[nodiscard]] bool Overlaps(float aMinX, float aMaxX, float aMinY,
-                              float aMaxY) const noexcept {
-    return aMinX <= maxX && aMaxX >= minX && aMinY <= maxY && aMaxY >= minY;
-  }
-
-  [[nodiscard]] bool Contains(glm::vec2 p) const noexcept {
-    return p.x >= minX && p.x <= maxX && p.y >= minY && p.y <= maxY;
-  }
-};
 
 struct Camera2D {
   glm::vec2 position{0.0f};
@@ -123,7 +108,7 @@ struct Camera2D {
     return ScreenToWorld(windowCursor); // fallback legacy
   }
 
-  [[nodiscard]] WorldBounds VisibleWorldBounds() const noexcept {
+  [[nodiscard]] math::Rect VisibleWorldBounds() const noexcept {
     const auto size = ResolvedSize();
     const float w = static_cast<float>(size.x);
     const float h = static_cast<float>(size.y);
@@ -133,12 +118,11 @@ struct Camera2D {
     const auto bl = ScreenToWorld({0.0f, h});
     const auto br = ScreenToWorld({w, h});
 
-    WorldBounds b;
-    b.minX = std::min({tl.x, tr.x, bl.x, br.x});
-    b.maxX = std::max({tl.x, tr.x, bl.x, br.x});
-    b.minY = std::min({tl.y, tr.y, bl.y, br.y});
-    b.maxY = std::max({tl.y, tr.y, bl.y, br.y});
-    return b;
+    float minX = std::min({tl.x, tr.x, bl.x, br.x});
+    float maxX = std::max({tl.x, tr.x, bl.x, br.x});
+    float minY = std::min({tl.y, tr.y, bl.y, br.y});
+    float maxY = std::max({tl.y, tr.y, bl.y, br.y});
+    return math::Rect(minX, minY, maxX - minX, maxY - minY);
   }
 };
 

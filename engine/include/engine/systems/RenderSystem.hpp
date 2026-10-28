@@ -26,7 +26,7 @@ inline void RenderSystem(scene::World &world, graphics::Renderer &renderer,
   commands.reserve(
       reg.View<components::Transform, components::Sprite>().Size());
 
-  const auto view = camera.VisibleWorldBounds();
+  const auto viewRect = camera.VisibleWorldBounds();
 
   for (auto [e, s, t] : reg.View<components::Sprite, components::Transform>()) {
     const float hx = t.scale.x * 0.5;
@@ -41,8 +41,10 @@ inline void RenderSystem(scene::World &world, graphics::Renderer &renderer,
       ey = std::abs(hx * sn) + std::abs(hy * c);
     }
 
-    if (!view.Overlaps(t.position.x - ex, t.position.x + ex, t.position.y - ey,
-                       t.position.y + ey)) {
+    math::Rect entityRect(t.position.x - ex, t.position.y - ey, ex * 2.0f,
+                          ey * 2.0f);
+
+    if (!viewRect.Intersects(entityRect)) {
       continue;
     }
 

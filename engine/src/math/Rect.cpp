@@ -6,9 +6,7 @@ bool Rect::Contains(const glm::vec2 &p) const {
   const bool hitX = p.x >= x && p.x <= x + width;
   const bool hitY = p.y >= y && p.y <= y + height;
   const bool hit = hitX && hitY;
-
-  return p.x >= this->x && p.x <= this->x + this->width && p.y >= this->y &&
-         p.y <= this->y + height;
+  return hit;
 }
 
 bool Rect::Intersects(const Rect &other) const {
