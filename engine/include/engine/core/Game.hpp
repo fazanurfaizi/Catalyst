@@ -3,6 +3,7 @@
 #include "engine/audio/AudioEngine.hpp"
 #include "engine/core/GameStateManager.hpp"
 #include "engine/platform/Window.hpp"
+#include "engine/resources/ResourceManager.hpp"
 #include <memory>
 
 #include <glm/glm.hpp>
@@ -75,6 +76,9 @@ public:
   graphics::Renderer &GetRenderer() { return *m_renderer; }
   const graphics::Renderer &GetRenderer() const { return *m_renderer; }
 
+  resources::ResourceManager &Resources() { return m_resources; }
+  const resources::ResourceManager &Resources() const { return m_resources; }
+
   audio::AudioEngine &GetAudio() { return m_audio; }
 
 protected:
@@ -89,6 +93,7 @@ private:
   GameStateManager m_stateManager;
   audio::AudioEngine m_audio;
   std::unique_ptr<graphics::Renderer> m_renderer;
+  resources::ResourceManager m_resources;
 
   bool m_running{false};
   bool m_imguiInited{false};

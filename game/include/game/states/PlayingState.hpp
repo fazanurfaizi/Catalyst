@@ -4,7 +4,6 @@
 #include "engine/core/Game.hpp"
 #include "engine/core/GameState.hpp"
 #include "engine/ecs/Entity.hpp"
-#include "engine/graphics/Font.hpp"
 #include "engine/graphics/TextRenderer.hpp"
 #include "engine/graphics/TextureAtlas.hpp"
 #include "engine/input/InputCodes.hpp"
@@ -33,7 +32,6 @@ private:
 
   engine::graphics::TextureAtlas m_atlas;
   engine::graphics::TextRenderer m_textRenderer;
-  engine::graphics::Font m_font;
 
   engine::ecs::Entity m_camera{};
   engine::ecs::Entity m_coin{};

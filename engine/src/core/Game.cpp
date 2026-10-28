@@ -82,6 +82,7 @@ Game::~Game() {
   }
 
   m_stateManager.Clear(*this);
+  m_resources.Clear();
   m_audio.Shutdown();
   m_renderer.reset();
   m_window.reset();

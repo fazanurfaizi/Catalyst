@@ -86,7 +86,7 @@ void PlayingState::OnEnter(engine::core::Game &game) {
   cam.active = true;
 
   const int loaded = m_atlas.AddFromDirectory(engine::AssetPath("sprites"));
-  m_font.LoadFromFile(engine::AssetPath("fonts/Roboto-Regular.ttf"), 32.0f);
+  game.Resources().LoadFont("main_font", "fonts/Roboto-Regular.ttf", 32.0f);
 
   m_atlas.AddSolid("solidWhite", 0xFFFFFFFF, 16);
 
@@ -129,7 +129,8 @@ void PlayingState::OnEnter(engine::core::Game &game) {
   m_animations.AddStrip("hero_move", m_atlas, "hero_move", 10, 0.1f, true);
   m_animations.AddStrip("coin_spin", m_atlas, "coin", 6, 0.08f, true);
 
-  game.GetAudio().PlayMusic(engine::AssetPath("audio/bg_theme.mp3"));
+  game.GetAudio().PlayMusic(
+      game.Resources().GetAssetPath("audio/bg_theme.mp3"));
 
   engine::Logger::Info(
       loaded > 0
@@ -215,7 +216,8 @@ void PlayingState::OnRender(engine::core::Game &game) {
 
   renderer.End();
 
-  m_textRenderer.Draw(m_font, "Gold: 100", {60.0f, 100.0f}, 2.0f,
+  auto *font = game.Resources().GetFont("main_font");
+  m_textRenderer.Draw(*font, "Gold: 100", {60.0f, 100.0f}, 2.0f,
                       {1.0f, 0.85f, 0.2f, 1.0f}, game.Display().UiProjection());
 }
 

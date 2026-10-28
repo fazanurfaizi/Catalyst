@@ -23,6 +23,8 @@ add_library(engine STATIC
   src/platform/Display.cpp
   src/platform/Window.cpp
 
+  src/resources/ResourceManager.cpp
+
   src/scene/World.cpp
 
   src/utils/Logger.cpp
@@ -66,3 +68,4 @@ target_compile_definitions(engine PUBLIC
 if(GAME_WARNING_FLAGS)
   target_compile_options(engine PRIVATE ${GAME_WARNING_FLAGS})
 endif()
+

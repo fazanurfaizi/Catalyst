@@ -18,6 +18,9 @@ struct Character {
 
 class Font {
 public:
+  Font() = default;
+  ~Font() = default;
+
   bool LoadFromFile(const std::string &path, float fontSize);
 
   const Character &GetCharacter(char c) const;

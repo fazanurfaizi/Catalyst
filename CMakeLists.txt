@@ -69,6 +69,14 @@ if(GAME_ENABLE_WARNINGS)
   endif()
 endif()
 
+if(GAME_PRODUCTION_BUILD)
+  add_compile_definitions(PRODUCTION_BUILD=1)
+  add_compile_definitions(ASSETS_PATH="./assets/")
+else()
+  add_compile_definitions(PRODUCTION_BUILD=0)
+  add_compile_definitions(ASSETS_PATH="${CMAKE_CURRENT_SOURCE_DIR}/assets/")
+endif()
+
 
 # Add Subdirectories
 # Build vendor libraries
@@ -103,38 +111,14 @@ target_link_libraries("${GAME_EXE_TARGET_NAME}" PRIVATE
 )
 
 if(GAME_PRODUCTION_BUILD)
-  # ASSETS_PATH is relative to the working directory of the running exe.
-  # Ship assets/ next to the executable and launch from that folder.
-  target_compile_definitions(${GAME_EXE_TARGET_NAME} PRIVATE
-    PRODUCTION_BUILD=1
-    ASSETS_PATH="./assets/"
-  )
-
-  # Copy assets next to the executable on every build so `bin/assets` exists.
-  add_custom_command(TARGET ${GAME_EXE_TARGET_NAME} POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
-      "${CMAKE_CURRENT_SOURCE_DIR}/assets"
-      "$<TARGET_FILE_DIR:${GAME_EXE_TARGET_NAME}>/assets"
-    COMMENT "Copying assets next to executable"
-  )
-
-  # Also make the IDE debugger start in the exe folder (VS / Xcode).
-  set_target_properties(${GAME_EXE_TARGET_NAME} PROPERTIES
-    VS_DEBUGGER_WORKING_DIRECTORY "$<TARGET_FILE_DIR:${GAME_EXE_TARGET_NAME}>"
-    XCODE_SCHEME_WORKING_DIRECTORY "$<TARGET_FILE_DIR:${GAME_EXE_TARGET_NAME}>"
-  )
+  add_compile_definitions(PRODUCTION_BUILD=1)
+  add_compile_definitions(ASSETS_PATH="./assets/")
 else()
-  # Dev mode: assets are read from the source tree, so editing a shader and
-  # pressing F5 is enough — no rebuild or copy step required.
-  target_compile_definitions(${GAME_EXE_TARGET_NAME} PRIVATE
-    PRODUCTION_BUILD=0
-    ASSETS_PATH="${CMAKE_CURRENT_SOURCE_DIR}/assets/"
-  )
+  add_compile_definitions(PRODUCTION_BUILD=0)
+  add_compile_definitions(ASSETS_PATH="${CMAKE_CURRENT_SOURCE_DIR}/assets/")
 endif()
 
-# ---------------------------------------------------------------------------
 # Install rules (so `cmake --install` produces a shippable layout)
-# ---------------------------------------------------------------------------
 if(GAME_PRODUCTION_BUILD AND GAME_IS_TOP_LEVEL)
   install(TARGETS ${GAME_EXE_TARGET_NAME}
     RUNTIME DESTINATION "."
