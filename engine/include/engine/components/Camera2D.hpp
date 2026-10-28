@@ -1,6 +1,7 @@
 #pragma once
 
 #include "engine/ecs/Entity.hpp"
+#include "engine/platform/Display.hpp"
 #include <algorithm>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -39,6 +40,10 @@ struct Camera2D {
   float followSpeed = 8.0f;
   glm::vec2 followOffset{0.0f, 0.0f};
 
+  const platform::Display *display = nullptr;
+
+  void SetDisplay(const platform::Display *d) noexcept { display = d; }
+
   void SetViewport(int w, int h) noexcept {
     viewportWidth = w;
     viewportHeight = h;
@@ -51,18 +56,26 @@ struct Camera2D {
   void SetRotation(float r) noexcept { rotation = r; }
   void RotateBy(float r) noexcept { rotation += r; }
 
+  [[nodiscard]] glm::ivec2 ResolvedSize() const noexcept {
+    if (display) {
+      const auto fb = display->FramebufferSize();
+      if (fb.x > 0 && fb.y > 0)
+        return fb;
+    }
+    return {viewportWidth, viewportHeight};
+  }
+
   [[nodiscard]] float AspectRatio() const noexcept {
-    return viewportHeight > 0 ? static_cast<float>(viewportWidth) /
-                                    static_cast<float>(viewportHeight)
-                              : 1.0f;
+    const auto s = ResolvedSize();
+    return s.y > 0 ? static_cast<float>(s.x) / static_cast<float>(s.y) : 1.0f;
   }
 
   [[nodiscard]] glm::mat4 ViewMatrix() const noexcept {
     glm::mat4 m(1.0f);
-    m = glm::translate(m, glm::vec3(-position, 0.0f));
     if (rotation != 0.0f) {
       m = glm::rotate(m, -rotation, glm::vec3(0.0f, 0.0f, 1.0f));
     }
+    m = glm::translate(m, glm::vec3(-position, 0.0f));
     return m;
   }
 
@@ -77,23 +90,25 @@ struct Camera2D {
   }
 
   [[nodiscard]] glm::vec2 WorldToScreen(const glm::vec2 &world) const noexcept {
+    const auto size = ResolvedSize();
     glm::vec4 clip = ViewProjectionMatrix() * glm::vec4(world, 0.0f, 1.0f);
     if (clip.w == 0.0f)
       return glm::vec2(0.0f);
-
     glm::vec2 ndc = glm::vec2(clip) / clip.w;
-    // NDC (-1..1) -> screen (0..1) -> viewport pixels, flip Y for top-left
-    // origin
-    float sx = (ndc.x * 0.5f + 0.5f) * viewportWidth;
-    float sy = 1.0f - (-ndc.y * 0.5f + 0.5f) * viewportHeight;
-    return glm::vec2(sx, sy);
+    // NDC -> screen pixels, origin top-left (Y flip diperbaiki)
+    const float sx = (ndc.x * 0.5f + 0.5f) * float(size.x);
+    const float sy = (0.5f - ndc.y * 0.5f) * float(size.y);
+    return {sx, sy};
   }
 
   [[nodiscard]] glm::vec2
   ScreenToWorld(const glm::vec2 &screen) const noexcept {
     // Screen -> NDC, flip Y back
-    float ndcX = (screen.x / viewportWidth) * 2.0f - 1.0f;
-    float ndcY = 1.0f - (screen.y / viewportHeight) * 2.0f;
+    const auto size = ResolvedSize();
+    const float w = float(size.x > 0 ? size.x : 1);
+    const float h = float(size.y > 0 ? size.y : 1);
+    const float ndcX = (screen.x / w) * 2.0f - 1.0f;
+    const float ndcY = 1.0f - (screen.y / h) * 2.0f;
     glm::vec4 world = glm::inverse(ViewProjectionMatrix()) *
                       glm::vec4(ndcX, ndcY, 0.0f, 1.0f);
     if (world.w == 0.0f)
@@ -101,9 +116,17 @@ struct Camera2D {
     return glm::vec2(world) / world.w;
   }
 
+  [[nodiscard]] glm::vec2
+  ScreenToWorldFromCursor(const glm::vec2 &windowCursor) const noexcept {
+    if (display)
+      return ScreenToWorld(display->CursorToFramebuffer(windowCursor));
+    return ScreenToWorld(windowCursor); // fallback legacy
+  }
+
   [[nodiscard]] WorldBounds VisibleWorldBounds() const noexcept {
-    const float w = static_cast<float>(viewportWidth);
-    const float h = static_cast<float>(viewportHeight);
+    const auto size = ResolvedSize();
+    const float w = static_cast<float>(size.x);
+    const float h = static_cast<float>(size.y);
 
     const auto tl = ScreenToWorld({0.0f, 0.0f});
     const auto tr = ScreenToWorld({w, 0.0f});

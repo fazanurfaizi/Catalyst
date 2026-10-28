@@ -3,6 +3,7 @@
 #include "engine/core/Game.hpp"
 #include "engine/core/GameState.hpp"
 
+#include "engine/input/InputCodes.hpp"
 #include "game/states/PlayingState.hpp"
 
 #include "imgui.h"
@@ -21,8 +22,9 @@ public:
     }
     ImGui::End();
   }
-  void OnMouseButton(engine::core::Game &game, int button, int action,
-                     int mods) override {}
+  void OnMouseButton(engine::core::Game &game,
+                     engine::input::MouseButton button,
+                     engine::input::KeyAction action, int mods) override {}
 
 private:
 };

@@ -1,7 +1,5 @@
 #include "game/states/PlayingState.hpp"
 
-#include "GLFW/glfw3.h"
-
 #include "engine/assets/AssetPath.hpp"
 #include "engine/components/Sprite.hpp"
 #include "engine/components/Transform.hpp"
@@ -21,9 +19,7 @@
 #include "engine/systems/MovementSystem.hpp"
 #include "engine/systems/ParticleSystem.hpp"
 #include "engine/systems/RenderSystem.hpp"
-#include "glm/ext/matrix_clip_space.hpp"
 
-#include <algorithm>
 #include <cmath>
 #include <cstdlib>
 #include <glad/gl.h>
@@ -39,19 +35,12 @@ void DrawWorldGrid(engine::graphics::Renderer &renderer,
     return;
 
   // Visible world bounds: compute from screen corners.
-  const auto tl = camera.ScreenToWorld({0.0f, 0.0f});
-  const auto br =
-      camera.ScreenToWorld({static_cast<float>(camera.viewportWidth),
-                            static_cast<float>(camera.viewportHeight)});
-  const float minX = std::min(tl.x, br.x);
-  const float maxX = std::max(tl.x, br.x);
-  const float minY = std::min(tl.y, br.y);
-  const float maxY = std::max(tl.y, br.y);
+  const auto bounds = camera.VisibleWorldBounds();
 
-  const int x0 = static_cast<int>(std::floor(minX));
-  const int x1 = static_cast<int>(std::ceil(maxX));
-  const int y0 = static_cast<int>(std::floor(minY));
-  const int y1 = static_cast<int>(std::ceil(maxY));
+  const int x0 = static_cast<int>(std::floor(bounds.minX));
+  const int x1 = static_cast<int>(std::ceil(bounds.maxX));
+  const int y0 = static_cast<int>(std::floor(bounds.minY));
+  const int y1 = static_cast<int>(std::ceil(bounds.maxY));
 
   constexpr int kMaxCells = 4096;
   const int cols = x1 - x0;
@@ -89,10 +78,10 @@ void PlayingState::OnEnter(engine::core::Game &game) {
   auto &reg = m_world.Registry();
   m_camera = m_world.CreateEntity("MainCamera");
 
-  game.SetClearColor({0.15f, 0.20f, 0.30f, 1.0f});
+  game.GetWindow().ClearWindow();
 
   auto &cam = reg.Emplace<engine::components::Camera2D>(m_camera);
-  cam.SetViewport(game.Config().width, game.Config().height);
+  cam.SetDisplay(&game.Display());
   cam.orthoSize = 10.0f;
   cam.active = true;
 
@@ -154,24 +143,22 @@ void PlayingState::OnEnter(engine::core::Game &game) {
 void PlayingState::OnUpdate(engine::core::Game &game, double dt) {
   auto &reg = m_world.Registry();
   auto &camera = reg.Get<engine::components::Camera2D>(m_camera);
+  auto &in = game.Input();
 
   const float speed = 5.0f * static_cast<float>(dt);
 
-  if (game.IsKeyDown(GLFW_KEY_W))
+  if (in.IsKeyDown(engine::input::Key::W))
     camera.Move({0.0f, speed});
-  if (game.IsKeyDown(GLFW_KEY_S))
+  if (in.IsKeyDown(engine::input::Key::S))
     camera.Move({0.0f, -speed});
-  if (game.IsKeyDown(GLFW_KEY_A))
+  if (in.IsKeyDown(engine::input::Key::A))
     camera.Move({-speed, 0.0f});
-  if (game.IsKeyDown(GLFW_KEY_D))
+  if (in.IsKeyDown(engine::input::Key::D))
     camera.Move({speed, 0.0f});
-  if (game.IsKeyDown(GLFW_KEY_Q))
+  if (in.IsKeyDown(engine::input::Key::Q))
     camera.RotateBy(+0.5f * static_cast<float>(dt));
-  if (game.IsKeyDown(GLFW_KEY_E))
+  if (in.IsKeyDown(engine::input::Key::E))
     camera.RotateBy(-0.5f * static_cast<float>(dt));
-
-  if (game.IsKeyDown(GLFW_KEY_ESCAPE))
-    glfwSetWindowShouldClose(game.Window(), GLFW_TRUE);
 
   if (reg.IsAlive(m_hero)) {
     auto &a = reg.Get<engine::components::Animator>(m_hero);
@@ -201,7 +188,7 @@ void PlayingState::OnUpdate(engine::core::Game &game, double dt) {
 
   // Enemy orbits origin.
   if (reg.IsAlive(m_enemy)) {
-    const float angle = static_cast<float>(glfwGetTime());
+    const float angle = static_cast<float>(game.ElapsedTime());
     auto &t = reg.Get<engine::components::Transform>(m_enemy);
     t.position = {std::cos(angle) * 6.0f, std::sin(angle) * 4.0f};
     t.rotation = angle;
@@ -218,14 +205,9 @@ void PlayingState::OnUpdate(engine::core::Game &game, double dt) {
 void PlayingState::OnRender(engine::core::Game &game) {
   auto &renderer = game.GetRenderer();
   auto &reg = m_world.Registry();
-
   auto &camera = reg.Get<engine::components::Camera2D>(m_camera);
 
-  glm::mat4 viewProj = camera.ViewProjectionMatrix();
-
-  game.SetClearColor({0.10f, 0.12f, 0.16f, 1.0f});
-
-  renderer.Begin(viewProj);
+  renderer.Begin(camera.ViewProjectionMatrix());
 
   DrawWorldGrid(renderer, camera, m_atlas);
 
@@ -233,12 +215,8 @@ void PlayingState::OnRender(engine::core::Game &game) {
 
   renderer.End();
 
-  glm::mat4 uiProjection =
-      glm::ortho(0.0f, (float)camera.viewportWidth,
-                 (float)camera.viewportHeight, 0.0f, -1.0f, 1.0f);
-
   m_textRenderer.Draw(m_font, "Gold: 100", {60.0f, 100.0f}, 2.0f,
-                      {1.0f, 0.85f, 0.2f, 1.0f}, uiProjection);
+                      {1.0f, 0.85f, 0.2f, 1.0f}, game.Display().UiProjection());
 }
 
 void PlayingState::OnImGui(engine::core::Game &game) {
@@ -247,16 +225,23 @@ void PlayingState::OnImGui(engine::core::Game &game) {
 #endif // DEBUG
 }
 
-void PlayingState::OnKey(engine::core::Game &game, int key, int scancode,
-                         int action, int mods) {
+void PlayingState::OnKey(engine::core::Game &game, engine::input::Key key,
+                         int scancode, engine::input::KeyAction action,
+                         int mods) {
   (void)scancode;
   (void)mods;
-  if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS) {
-    glfwSetWindowShouldClose(game.Window(), GLFW_TRUE);
-  }
-  if (key == GLFW_KEY_SPACE && action == GLFW_PRESS) {
+
+  if (action != engine::input::KeyAction::Press)
+    return;
+
+  if (key == engine::input::Key::Escape)
+    game.GetWindow().RequestClose();
+
+  if (key == engine::input::Key::F11)
+    game.ToggleFullscreen();
+
+  if (key == engine::input::Key::Space)
     engine::Logger::Info("Space tapped");
-  }
 }
 
 void PlayingState::OnScroll(engine::core::Game &game, double dx, double dy) {
@@ -264,30 +249,29 @@ void PlayingState::OnScroll(engine::core::Game &game, double dx, double dy) {
   // Zoom around the cursor for natural feel.
   auto &reg = m_world.Registry();
   auto &camera = reg.Get<engine::components::Camera2D>(m_camera);
-  double mx, my;
-  glfwGetCursorPos(game.Window(), &mx, &my);
-  const auto before =
-      camera.ScreenToWorld({static_cast<float>(mx), static_cast<float>(my)});
+
+  auto cursor = game.Input().CursorPos();
+  const auto before = camera.ScreenToWorldFromCursor({cursor.x, cursor.y});
   camera.ZoomBy(dy > 0 ? 1.1f : 1.0f / 1.1f);
-  const auto after =
-      camera.ScreenToWorld({static_cast<float>(mx), static_cast<float>(my)});
+  const auto after = camera.ScreenToWorldFromCursor({cursor.x, cursor.y});
   const auto delta = before - after;
   camera.Move({delta.x, delta.y});
 }
 
-void PlayingState::OnMouseButton(engine::core::Game &game, int button,
-                                 int action, int mods) {
+void PlayingState::OnMouseButton(engine::core::Game &game,
+                                 engine::input::MouseButton button,
+                                 engine::input::KeyAction action, int mods) {
   (void)mods;
+  if (action != engine::input::KeyAction::Press)
+    return;
+
   auto &reg = m_world.Registry();
   auto &camera = reg.Get<engine::components::Camera2D>(m_camera);
+  auto &in = game.Input();
 
-  double mx, my;
-  glfwGetCursorPos(game.Window(), &mx, &my);
+  glm::vec2 worldPos = camera.ScreenToWorldFromCursor(in.CursorPos());
 
-  glm::vec2 worldPos =
-      camera.ScreenToWorld({static_cast<float>(mx), static_cast<float>(my)});
-
-  if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS) {
+  if (button == engine::input::MouseButton::Left) {
     auto &animation = reg.Get<engine::components::Animator>(m_hero);
     auto *idleClip = m_animations.Get("hero_idle");
     auto *attackClip = m_animations.Get("hero_attack");
@@ -296,9 +280,11 @@ void PlayingState::OnMouseButton(engine::core::Game &game, int button,
     }
   }
 
-  if (button == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_PRESS) {
+  if (button == engine::input::MouseButton::Right) {
     if (auto *val = reg.TryGet<engine::components::Velocity>(m_hero)) {
       val->targetPosition = worldPos;
+      engine::Logger::Info("target=(%.2f,%.2f) speed=%.2f", worldPos.x,
+                           worldPos.y, val->speed);
     }
   }
 }
@@ -314,7 +300,7 @@ void PlayingState::OnResize(engine::core::Game &game, int w, int h) {
 
 void PlayingState::BuildDemoScene(engine::core::Game &game) {
   auto &reg = m_world.Registry();
-  auto &cam = reg.Emplace<engine::components::Camera2D>(m_camera);
+  auto &cam = reg.Get<engine::components::Camera2D>(m_camera);
 
   // Tower
   m_tower = m_world.CreateEntity("Tower");
@@ -337,10 +323,13 @@ void PlayingState::BuildDemoScene(engine::core::Game &game) {
       m_hero, engine::components::Sprite{
                   .texture = &m_atlas.GetTexture(),
                   .layer = engine::components::RenderLayer::Entities});
-  reg.Emplace<engine::components::Velocity>(m_hero);
+  reg.Emplace<engine::components::Velocity>(m_hero,
+                                            engine::components::Velocity{
+                                                .targetPosition = {4.0f, -2.0f},
+                                                .speed = 5.0f,
+                                            });
   reg.Emplace<engine::components::Animator>(m_hero);
   ApplyRegion(m_hero, "hero_idle_0");
-  cam.SetViewport(game.Config().width, game.Config().height);
   cam.followTarget = m_hero;
 
   // Enemy
@@ -396,10 +385,26 @@ void PlayingState::DrawSceneDebug(engine::core::Game &game) {
   // ImGui::Text("Alive:      %zu", m_scene.Size());
   // ImGui::Text("Clips: %d", m_animations.Count());
 
-  // bool cullOn = game.GetRenderer().CullingEnabled();
-  // if (ImGui::Checkbox("Culling", &cullOn)) {
-  //   game.GetRenderer().SetCullingEnabled(cullOn);
-  // }
+  bool fullscreen = game.IsFullscreen();
+  if (ImGui::Checkbox("Fullscreen", &fullscreen)) {
+    game.SetFullscreen(fullscreen);
+  }
+
+  const auto ws = game.Display().WindowSize();
+  ImGui::Text("Window: %d x %d", ws.x, ws.y);
+  ImGui::Text("Framebuffer: %d x %d", game.Display().FramebufferSize().x,
+              game.Display().FramebufferSize().y);
+
+  if (!game.IsFullscreen()) {
+    if (ImGui::Button("1280x720"))
+      game.SetWindowedSize(1280, 720);
+    ImGui::SameLine();
+    if (ImGui::Button("1600x900"))
+      game.SetWindowedSize(1600, 900);
+    ImGui::SameLine();
+    if (ImGui::Button("1920x1080"))
+      game.SetWindowedSize(1920, 1080);
+  }
 
   ImGui::Separator();
 

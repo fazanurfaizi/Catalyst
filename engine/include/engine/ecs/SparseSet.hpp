@@ -38,7 +38,7 @@ inline constexpr std::uint32_t kEmpty =
 // dense_[i] -> T for entities_[i]
 //
 // Iteration O(Size()), lookup O(1), insert/remove O(1) amortized.
-template <Component T> class SpareSet final : public IStorage {
+template <Component T> class SparseSet final : public IStorage {
 public:
   using value_type = T;
 

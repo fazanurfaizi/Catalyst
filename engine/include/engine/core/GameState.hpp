@@ -1,5 +1,6 @@
 #pragma once
 
+#include "engine/input/InputCodes.hpp"
 namespace engine::core {
 
 class Game;
@@ -18,8 +19,10 @@ public:
   virtual void OnImGui(Game &game) {}
 
   // Input forwarding
-  virtual void OnKey(Game &game, int key, int scancode, int action, int mods) {}
-  virtual void OnMouseButton(Game &game, int button, int action, int mods) {}
+  virtual void OnKey(Game &game, input::Key key, int scancode,
+                     input::KeyAction action, int mods) {}
+  virtual void OnMouseButton(Game &game, input::MouseButton button,
+                             input::KeyAction, int mods) {}
   virtual void OnMouseMove(Game &game, double x, double y) {}
   virtual void OnScroll(Game &game, double dx, double dy) {}
   virtual void OnResize(Game &game, int width, int height) {}

@@ -2,12 +2,12 @@
 
 #include "engine/audio/AudioEngine.hpp"
 #include "engine/core/GameStateManager.hpp"
-#include <array>
+#include "engine/platform/Window.hpp"
 #include <memory>
-#include <string>
 
-#include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
+
+struct GLFWwindow;
 
 namespace engine::graphics {
 class Renderer;
@@ -15,19 +15,15 @@ class Renderer;
 
 namespace engine::core {
 
-struct WindowConfig {
-  int width = 1280;
-  int height = 720;
-  std::string title = "Kingdom Rush Frontiers";
-  bool vsync = true;
-  bool resizable = true;
+struct DebugConfig {
   bool enableImGui = true;
   bool showFps = true;
 };
 
 class Game {
 public:
-  explicit Game(const WindowConfig &config);
+  explicit Game(const platform::WindowConfig &config,
+                const DebugConfig &debug = {});
   virtual ~Game();
 
   Game(const Game &) = delete;
@@ -39,15 +35,45 @@ public:
     m_stateManager.ChangeState(*this, std::move(state));
   }
 
-  void SetClearColor(const glm::vec4 &color) { m_ClearColor = color; }
+  platform::Window &GetWindow() { return *m_window; }
+  const platform::Window &GetWindow() const { return *m_window; }
 
-  bool IsKeyDown(int key) const;
+  input::InputSystem &Input() { return m_window->Input(); }
+  const input::InputSystem &Input() const { return m_window->Input(); }
 
-  GLFWwindow *Window() const { return m_Window; }
-  const WindowConfig &Config() const { return m_Config; }
+  bool IsKeyDown(input::Key key) const {
+    return m_window && m_window->Input().IsKeyDown(key);
+  }
+  bool IsMouseDown(input::MouseButton b) const {
+    return m_window && m_window->Input().IsMouseDown(b);
+  }
 
-  graphics::Renderer &GetRenderer() { return *m_Renderer; }
-  const graphics::Renderer &GetRenderer() const { return *m_Renderer; }
+  void RequestClose() {
+    if (m_window)
+      m_window->RequestClose();
+  }
+  bool CloseRequested() const {
+    return !m_window || m_window->ShouldClose() ||
+           m_window->Input().CloseRequested();
+  }
+
+  double ElapsedTime() const;
+
+  const platform::WindowConfig &Config() const { return m_config; }
+  const DebugConfig &Debug() const { return m_debug; }
+
+  platform::Display &Display() { return m_window->GetDisplay(); }
+  const platform::Display &Display() const { return m_window->GetDisplay(); }
+
+  void SetFullscreen(bool fullscreen);
+  void ToggleFullscreen();
+  bool IsFullscreen() const;
+
+  void SetWindowedSize(int w, int h) { m_window->SetWindowedSize(w, h); }
+  void SetVsync(bool on) { m_window->SetVsync(on); }
+
+  graphics::Renderer &GetRenderer() { return *m_renderer; }
+  const graphics::Renderer &GetRenderer() const { return *m_renderer; }
 
   audio::AudioEngine &GetAudio() { return m_audio; }
 
@@ -56,19 +82,18 @@ protected:
   virtual void OnShutdown() {}
 
 private:
-  WindowConfig m_Config{};
-  GLFWwindow *m_Window{nullptr};
+  platform::WindowConfig m_config{};
+  DebugConfig m_debug{};
+  std::unique_ptr<platform::Window> m_window;
 
   GameStateManager m_stateManager;
   audio::AudioEngine m_audio;
-  std::unique_ptr<graphics::Renderer> m_Renderer;
+  std::unique_ptr<graphics::Renderer> m_renderer;
 
-  glm::vec4 m_ClearColor{0.15f, 0.20f, 0.30f, 1.0f};
-
-  bool m_Running{false};
-  bool m_ImguiInited{false};
-  double m_FpsAccum = 0.0;
-  int m_FpsFrames = 0;
+  bool m_running{false};
+  bool m_imguiInited{false};
+  double m_fpsAccum = 0.0;
+  int m_fpsFrames = 0;
 
   static void ThunkKey(GLFWwindow *window, int key, int scancode, int action,
                        int mods);
@@ -77,12 +102,6 @@ private:
   static void ThunkCursorPos(GLFWwindow *window, double x, double y);
   static void ThunkScroll(GLFWwindow *window, double x, double y);
   static void ThunkFramebufferSize(GLFWwindow *window, int width, int height);
-
-  static Game *FromWindow(GLFWwindow *w) {
-    return static_cast<Game *>(glfwGetWindowUserPointer(w));
-  }
-
-  std::array<bool, GLFW_KEY_LAST + 1> m_Keys{};
 };
 
 } // namespace engine::core

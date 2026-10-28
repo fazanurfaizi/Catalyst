@@ -1,6 +1,6 @@
 #pragma once
 
-#include "SpareSet.hpp"
+#include "SparseSet.hpp"
 #include "engine/utils/Logger.hpp"
 
 #include <cassert>
@@ -78,6 +78,13 @@ public:
     return StorageOf<T>().Emplace(e, std::forward<Args>(args)...);
   }
 
+  template <Component T, typename... Args>
+  T &GetOrEmplace(Entity e, Args &&...args) {
+    if (T *existing = TryGet<T>(e))
+      return *existing;
+    return Emplace<T>(e, std::forward<Args>(args)...);
+  }
+
   template <Component T> void Remove(Entity e) noexcept {
     if (auto *s = TryStorageOf<T>())
       s->Remove(e);
@@ -109,31 +116,31 @@ public:
   template <Component... Ts> [[nodiscard]] View<Ts...> View();
 
   // Internal
-  template <Component T> SpareSet<T> &StorageOf() {
+  template <Component T> SparseSet<T> &StorageOf() {
     auto key = std::type_index(typeid(T));
     auto it = storages_.find(key);
     if (it == storages_.end()) {
-      auto ptr = std::make_unique<SpareSet<T>>();
+      auto ptr = std::make_unique<SparseSet<T>>();
       auto *raw = ptr.get();
       storages_.emplace(key, std::move(ptr));
       return *raw;
     }
-    return *static_cast<SpareSet<T> *>(it->second.get());
+    return *static_cast<SparseSet<T> *>(it->second.get());
   }
 
-  template <Component T> [[nodiscard]] SpareSet<T> *TryStorageOf() noexcept {
+  template <Component T> [[nodiscard]] SparseSet<T> *TryStorageOf() noexcept {
     auto it = storages_.find(std::type_index(typeid(T)));
     if (it == storages_.end())
       return nullptr;
-    return static_cast<SpareSet<T> *>(it->second.get());
+    return static_cast<SparseSet<T> *>(it->second.get());
   }
 
   template <Component T>
-  [[nodiscard]] const SpareSet<T> *TryStorageOf() const noexcept {
+  [[nodiscard]] const SparseSet<T> *TryStorageOf() const noexcept {
     auto it = storages_.find(std::type_index(typeid(T)));
     if (it == storages_.end())
       return nullptr;
-    return static_cast<SpareSet<T> *>(it->second.get());
+    return static_cast<SparseSet<T> *>(it->second.get());
   }
 
   [[nodiscard]] IStorage *TryStorageByType(std::type_index ti) noexcept {

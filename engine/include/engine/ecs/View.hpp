@@ -105,7 +105,7 @@ private:
   }
 
   Registry *registry_;
-  std::tuple<SpareSet<Ts> *...> storages_;
+  std::tuple<SparseSet<Ts> *...> storages_;
   std::vector<std::type_index> excluded_;
   Entity *leader_entities_ = nullptr;
   std::size_t leader_size_ = 0;

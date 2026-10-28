@@ -16,7 +16,12 @@ add_library(engine STATIC
   src/graphics/stbi_image_impl.cpp
   src/graphics/stb_truetype_impl.cpp
   
+  src/input/InputSystem.cpp
+  
   src/math/Rect.cpp
+
+  src/platform/Display.cpp
+  src/platform/Window.cpp
 
   src/scene/World.cpp
 

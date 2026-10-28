@@ -6,6 +6,7 @@
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
 
+// @NOTE: only for glfwGetTime, next will change to Clock
 #include <GLFW/glfw3.h>
 #include <glad/gl.h>
 
@@ -20,65 +21,43 @@ void GlfwErrorCallback(int code, const char *desc) {
 }
 } // namespace
 
-Game::Game(const WindowConfig &config) : m_Config(config) {
-  glfwSetErrorCallback(GlfwErrorCallback);
-  if (!glfwInit()) {
+Game::Game(const platform::WindowConfig &config, const DebugConfig &debug)
+    : m_config(config), m_debug(debug) {
+  m_window = platform::Window::Create(m_config);
+  if (!m_window) {
     Logger::Error("glfwInit failed");
     return;
   }
 
-  glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-  glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-  glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-
-  int monitorCount;
-  GLFWmonitor **monitors = glfwGetMonitors(&monitorCount);
-
-  if (monitorCount == 0) {
-    Logger::Error("No monitors found");
-    glfwTerminate();
-    return;
-  }
-
-  int targetIndex = (monitorCount > 1) ? 1 : 0;
-  GLFWmonitor *targetMonitor = monitors[targetIndex];
-
-  const GLFWvidmode *mode = glfwGetVideoMode(targetMonitor);
-  if (mode != nullptr) {
-    m_Config.width = mode->width;
-    m_Config.height = mode->height;
-  }
-
-  m_Window = glfwCreateWindow(m_Config.width, m_Config.height,
-                              m_Config.title.c_str(), targetMonitor, nullptr);
-
-  if (!m_Window) {
-    Logger::Error("glfwCreateWindow failed");
-    glfwTerminate();
-    return;
-  }
-
-  glfwMakeContextCurrent(m_Window);
-  glfwSwapInterval(m_Config.vsync ? 1 : 0);
-
-  glfwSetWindowUserPointer(m_Window, this);
-  glfwSetKeyCallback(m_Window, &Game::ThunkKey);
-  glfwSetMouseButtonCallback(m_Window, &Game::ThunkMouseButton);
-  glfwSetCursorPosCallback(m_Window, &Game::ThunkCursorPos);
-  glfwSetScrollCallback(m_Window, &Game::ThunkScroll);
-  glfwSetFramebufferSizeCallback(m_Window, &Game::ThunkFramebufferSize);
-
   if (!gladLoadGL(glfwGetProcAddress)) {
     Logger::Error("gladLoadGL failed");
-    glfwDestroyWindow(m_Window);
-    m_Window = nullptr;
-    glfwTerminate();
+    m_window.reset();
     return;
   }
 
-  m_Renderer = std::make_unique<graphics::Renderer>(4096);
+  m_renderer = std::make_unique<graphics::Renderer>(4096);
 
-  if (m_Config.enableImGui) {
+  // Wire window events → state manager
+  m_window->events.onKey = [this](input::Key key, int sc,
+                                  input::KeyAction action, int mods) {
+    m_stateManager.OnKey(*this, key, sc, action, mods);
+  };
+  m_window->events.onMouseButton = [this](input::MouseButton button,
+                                          input::KeyAction action, int mods) {
+    m_stateManager.OnMouseButton(*this, button, action, mods);
+  };
+  m_window->events.onCursorMove = [this](double x, double y) {
+    m_stateManager.OnMouseMove(*this, x, y);
+  };
+  m_window->events.onScroll = [this](double x, double y) {
+    m_stateManager.OnScroll(*this, x, y);
+  };
+  m_window->events.onResize = [this](int w, int h) {
+    // m_renderer->OnFramebufferResize(w, h);
+    m_stateManager.OnResize(*this, w, h);
+  };
+
+  if (m_debug.enableImGui) {
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
     ImGuiIO &io = ImGui::GetIO();
@@ -86,9 +65,9 @@ Game::Game(const WindowConfig &config) : m_Config(config) {
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
     ImGui::StyleColorsDark();
 
-    ImGui_ImplGlfw_InitForOpenGL(m_Window, /*install_callbacks=*/true);
+    ImGui_ImplGlfw_InitForOpenGL(m_window->GlfwHandle(), /*install_cb=*/true);
     ImGui_ImplOpenGL3_Init("#version 330");
-    m_ImguiInited = true;
+    m_imguiInited = true;
   }
 
   Logger::Info("GL: %s",
@@ -96,63 +75,73 @@ Game::Game(const WindowConfig &config) : m_Config(config) {
 }
 
 Game::~Game() {
-  if (m_ImguiInited) {
+  if (m_imguiInited) {
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplGlfw_Shutdown();
     ImGui::DestroyContext();
   }
 
+  m_stateManager.Clear(*this);
   m_audio.Shutdown();
-
-  m_Renderer.reset();
-
-  if (m_Window) {
-    glfwDestroyWindow(m_Window);
-  }
-  glfwTerminate();
+  m_renderer.reset();
+  m_window.reset();
 }
 
+double Game::ElapsedTime() const { return glfwGetTime(); }
+
+void Game::SetFullscreen(bool fullscreen) {
+  if (!m_window)
+    return;
+  m_window->SetFullscreen(fullscreen);
+  m_config.fullscreen = m_window->IsFullscreen();
+  m_config.width = m_window->GetDisplay().WindowSize().x;
+  m_config.height = m_window->GetDisplay().WindowSize().y;
+}
+
+void Game::ToggleFullscreen() { SetFullscreen(!IsFullscreen()); }
+
+bool Game::IsFullscreen() const { return m_window && m_window->IsFullscreen(); }
+
 bool Game::Run() {
-  if (!m_Window) {
+  if (!m_window) {
     Logger::Error("Game::Run called without a valid window");
     return false;
   }
 
   OnStart();
 
-  m_Running = true;
-  double last = glfwGetTime();
-  while (m_Running && !glfwWindowShouldClose(m_Window)) {
-    glfwPollEvents();
+  m_running = true;
+  double last = ElapsedTime();
+  while (m_running && !CloseRequested()) {
+    m_window->Input().BeginFrame();
+    m_window->PollEvents();
 
-    const double now = glfwGetTime();
+    const double now = ElapsedTime();
     const double dt = now - last;
     last = now;
 
     m_stateManager.Update(*this, dt);
 
-    glClearColor(m_ClearColor.r, m_ClearColor.g, m_ClearColor.b,
-                 m_ClearColor.a);
-    glClear(GL_COLOR_BUFFER_BIT);
+    m_window->ClearWindow();
 
     m_stateManager.Render(*this);
 
-    if (m_Config.showFps) {
-      m_FpsAccum += dt;
-      m_FpsFrames += 1;
-      if (m_FpsAccum >= 0.5) {
-        const double fps = m_FpsFrames / m_FpsAccum;
+    if (m_debug.showFps) {
+      m_fpsAccum += dt;
+      m_fpsFrames += 1;
+      if (m_fpsAccum >= 0.5) {
+        const double fps = m_fpsFrames / m_fpsAccum;
         const double ms = 1000.0 / (fps > 1e-3 ? fps : 1.0);
         char buf[160];
         std::snprintf(buf, sizeof(buf), "%s  |  %.0f FPS  |  %.2f ms",
-                      m_Config.title.c_str(), fps, ms);
-        glfwSetWindowTitle(m_Window, buf);
-        m_FpsAccum = 0.0;
-        m_FpsFrames = 0;
+                      m_config.title.c_str(), fps, ms);
+        m_window->SetTitle(buf);
+        m_fpsAccum = 0.0;
+        m_fpsFrames = 0;
       }
     }
 
-    if (m_ImguiInited) {
+    if (m_imguiInited) {
       ImGui_ImplOpenGL3_NewFrame();
       ImGui_ImplGlfw_NewFrame();
       ImGui::NewFrame();
@@ -163,58 +152,12 @@ bool Game::Run() {
       ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
     }
 
-    glfwSwapBuffers(m_Window);
+    m_window->SwapBuffers();
   }
 
   OnShutdown();
 
   return true;
-}
-
-bool Game::IsKeyDown(int key) const {
-  if (key < 0 || key > GLFW_KEY_LAST)
-    return false;
-  return m_Keys[static_cast<std::size_t>(key)];
-}
-
-void Game::ThunkKey(GLFWwindow *window, int key, int scancode, int action,
-                    int mods) {
-  Game *self = FromWindow(window);
-  if (!self)
-    return;
-
-  if (key >= 0 && key <= GLFW_KEY_LAST) {
-    if (action == GLFW_PRESS)
-      self->m_Keys[key] = true;
-    else if (action == GLFW_RELEASE)
-      self->m_Keys[key] = false;
-  }
-
-  self->m_stateManager.OnKey(*self, key, scancode, action, mods);
-}
-
-void Game::ThunkMouseButton(GLFWwindow *window, int button, int action,
-                            int mods) {
-  if (Game *self = FromWindow(window))
-    self->m_stateManager.OnMouseButton(*self, button, action, mods);
-}
-
-void Game::ThunkCursorPos(GLFWwindow *window, double x, double y) {
-  if (Game *self = FromWindow(window))
-    self->m_stateManager.OnMouseMove(*self, x, y);
-}
-
-void Game::ThunkScroll(GLFWwindow *window, double x, double y) {
-  if (Game *self = FromWindow(window))
-    self->m_stateManager.OnScroll(*self, x, y);
-}
-
-void Game::ThunkFramebufferSize(GLFWwindow *window, int width, int height) {
-  if (Game *self = FromWindow(window)) {
-    glViewport(0, 0, width, height);
-    self->m_stateManager.OnResize(*self, width, height);
-    glViewport(0, 0, width, height);
-  }
 }
 
 } // namespace engine::core

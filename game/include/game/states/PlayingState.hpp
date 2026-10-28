@@ -7,6 +7,7 @@
 #include "engine/graphics/Font.hpp"
 #include "engine/graphics/TextRenderer.hpp"
 #include "engine/graphics/TextureAtlas.hpp"
+#include "engine/input/InputCodes.hpp"
 #include "engine/scene/World.hpp"
 
 class PlayingState final : public engine::core::GameState {
@@ -17,11 +18,12 @@ public:
   void OnRender(engine::core::Game &game) override;
   void OnImGui(engine::core::Game &game) override;
 
-  void OnKey(engine::core::Game &game, int key, int scancode, int action,
-             int mods) override;
+  void OnKey(engine::core::Game &game, engine::input::Key key, int scancode,
+             engine::input::KeyAction action, int mods) override;
   void OnScroll(engine::core::Game &game, double dx, double dy) override;
-  void OnMouseButton(engine::core::Game &game, int button, int action,
-                     int mods) override;
+  void OnMouseButton(engine::core::Game &game,
+                     engine::input::MouseButton button,
+                     engine::input::KeyAction, int mods) override;
   void OnMouseMove(engine::core::Game &game, double x, double y) override;
   void OnResize(engine::core::Game &game, int width, int height) override;
 

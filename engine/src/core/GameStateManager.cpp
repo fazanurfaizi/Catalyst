@@ -34,19 +34,28 @@ void GameStateManager::Render(Game &game) {
     m_current->OnRender(game);
 }
 
+void GameStateManager::Clear(Game &game) {
+  if (m_current) {
+    m_current->OnExit(game);
+    m_current.reset();
+  }
+  m_pending.reset();
+  m_hasPending = false;
+}
+
 void GameStateManager::OnImGui(Game &game) {
   if (m_current)
     m_current->OnImGui(game);
 }
 
-void GameStateManager::OnKey(Game &game, int key, int scancode, int action,
-                             int mods) {
+void GameStateManager::OnKey(Game &game, input::Key key, int scancode,
+                             input::KeyAction action, int mods) {
   if (m_current)
     m_current->OnKey(game, key, scancode, action, mods);
 }
 
-void GameStateManager::OnMouseButton(Game &game, int button, int action,
-                                     int mods) {
+void GameStateManager::OnMouseButton(Game &game, input::MouseButton button,
+                                     input::KeyAction action, int mods) {
   if (m_current)
     m_current->OnMouseButton(game, button, action, mods);
 }

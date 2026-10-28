@@ -2,6 +2,7 @@
 
 #include "engine/core/Game.hpp"
 #include "engine/core/GameState.hpp"
+#include "engine/platform/Window.hpp"
 #include "engine/utils/Logger.hpp"
 
 #include "game/states/MenuState.hpp"
@@ -15,8 +16,9 @@ class KingdomRushGame final : public engine::core::Game {
 public:
   KingdomRushGame()
       : engine::core::Game([] {
-          engine::core::WindowConfig cfg;
+          engine::platform::WindowConfig cfg;
           cfg.title = "Kingdom Rush Frontiers";
+          cfg.fullscreen = true;
           return cfg;
         }()) {}
 
