@@ -7,7 +7,7 @@
 
 namespace engine::graphics {
 
-struct Character {
+struct Glyph {
   GLuint textureId;
   glm::ivec2 size;
   glm::ivec2 bearing;
@@ -23,12 +23,21 @@ public:
 
   bool LoadFromFile(const std::string &path, float fontSize);
 
-  const Character &GetCharacter(char c) const;
+  const Glyph *FindGlyph(std::uint32_t codepoint) const;
+
+  const Glyph &GetCharacter(char c) const;
   GLuint GetTextureId() const { return m_textureId; }
+
+  float GetAscent() const { return m_ascent; }
+  float GetDescent() const { return m_descent; }
+  float GetLineHeight() const { return m_ascent - m_descent + m_lineGap; }
 
 private:
   GLuint m_textureId = 0;
-  std::map<char, Character> m_characters;
+  std::map<char, Glyph> m_glyphs;
+  float m_ascent = 0.0f;
+  float m_descent = 0.0f;
+  float m_lineGap = 0.0f;
 };
 
 } // namespace engine::graphics

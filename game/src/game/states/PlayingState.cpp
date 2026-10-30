@@ -3,6 +3,7 @@
 #include "engine/assets/AssetPath.hpp"
 #include "engine/core/Game.hpp"
 #include "engine/graphics/Renderer.hpp"
+#include "engine/graphics/TextLayout.hpp"
 #include "engine/graphics/TextureAtlas.hpp"
 #include "engine/math/Color.hpp"
 #include "engine/scene/SceneSerializer.hpp"

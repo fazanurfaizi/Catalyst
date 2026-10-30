@@ -58,6 +58,17 @@ bool Font::LoadFromFile(const std::string &path, float fontSize) {
                       packedChars);
   stbtt_PackEnd(&packContext);
 
+  stbtt_fontinfo fontInfo{};
+  if (stbtt_InitFont(&fontInfo, fontDataBuf.data(),
+                     stbtt_GetFontOffsetForIndex(fontDataBuf.data(), 0))) {
+    int ascent = 0, descent = 0, lineGap = 0;
+    stbtt_GetFontVMetrics(&fontInfo, &ascent, &descent, &lineGap);
+    const float pxPerUnit = stbtt_ScaleForPixelHeight(&fontInfo, fontSize);
+    m_ascent = ascent * pxPerUnit;
+    m_descent = descent * pxPerUnit;
+    m_lineGap = lineGap * pxPerUnit;
+  }
+
   glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 
   glGenTextures(1, &m_textureId);
@@ -77,7 +88,7 @@ bool Font::LoadFromFile(const std::string &path, float fontSize) {
 
   // Extract metrics and UVs safely using the correct constant bound
   for (int i = 0; i < kCharsToIncludeInFontAtlas; ++i) {
-    Character ch;
+    Glyph ch;
     ch.textureId = m_textureId;
     ch.size = {
         packedChars[i].x1 - packedChars[i].x0,
@@ -97,12 +108,19 @@ bool Font::LoadFromFile(const std::string &path, float fontSize) {
         static_cast<float>(packedChars[i].y0) / kAtlasH,
     };
 
-    m_characters[32 + i] = ch;
+    m_glyphs[32 + i] = ch;
   }
 
   return true;
 }
 
-const Character &Font::GetCharacter(char c) const { return m_characters.at(c); }
+const Glyph *Font::FindGlyph(std::uint32_t codepoint) const {
+  auto it = m_glyphs.find(codepoint);
+  return it != m_glyphs.end() ? &it->second : nullptr;
+}
+
+const Glyph &Font::GetCharacter(char c) const {
+  return m_glyphs.at(static_cast<std::uint32_t>(static_cast<unsigned char>(c)));
+}
 
 } // namespace engine::graphics

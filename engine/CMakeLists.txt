@@ -10,9 +10,10 @@ add_library(engine STATIC
   src/graphics/Renderer.cpp
   src/graphics/Shader.cpp
   src/graphics/SpriteBatch.cpp
-  src/graphics/TextRenderer.cpp
   src/graphics/Texture.cpp
   src/graphics/TextureAtlas.cpp
+  src/graphics/TextRenderer.cpp
+  src/graphics/TextLayout.cpp
   src/graphics/stbi_image_impl.cpp
   src/graphics/stb_truetype_impl.cpp
   
