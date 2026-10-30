@@ -14,7 +14,11 @@ public:
   ~GameStateManager();
 
   void ChangeState(Game &game, std::unique_ptr<GameState> nextState);
+
   void Update(Game &game, double deltaTime);
+  void FixedUpdate(Game &game, double fixedDeltaTime);
+  void LateUpdate(Game &game, double deltaTime);
+
   void Render(Game &game);
   void Clear(Game &game);
 

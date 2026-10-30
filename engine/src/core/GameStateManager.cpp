@@ -29,6 +29,16 @@ void GameStateManager::Update(Game &game, double deltaTime) {
     m_current->OnUpdate(game, deltaTime);
 }
 
+void GameStateManager::FixedUpdate(Game &game, double fixedDeltaTime) {
+  if (m_current)
+    m_current->OnFixedUpdate(game, fixedDeltaTime);
+}
+
+void GameStateManager::LateUpdate(Game &game, double deltaTime) {
+  if (m_current)
+    m_current->OnLateUpdate(game, deltaTime);
+}
+
 void GameStateManager::Render(Game &game) {
   if (m_current)
     m_current->OnRender(game);

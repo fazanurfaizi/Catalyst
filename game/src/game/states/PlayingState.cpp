@@ -3,7 +3,6 @@
 #include "engine/assets/AssetPath.hpp"
 #include "engine/core/Game.hpp"
 #include "engine/graphics/Renderer.hpp"
-#include "engine/graphics/TextLayout.hpp"
 #include "engine/graphics/TextureAtlas.hpp"
 #include "engine/math/Color.hpp"
 #include "engine/scene/SceneSerializer.hpp"
@@ -162,6 +161,10 @@ void PlayingState::OnUpdate(engine::core::Game &game, double dt) {
     camera.RotateBy(+0.5f * static_cast<float>(dt));
   if (in.IsKeyDown(engine::input::Key::E))
     camera.RotateBy(-0.5f * static_cast<float>(dt));
+}
+
+void PlayingState::OnFixedUpdate(engine::core::Game &game, double dt) {
+  auto &reg = m_world.Registry();
 
   if (reg.IsAlive(m_hero)) {
     auto &a = reg.Get<engine::components::Animator>(m_hero);
@@ -203,6 +206,12 @@ void PlayingState::OnUpdate(engine::core::Game &game, double dt) {
   engine::systems::CameraFollowSystem(reg, dt);
 
   reg.FlushDeferred();
+}
+
+void PlayingState::OnLateUpdate(engine::core::Game &game, double dt) {
+  auto &reg = m_world.Registry();
+
+  engine::systems::CameraFollowSystem(reg, dt);
 }
 
 void PlayingState::OnRender(engine::core::Game &game) {

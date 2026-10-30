@@ -1,5 +1,6 @@
 #include "engine/core/Game.hpp"
 
+#include "engine/core/Clock.hpp"
 #include "engine/graphics/Renderer.hpp"
 #include "engine/utils/Logger.hpp"
 #include "imgui.h"
@@ -112,23 +113,32 @@ bool Game::Run() {
   OnStart();
 
   m_running = true;
-  double last = ElapsedTime();
+
+  // Initialize clock for 60hz fixed rate
+  Clock clock(1.0 / 60.0);
+
   while (m_running && !CloseRequested()) {
     m_window->Input().BeginFrame();
     m_window->PollEvents();
 
-    const double now = ElapsedTime();
-    const double dt = now - last;
-    last = now;
+    clock.Tick();
 
-    m_stateManager.Update(*this, dt);
+    while (clock.ShouldConsumeStep()) {
+      m_stateManager.FixedUpdate(*this, clock.FixedDeltaTime());
+      clock.ConsumeStep();
+    }
+
+    double alpha = clock.GetInterpolationAlpha();
+
+    m_stateManager.Update(*this, alpha);
+
+    m_stateManager.LateUpdate(*this, alpha);
 
     m_window->ClearWindow();
-
     m_stateManager.Render(*this);
 
     if (m_debug.showFps) {
-      m_fpsAccum += dt;
+      m_fpsAccum += clock.DeltaTime();
       m_fpsFrames += 1;
       if (m_fpsAccum >= 0.5) {
         const double fps = m_fpsFrames / m_fpsAccum;

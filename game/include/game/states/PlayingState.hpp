@@ -14,6 +14,9 @@ public:
   void OnEnter(engine::core::Game &game) override;
 
   void OnUpdate(engine::core::Game &game, double dt) override;
+  void OnFixedUpdate(engine::core::Game &game, double dt) override;
+  void OnLateUpdate(engine::core::Game &game, double dt) override;
+
   void OnRender(engine::core::Game &game) override;
   void OnImGui(engine::core::Game &game) override;
 
