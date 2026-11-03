@@ -1,8 +1,10 @@
 #include "engine/resources/ResourceManager.hpp"
 #include "engine/assets/AssetPath.hpp"
 #include "engine/graphics/Font.hpp"
+#include "engine/graphics/Shader.hpp"
 #include "engine/graphics/Texture.hpp"
 #include "engine/utils/Logger.hpp"
+#include <memory>
 
 namespace engine::resources {
 
@@ -35,6 +37,31 @@ ResourceManager::LoadTexture(const std::string &key,
 graphics::Texture *ResourceManager::GetTexture(const std::string &key) {
   auto it = m_textures.find(key);
   return it != m_textures.end() ? it->second.get() : nullptr;
+}
+
+graphics::Shader *ResourceManager::LoadShader(const std::string &key,
+                                              const std::string &relativePath) {
+
+  auto it = m_shaders.find(key);
+  if (it != m_shaders.end()) {
+    return it->second.get();
+  }
+
+  auto shader = std::make_unique<graphics::Shader>();
+  if (!shader->LoadFromFile(GetAssetPath(relativePath))) {
+    Logger::Error("[ResourceManager] shader '%s' failed to load (%s)",
+                  key.c_str(), relativePath.c_str());
+    return nullptr;
+  }
+
+  auto *ptr = shader.get();
+  m_shaders[key] = std::move(shader);
+  return ptr;
+}
+
+graphics::Shader *ResourceManager::GetShader(const std::string &key) {
+  auto it = m_shaders.find(key);
+  return it != m_shaders.end() ? it->second.get() : nullptr;
 }
 
 graphics::Font *ResourceManager::LoadFont(const std::string &key,
