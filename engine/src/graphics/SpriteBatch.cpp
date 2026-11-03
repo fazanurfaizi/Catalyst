@@ -1,239 +1,142 @@
 #include "engine/graphics/SpriteBatch.hpp"
+#include "engine/assets/AssetPath.hpp"
+#include "engine/graphics/SpriteDrawList.hpp"
+#include "engine/graphics/Texture.hpp"
 #include "engine/utils/Logger.hpp"
 #include "glad/gl.h"
 
-#include <cmath>
 #include <cstddef>
-#include <vector>
 
 namespace engine::graphics {
 
-namespace {
-constexpr const char *kVertexShaderSrc = R"glsl(
-#version 330 core
-
-layout(location = 0) in vec2 aPos;
-layout(location = 1) in vec2 aUV;
-layout(location = 2) in vec4 aColor;
-
-uniform mat4 uViewProjection;
-
-out vec2 vUV;
-out vec4 vColor;
-
-void main() {
-  gl_Position = uViewProjection * vec4(aPos, 0.0, 1.0);
-  vUV = aUV;
-  vColor = aColor;
-}
-)glsl";
-
-constexpr const char *kFragmentShaderSrc = R"glsl(
-#version 330 core
-
-in vec2 vUV;
-in vec4 vColor;
-
-uniform sampler2D uTexture;
-
-out vec4 FragColor;
-
-void main() {
-  vec4 tex = texture(uTexture, vUV);
-  FragColor = tex * vColor;
-}
-)glsl";
-
-} // namespace
-
-SpriteBatch::SpriteBatch(std::size_t maxQuads)
-    : m_MaxQuads(static_cast<std::uint32_t>(maxQuads)) {
-  if (m_MaxQuads == 0)
-    m_MaxQuads = 1;
-
-  if (!m_Shader.Compile(kVertexShaderSrc, kFragmentShaderSrc)) {
+SpriteBatch::SpriteBatch() {
+  if (!m_shader.LoadFromFile(engine::AssetPath("shaders/sprite"))) {
     Logger::Error("[SpriteBatch] shader compilation failed");
     return;
   }
 
-  m_Vertices.resize(m_MaxQuads * 4);
+  // clang-format off
+  constexpr float kCorners[] = {
+    -0.5f, -0.5f,
+    0.5f, -0.5f,
+    0.5f, 0.5f,
+    -0.5f, 0.5f
+  };
+  // clang-format on
 
-  // Index buffer -> two triangles per quad
-  std::vector<std::uint32_t> indices(m_MaxQuads * 6);
-  for (std::size_t i = 0; i < m_MaxQuads; ++i) {
-    const std::uint32_t v = i * 4;
-    indices[i * 6 + 0] = v + 0;
-    indices[i * 6 + 1] = v + 1;
-    indices[i * 6 + 2] = v + 2;
-    indices[i * 6 + 3] = v + 2;
-    indices[i * 6 + 4] = v + 3;
-    indices[i * 6 + 5] = v + 0;
-  }
+  constexpr std::uint32_t kIndices[] = {0, 1, 2, 2, 3, 0};
 
-  glGenVertexArrays(1, &m_Vao);
-  glBindVertexArray(m_Vao);
+  glGenVertexArrays(1, &m_vao);
+  glBindVertexArray(m_vao);
 
-  glGenBuffers(1, &m_Vbo);
-  glBindBuffer(GL_ARRAY_BUFFER, m_Vbo);
-  glBufferData(GL_ARRAY_BUFFER,
-               static_cast<GLsizeiptr>(m_Vertices.size() * sizeof(Vertex)),
-               nullptr, GL_DYNAMIC_DRAW);
-
-  glGenBuffers(1, &m_Ibo);
-  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_Ibo);
-  glBufferData(GL_ELEMENT_ARRAY_BUFFER,
-               static_cast<GLsizeiptr>(indices.size() * sizeof(std::uint32_t)),
-               indices.data(), GL_STATIC_DRAW);
-
-  constexpr GLsizei stride = sizeof(Vertex);
+  glGenBuffers(1, &m_staticVbo);
+  glBindBuffer(GL_ARRAY_BUFFER, m_staticVbo);
+  glBufferData(GL_ARRAY_BUFFER, sizeof(kCorners), kCorners, GL_STATIC_DRAW);
   glEnableVertexAttribArray(0);
-  glVertexAttribPointer(
-      0, 2, GL_FLOAT, GL_FALSE, stride,
-      reinterpret_cast<const void *>(offsetof(Vertex, position)));
+  glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), nullptr);
+
+  glGenBuffers(1, &m_ibo);
+  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_ibo);
+  glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(kIndices), kIndices,
+               GL_STATIC_DRAW);
+
+  // Streaming instance buffer. glBufferData() below orphans/renames the
+  // store on every upload, so draws still in flight keep reading the old
+  // store instead of the data we overwrite this frame.
+  glGenBuffers(1, &m_instanceVbo);
+  glBindBuffer(GL_ARRAY_BUFFER, m_instanceVbo);
+
+  const GLsizei kStride = sizeof(SpriteInstance);
+
+  // Position
   glEnableVertexAttribArray(1);
-  glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, stride,
-                        reinterpret_cast<const void *>(offsetof(Vertex, uv)));
+  glVertexAttribPointer(
+      1, 2, GL_FLOAT, GL_FALSE, kStride,
+      reinterpret_cast<const void *>(offsetof(SpriteInstance, position)));
+  glVertexAttribDivisor(1, 1);
+
+  // Scale
   glEnableVertexAttribArray(2);
   glVertexAttribPointer(
-      2, 4, GL_FLOAT, GL_FALSE, stride,
-      reinterpret_cast<const void *>(offsetof(Vertex, color)));
+      2, 2, GL_FLOAT, GL_FALSE, kStride,
+      reinterpret_cast<const void *>(offsetof(SpriteInstance, scale)));
+  glVertexAttribDivisor(2, 1);
+
+  // rotation
+  glEnableVertexAttribArray(3);
+  glVertexAttribPointer(
+      3, 1, GL_FLOAT, GL_FALSE, kStride,
+      reinterpret_cast<const void *>(offsetof(SpriteInstance, rotation)));
+  glVertexAttribDivisor(3, 1);
+
+  // color
+  glEnableVertexAttribArray(4);
+  glVertexAttribPointer(
+      4, 4, GL_FLOAT, GL_FALSE, kStride,
+      reinterpret_cast<const void *>(offsetof(SpriteInstance, color)));
+  glVertexAttribDivisor(4, 1);
+
+  // uvRect
+  glEnableVertexAttribArray(5);
+  glVertexAttribPointer(
+      5, 4, GL_FLOAT, GL_FALSE, kStride,
+      reinterpret_cast<const void *>(offsetof(SpriteInstance, uvRect)));
+  glVertexAttribDivisor(5, 1);
 
   glBindVertexArray(0);
+  glBindBuffer(GL_ARRAY_BUFFER, 0);
 
   glEnable(GL_BLEND);
   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-  m_DefaultTexture.CreateSolid(0xFFFFFFFF);
+  m_defaultTexture.CreateSolid(0xFFFFFFFF);
 }
 
-SpriteBatch::~SpriteBatch() {
-  if (m_Ibo)
-    glDeleteBuffers(1, &m_Ibo);
-  if (m_Vbo)
-    glDeleteBuffers(1, &m_Vbo);
-  if (m_Vao)
-    glDeleteVertexArrays(1, &m_Vao);
-}
+SpriteBatch::~SpriteBatch() { Release(); }
 
-SpriteBatch::SpriteBatch(SpriteBatch &&other) noexcept
-    : m_Vao(other.m_Vao), m_Vbo(other.m_Vbo), m_Ibo(other.m_Ibo),
-      m_MaxQuads(other.m_MaxQuads), m_Vertices(std::move(other.m_Vertices)),
-      m_QuadCount(other.m_QuadCount), m_Shader(std::move(other.m_Shader)),
-      m_viewProjection(other.m_viewProjection) {
-  other.m_Vao = other.m_Vbo = other.m_Ibo = 0;
-  other.m_MaxQuads = 0;
-  other.m_QuadCount = 0;
-}
-
-SpriteBatch &SpriteBatch::operator=(SpriteBatch &&other) noexcept {
-  if (this != &other) {
-    if (m_Ibo)
-      glDeleteBuffers(1, &m_Ibo);
-    if (m_Vbo)
-      glDeleteBuffers(1, &m_Vbo);
-    if (m_Vao)
-      glDeleteVertexArrays(1, &m_Vao);
-
-    m_Vao = other.m_Vao;
-    m_Vbo = other.m_Vbo;
-    m_Ibo = other.m_Ibo;
-    m_MaxQuads = other.m_MaxQuads;
-    m_Vertices = std::move(other.m_Vertices);
-    m_QuadCount = other.m_QuadCount;
-    m_Shader = std::move(other.m_Shader);
-    m_viewProjection = other.m_viewProjection;
-
-    other.m_Vao = other.m_Vbo = other.m_Ibo = 0;
-    other.m_MaxQuads = 0;
-    other.m_QuadCount = 0;
-  }
-  return *this;
+void SpriteBatch::Release() {
+  if (m_ibo)
+    glDeleteBuffers(1, &m_ibo);
+  if (m_staticVbo)
+    glDeleteBuffers(1, &m_staticVbo);
+  if (m_instanceVbo)
+    glDeleteBuffers(1, &m_instanceVbo);
+  if (m_vao)
+    glDeleteVertexArrays(1, &m_vao);
+  m_ibo = m_staticVbo = m_instanceVbo = m_vao = 0;
 }
 
 void SpriteBatch::Begin(const glm::mat4 &viewProjection) {
   m_viewProjection = viewProjection;
-  m_QuadCount = 0;
-  m_CurrentTexture = nullptr;
-  m_LastDrawCalls = 0;
-  m_LastQuadCount = 0;
+  m_lastDrawCalls = 0;
+  m_lastInstanceCount = 0;
 }
 
-void SpriteBatch::DrawQuad(const glm::vec2 &position, const glm::vec2 &scale,
-                           float rotation, const math::Color &color,
-                           const Texture *texture, const glm::vec2 &uvMin,
-                           const glm::vec2 &uvMax) {
-  const Texture *tex = texture ? texture : &m_DefaultTexture;
-
-  if (tex != m_CurrentTexture) {
-    Flush();
-    m_QuadCount = 0;
-    m_CurrentTexture = tex;
-  }
-
-  if (m_QuadCount >= m_MaxQuads) {
-    Flush();
-    m_QuadCount = 0;
-  }
-
-  const float c = std::cos(rotation);
-  const float sn = std::sin(rotation);
-  const glm::vec2 half = scale * 0.5f;
-
-  auto rotate = [&](glm::vec2 p) {
-    return glm::vec2(p.x * c - p.y * sn, p.x * sn + p.y * c);
-  };
-
-  const glm::vec2 corners[4] = {
-      rotate({-half.x, -half.y}) + position,
-      rotate({half.x, -half.y}) + position,
-      rotate({half.x, half.y}) + position,
-      rotate({-half.x, half.y}) + position,
-  };
-  const glm::vec2 uvs[4] = {
-      {uvMin.x, uvMin.y}, // BL  (was {0,1})
-      {uvMax.x, uvMin.y}, // BR  (was {1,1})
-      {uvMax.x, uvMax.y}, // TR  (was {1,0})
-      {uvMin.x, uvMax.y}, // TL  (was {0,0})
-  };
-
-  Vertex *dst = &m_Vertices[m_QuadCount * 4];
-  for (int i = 0; i < 4; ++i) {
-    dst[i].position = corners[i];
-    dst[i].uv = uvs[i];
-    dst[i].color = color.toVec4();
-  }
-  ++m_QuadCount;
-}
-
-void SpriteBatch::Flush() {
-  if (m_QuadCount == 0)
+void SpriteBatch::DrawInstances(const SpriteInstance *data, std::size_t count,
+                                const Texture *texture) {
+  if (!data || count == 0)
     return;
 
-  glBindVertexArray(m_Vao);
-  glBindBuffer(GL_ARRAY_BUFFER, m_Vbo);
-  glBufferSubData(GL_ARRAY_BUFFER, 0,
-                  static_cast<GLsizeiptr>(m_QuadCount * 4 * sizeof(Vertex)),
-                  m_Vertices.data());
+  glBindVertexArray(m_vao);
+  glBindBuffer(GL_ARRAY_BUFFER, m_instanceVbo);
+  glBufferData(GL_ARRAY_BUFFER,
+               static_cast<GLsizeiptr>(count * sizeof(SpriteInstance)), data,
+               GL_STREAM_DRAW);
 
-  m_Shader.Bind();
-  m_Shader.SetMat4("uViewProjection", m_viewProjection);
-
-  const Texture *tex = m_CurrentTexture ? m_CurrentTexture : &m_DefaultTexture;
+  m_shader.Bind();
+  m_shader.SetMat4("uViewProjection", m_viewProjection);
+  // glUniformMatrix4fv(m_uViewport, 1, GL_FALSE, &m_viewProjection[0][0]);
+  // glUniform1i(m_uTexture, 0);
+  m_shader.SetInt("uTexture", 0);
+  const Texture *tex = texture ? texture : &m_defaultTexture;
   tex->Bind(0);
-  m_Shader.SetInt("uTexture", 0);
 
-  glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(m_QuadCount * 6),
-                 GL_UNSIGNED_INT, nullptr);
-
-  glBindVertexArray(0);
-  ++m_LastDrawCalls;
-  m_LastQuadCount += m_QuadCount;
+  glDrawElementsInstanced(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr,
+                          static_cast<GLsizei>(count));
+  ++m_lastDrawCalls;
+  m_lastInstanceCount += static_cast<std::uint32_t>(count);
 }
 
-void SpriteBatch::End() {
-  Flush();
-  m_QuadCount = 0;
-  m_CurrentTexture = nullptr;
-}
+void SpriteBatch::End() {}
 
 } // namespace engine::graphics

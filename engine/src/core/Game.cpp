@@ -7,7 +7,7 @@
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
 
-// @NOTE: only for glfwGetTime, next will change to Clock
+// @NOTE: glfwGetProcAddress for glad loader
 #include <GLFW/glfw3.h>
 #include <glad/gl.h>
 
@@ -36,7 +36,7 @@ Game::Game(const platform::WindowConfig &config, const DebugConfig &debug)
     return;
   }
 
-  m_renderer = std::make_unique<graphics::Renderer>(4096);
+  m_renderer = std::make_unique<graphics::Renderer>();
 
   // Wire window events → state manager
   m_window->events.onKey = [this](input::Key key, int sc,
@@ -83,13 +83,9 @@ Game::~Game() {
   }
 
   m_stateManager.Clear(*this);
-  m_resources.Clear();
-  m_audio.Shutdown();
-  m_renderer.reset();
-  m_window.reset();
 }
 
-double Game::ElapsedTime() const { return glfwGetTime(); }
+double Game::ElapsedTime() const { return m_clock.ElapsedTime(); }
 
 void Game::SetFullscreen(bool fullscreen) {
   if (!m_window)
@@ -114,31 +110,30 @@ bool Game::Run() {
 
   m_running = true;
 
-  // Initialize clock for 60hz fixed rate
-  Clock clock(1.0 / 60.0);
+  // Fixed 60 Hz logic clock; rebased so OnStart/asset loading does not count
+  // as the first frame delta.
+  m_clock.Reset();
 
   while (m_running && !CloseRequested()) {
     m_window->Input().BeginFrame();
     m_window->PollEvents();
 
-    clock.Tick();
+    m_clock.Tick();
 
-    while (clock.ShouldConsumeStep()) {
-      m_stateManager.FixedUpdate(*this, clock.FixedDeltaTime());
-      clock.ConsumeStep();
+    while (m_clock.ShouldConsumeStep()) {
+      m_stateManager.FixedUpdate(*this, m_clock.FixedDeltaTime());
+      m_clock.ConsumeStep();
     }
 
-    double alpha = clock.GetInterpolationAlpha();
+    m_stateManager.Update(*this, m_clock.DeltaTime());
 
-    m_stateManager.Update(*this, alpha);
-
-    m_stateManager.LateUpdate(*this, alpha);
+    m_stateManager.LateUpdate(*this, m_clock.DeltaTime());
 
     m_window->ClearWindow();
     m_stateManager.Render(*this);
 
     if (m_debug.showFps) {
-      m_fpsAccum += clock.DeltaTime();
+      m_fpsAccum += m_clock.DeltaTime();
       m_fpsFrames += 1;
       if (m_fpsAccum >= 0.5) {
         const double fps = m_fpsFrames / m_fpsAccum;

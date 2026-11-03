@@ -7,9 +7,14 @@ add_library(engine STATIC
   src/core/GameStateManager.cpp
 
   src/graphics/Font.cpp
+  src/graphics/FullscreenQuad.cpp
+  src/graphics/LightRenderer.cpp
+  src/graphics/LightTileCuller.cpp
+  src/graphics/RenderTarget.cpp
   src/graphics/Renderer.cpp
   src/graphics/Shader.cpp
   src/graphics/SpriteBatch.cpp
+  src/graphics/SpriteDrawList.cpp
   src/graphics/Texture.cpp
   src/graphics/TextureAtlas.cpp
   src/graphics/TextRenderer.cpp
