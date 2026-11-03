@@ -9,8 +9,8 @@ public:
   AudioEngine();
   ~AudioEngine();
 
-  AudioEngine(const AudioEngine &) = default;
-  AudioEngine &operator=(const AudioEngine &) = default;
+  AudioEngine(const AudioEngine &) = delete;
+  AudioEngine &operator=(const AudioEngine &) = delete;
 
   bool Init();
   void Shutdown();

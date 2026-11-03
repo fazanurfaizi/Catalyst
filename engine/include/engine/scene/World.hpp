@@ -19,8 +19,6 @@ public:
 
   engine::ecs::Entity FindEntity(const std::string &name) const;
 
-  // void Update(double deltatime);
-
 private:
   engine::ecs::Registry m_registry;
   std::unordered_map<std::string, engine::ecs::Entity> m_nameToEntity;

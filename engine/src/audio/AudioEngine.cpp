@@ -7,8 +7,9 @@
 namespace engine::audio {
 
 struct AudioEngine::Impl {
-  ma_engine engine;
-  ma_sound music;
+  ma_engine engine{};
+  ma_sound music{};
+  bool engineInited = false;
   bool musicLoaded = false;
 };
 
@@ -20,10 +21,13 @@ AudioEngine::~AudioEngine() {
 }
 
 bool AudioEngine::Init() {
+  if (m_impl->engineInited)
+    return true;
   if (ma_engine_init(nullptr, &m_impl->engine) != MA_SUCCESS) {
     Logger::Error("[AudioEngine] Failed to initialize audio engine");
     return false;
   }
+  m_impl->engineInited = true;
   return true;
 }
 
@@ -32,7 +36,10 @@ void AudioEngine::Shutdown() {
     ma_sound_uninit(&m_impl->music);
     m_impl->musicLoaded = false;
   }
-  ma_engine_uninit(&m_impl->engine);
+  if (m_impl->engineInited) {
+    ma_engine_uninit(&m_impl->engine);
+    m_impl->engineInited = false;
+  }
 }
 
 void AudioEngine::PlaySound(const std::string &filepath) {

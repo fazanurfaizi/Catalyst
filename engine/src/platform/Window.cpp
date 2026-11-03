@@ -48,8 +48,8 @@ Window::Window(const WindowConfig &config) : m_Config(config) {
     return;
   }
 
-  glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-  glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+  glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
+  glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 5);
   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
   glfwWindowHint(GLFW_RESIZABLE, config.resizable ? GLFW_TRUE : GLFW_FALSE);
 
@@ -99,6 +99,7 @@ Window::Window(const WindowConfig &config) : m_Config(config) {
 }
 
 Window::~Window() {
+  m_display.Shutdown();
   if (m_window) {
     glfwDestroyWindow(m_window);
     m_window = nullptr;
