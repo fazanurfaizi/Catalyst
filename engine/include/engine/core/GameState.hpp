@@ -1,6 +1,7 @@
 #pragma once
 
 #include "engine/input/InputCodes.hpp"
+
 namespace engine::core {
 
 class Game;

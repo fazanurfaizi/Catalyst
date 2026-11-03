@@ -10,7 +10,19 @@ public:
   explicit Clock(double fixedTimestep = 1.0 / 60.0)
       : m_fixedTimestep(fixedTimestep),
         m_previousTime(std::chrono::steady_clock::now()), m_accumulator(0.0),
-        m_deltaTime(0.0), m_timeScale(1.0), m_frameCount(0) {}
+        m_deltaTime(0.0), m_elapsedTime(0.0), m_timeScale(1.0),
+        m_frameCount(0) {}
+
+  /**
+   * @brief Reset all timing state, rebasing elapsed time to zero.
+   */
+  void Reset() {
+    m_previousTime = std::chrono::steady_clock::now();
+    m_accumulator = 0.0;
+    m_deltaTime = 0.0;
+    m_elapsedTime = 0.0;
+    m_frameCount = 0;
+  }
 
   /**
    * @brief Call at the very beginning of every frame
@@ -30,6 +42,7 @@ public:
     // Apply global time scale
     m_deltaTime = frameTime * m_timeScale;
     m_accumulator += m_deltaTime;
+    m_elapsedTime += m_deltaTime;
     m_frameCount++;
   }
 
@@ -53,6 +66,9 @@ public:
   double DeltaTime() const { return m_deltaTime; }
   double FixedDeltaTime() const { return m_fixedTimestep; }
 
+  /** Seconds accumulated since the last Reset(), scaled by TimeScale(). */
+  double ElapsedTime() const { return m_elapsedTime; }
+
   void SetTimeScale(double scale) { m_timeScale = scale; }
   double TimeScale() const { return m_timeScale; }
 
@@ -63,6 +79,7 @@ private:
   std::chrono::steady_clock::time_point m_previousTime;
   double m_accumulator;
   double m_deltaTime;
+  double m_elapsedTime;
   double m_timeScale;
   std::uint64_t m_frameCount;
 };

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "engine/audio/AudioEngine.hpp"
+#include "engine/core/Clock.hpp"
 #include "engine/core/GameStateManager.hpp"
 #include "engine/platform/Window.hpp"
 #include "engine/resources/ResourceManager.hpp"
@@ -88,12 +89,15 @@ protected:
 private:
   platform::WindowConfig m_config{};
   DebugConfig m_debug{};
+
   std::unique_ptr<platform::Window> m_window;
 
   GameStateManager m_stateManager;
   audio::AudioEngine m_audio;
   std::unique_ptr<graphics::Renderer> m_renderer;
   resources::ResourceManager m_resources;
+
+  Clock m_clock;
 
   bool m_running{false};
   bool m_imguiInited{false};
