@@ -41,6 +41,7 @@ private:
   engine::ecs::Entity m_tower{};
   engine::ecs::Entity m_hero{};
   engine::ecs::Entity m_enemy{};
+  engine::ecs::Entity m_torch{};
 
   void BuildDemoScene(engine::core::Game &game);
   void ApplyRegion(engine::ecs::Entity e, const char *region);

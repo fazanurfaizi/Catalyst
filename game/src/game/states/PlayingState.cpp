@@ -1,11 +1,13 @@
 #include "game/states/PlayingState.hpp"
 
 #include "engine/assets/AssetPath.hpp"
+#include "engine/components/Light.hpp"
 #include "engine/core/Game.hpp"
 #include "engine/graphics/Renderer.hpp"
 #include "engine/graphics/TextureAtlas.hpp"
 #include "engine/math/Color.hpp"
 #include "engine/scene/SceneSerializer.hpp"
+#include "engine/systems/LightingSystem.hpp"
 #include "engine/utils/Logger.hpp"
 
 #include "engine/components/Animator.hpp"
@@ -86,7 +88,12 @@ void PlayingState::OnEnter(engine::core::Game &game) {
   cam.orthoSize = 10.0f;
   cam.active = true;
 
+  auto framebufferSize = game.Display().FramebufferSize();
+  game.GetRenderer().Init(framebufferSize.x, framebufferSize.y);
+  game.GetRenderer().SetAmbientLight({0.3f, 0.4f, 0.25f});
+
   const int loaded = m_atlas.AddFromDirectory(engine::AssetPath("sprites"));
+
   game.Resources().LoadFont("main_font", "fonts/Roboto-Regular.ttf", 32.0f);
 
   m_atlas.AddSolid("solidWhite", 0xFFFFFFFF, 16);
@@ -200,6 +207,15 @@ void PlayingState::OnFixedUpdate(engine::core::Game &game, double dt) {
     t.rotation = angle;
   }
 
+  if (reg.IsAlive(m_torch)) {
+    auto &light = reg.Get<engine::components::PointLight>(m_torch);
+    const float t = static_cast<float>(game.ElapsedTime());
+    // Cheap two-sine flicker — looks random enough, no state needed.
+    const float flicker =
+        0.80f + 0.15f * std::sin(t * 12.7f) + 0.05f * std::sin(t * 31.3f);
+    light.diffuse = glm::vec3{1.00f, 0.65f, 0.25f} * flicker;
+  }
+
   engine::systems::AnimationSystem(reg, dt);
   engine::systems::ParticleSystem(reg, dt);
   engine::systems::MoveTowardTargetSytem(reg, dt);
@@ -220,6 +236,8 @@ void PlayingState::OnRender(engine::core::Game &game) {
   auto &camera = reg.Get<engine::components::Camera2D>(m_camera);
 
   renderer.Begin(camera.ViewProjectionMatrix());
+
+  engine::systems::LightingSystem(reg, renderer);
 
   DrawWorldGrid(renderer, camera, m_atlas);
 
@@ -306,7 +324,8 @@ void PlayingState::OnMouseMove(engine::core::Game &game, double x, double y) {
 }
 
 void PlayingState::OnResize(engine::core::Game &game, int w, int h) {
-  engine::Logger::Info("Resized to %d x %d", w, h);
+  const auto fb = game.Display().FramebufferSize();
+  game.GetRenderer().Resize(fb.x, fb.y);
 }
 
 void PlayingState::BuildDemoScene(engine::core::Game &game) {
@@ -342,6 +361,13 @@ void PlayingState::BuildDemoScene(engine::core::Game &game) {
   reg.Emplace<engine::components::Animator>(m_hero);
   ApplyRegion(m_hero, "hero_idle_0");
   cam.followTarget = m_hero;
+  auto &hero_light = reg.Emplace<engine::components::PointLight>(m_hero);
+  hero_light.ambient = {0.15f, 0.08f, 0.02f};
+  hero_light.diffuse = {1.00f, 0.65f, 0.25f}; // warm fire orange
+  hero_light.specular = {0.00f, 0.00f, 0.00f};
+  hero_light.constant = 1.00f;
+  hero_light.linear = 0.045f;
+  hero_light.quadratic = 0.0075f;
 
   // Enemy
   m_enemy = m_world.CreateEntity("Enemy");
@@ -369,6 +395,28 @@ void PlayingState::BuildDemoScene(engine::core::Game &game) {
     reg.Get<engine::components::Animator>(m_hero).Play(idleClip);
   if (auto *coinClip = m_animations.Get("coin_spin"))
     reg.Get<engine::components::Animator>(m_coin).Play(coinClip);
+
+  m_torch = m_world.CreateEntity("Torch");
+  reg.Emplace<engine::components::Transform>(m_torch,
+                                             engine::components::Transform{
+                                                 .position = {0.0f, 3.0f},
+                                                 .scale = {0.6f, 0.6f},
+                                             });
+  reg.Emplace<engine::components::Sprite>(
+      m_torch, engine::components::Sprite{
+                   .color = engine::math::kColorWhite,
+                   .texture = &m_atlas.GetTexture(),
+                   .layer = engine::components::RenderLayer::Entities,
+               });
+  ApplyRegion(m_torch, "tower"); // reuse an orange-red solid as the torch body
+
+  auto &torch = reg.Emplace<engine::components::PointLight>(m_torch);
+  torch.ambient = {0.15f, 0.08f, 0.02f};
+  torch.diffuse = {1.00f, 0.65f, 0.25f}; // warm fire orange
+  torch.specular = {0.00f, 0.00f, 0.00f};
+  torch.constant = 1.00f;
+  torch.linear = 0.35f;
+  torch.quadratic = 0.44f;
 }
 
 void PlayingState::ApplyRegion(engine::ecs::Entity e, const char *region) {
