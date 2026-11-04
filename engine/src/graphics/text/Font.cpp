@@ -1,4 +1,4 @@
-#include "engine/graphics/Font.hpp"
+#include "engine/graphics/text/Font.hpp"
 
 #include "engine/utils/Logger.hpp"
 #include "glad/gl.h"

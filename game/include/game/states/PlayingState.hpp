@@ -5,7 +5,7 @@
 #include "engine/core/GameState.hpp"
 #include "engine/ecs/Entity.hpp"
 #include "engine/graphics/TextRenderer.hpp"
-#include "engine/graphics/TextureAtlas.hpp"
+#include "engine/graphics/texture/TextureAtlas.hpp"
 #include "engine/input/InputCodes.hpp"
 #include "engine/scene/World.hpp"
 

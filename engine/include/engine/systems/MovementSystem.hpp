@@ -8,7 +8,7 @@
 namespace engine::systems {
 
 // Move toward target
-inline void MoveTowardTargetSytem(ecs::Registry &reg, float dt) {
+inline void MoveTowardTargetSystem(ecs::Registry &reg, float dt) {
   for (auto [e, t, v] :
        reg.View<components::Transform, components::Velocity>()) {
     const glm::vec2 delta = v.targetPosition - t.position;

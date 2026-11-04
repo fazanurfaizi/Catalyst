@@ -25,11 +25,11 @@ public:
   int Height() const { return m_framebufferSize.y; }
 
   float AspectRatio() const {
-    if (m_windowSize.y <= 0) {
+    if (m_framebufferSize.y <= 0) {
       return 1.0f;
     }
-    return static_cast<float>(m_windowSize.x) /
-           static_cast<float>(m_windowSize.y);
+    return static_cast<float>(m_framebufferSize.x) /
+           static_cast<float>(m_framebufferSize.y);
   }
 
   glm::vec2 PixelScale() const {

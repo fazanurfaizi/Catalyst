@@ -1,7 +1,7 @@
-#include "engine/graphics/SpriteBatch.hpp"
+#include "engine/graphics/sprite/SpriteBatch.hpp"
 #include "engine/assets/AssetPath.hpp"
-#include "engine/graphics/SpriteDrawList.hpp"
-#include "engine/graphics/Texture.hpp"
+#include "engine/graphics/sprite/SpriteDrawList.hpp"
+#include "engine/graphics/texture/Texture.hpp"
 #include "engine/utils/Logger.hpp"
 #include "glad/gl.h"
 

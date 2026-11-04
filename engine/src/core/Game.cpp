@@ -38,7 +38,10 @@ Game::Game(const platform::WindowConfig &config, const DebugConfig &debug)
 
   m_renderer = std::make_unique<graphics::Renderer>();
 
-  // Wire window events → state manager
+  const auto fb = m_window->GetDisplay().FramebufferSize();
+  m_renderer->Init(fb.x, fb.y);
+
+  // Wire window events -> state manager
   m_window->events.onKey = [this](input::Key key, int sc,
                                   input::KeyAction action, int mods) {
     m_stateManager.OnKey(*this, key, sc, action, mods);
@@ -54,7 +57,6 @@ Game::Game(const platform::WindowConfig &config, const DebugConfig &debug)
     m_stateManager.OnScroll(*this, x, y);
   };
   m_window->events.onResize = [this](int w, int h) {
-    // m_renderer->OnFramebufferResize(w, h);
     m_stateManager.OnResize(*this, w, h);
   };
 
@@ -108,6 +110,15 @@ bool Game::Run() {
 
   OnStart();
 
+  m_window->PollEvents();
+  m_window->GetDisplay().Refresh();
+  {
+    const auto fb = m_window->GetDisplay().FramebufferSize();
+    if (fb.x > 0 && fb.y > 0) {
+      m_renderer->Resize(fb.x, fb.y);
+    }
+  }
+
   m_running = true;
 
   // Fixed 60 Hz logic clock; rebased so OnStart/asset loading does not count
@@ -117,6 +128,12 @@ bool Game::Run() {
   while (m_running && !CloseRequested()) {
     m_window->Input().BeginFrame();
     m_window->PollEvents();
+
+    const auto fb = m_window->GetDisplay().FramebufferSize();
+    if (fb.x > 0 && fb.y > 0 &&
+        (fb.x != m_renderer->Width() || fb.y != m_renderer->Height())) {
+      m_renderer->Resize(fb.x, fb.y);
+    }
 
     m_clock.Tick();
 

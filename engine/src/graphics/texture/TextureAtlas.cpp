@@ -1,4 +1,4 @@
-#include "engine/graphics/TextureAtlas.hpp"
+#include "engine/graphics/texture/TextureAtlas.hpp"
 
 #include "engine/utils/Logger.hpp"
 #include "glad/gl.h"

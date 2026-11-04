@@ -1,7 +1,7 @@
 #pragma once
 
 #include "engine/components/AnimationClip.hpp"
-#include "engine/graphics/TextureAtlas.hpp"
+#include "engine/graphics/texture/TextureAtlas.hpp"
 
 #include <string>
 #include <unordered_map>

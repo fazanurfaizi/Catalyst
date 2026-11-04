@@ -1,8 +1,6 @@
-#include "engine/graphics/SpriteDrawList.hpp"
+#include "engine/graphics/sprite/SpriteDrawList.hpp"
 
-#include <algorithm>
 #include <cstddef>
-#include <cstdint>
 
 namespace engine::graphics {
 

@@ -4,10 +4,9 @@
 #include "engine/components/Light.hpp"
 #include "engine/core/Game.hpp"
 #include "engine/graphics/Renderer.hpp"
-#include "engine/graphics/TextureAtlas.hpp"
+#include "engine/graphics/texture/TextureAtlas.hpp"
 #include "engine/math/Color.hpp"
 #include "engine/scene/SceneSerializer.hpp"
-#include "engine/systems/LightingSystem.hpp"
 #include "engine/utils/Logger.hpp"
 
 #include "engine/components/Animator.hpp"
@@ -21,7 +20,6 @@
 #include "engine/systems/CameraFollowSystem.hpp"
 #include "engine/systems/MovementSystem.hpp"
 #include "engine/systems/ParticleSystem.hpp"
-#include "engine/systems/RenderSystem.hpp"
 
 #include <cmath>
 #include <cstdlib>
@@ -31,14 +29,11 @@
 
 namespace {
 void DrawWorldGrid(engine::graphics::Renderer &renderer,
-                   const engine::components::Camera2D &camera,
+                   const engine::math::Rect &bounds,
                    const engine::graphics::TextureAtlas &atlas) {
   auto *region = atlas.GetRegion("solidWhite");
   if (!region)
     return;
-
-  // Visible world bounds: compute from screen corners.
-  const auto bounds = camera.VisibleWorldBounds();
 
   const int x0 = static_cast<int>(std::floor(bounds.Left()));
   const int x1 = static_cast<int>(std::ceil(bounds.Right()));
@@ -84,13 +79,11 @@ void PlayingState::OnEnter(engine::core::Game &game) {
   game.GetWindow().ClearWindow();
 
   auto &cam = reg.Emplace<engine::components::Camera2D>(m_camera);
-  cam.SetDisplay(&game.Display());
   cam.orthoSize = 10.0f;
   cam.active = true;
 
   auto framebufferSize = game.Display().FramebufferSize();
-  game.GetRenderer().Init(framebufferSize.x, framebufferSize.y);
-  game.GetRenderer().SetAmbientLight({0.3f, 0.4f, 0.25f});
+  game.GetRenderer().SetAmbientLight({0.03f, 0.04f, 0.25f});
 
   const int loaded = m_atlas.AddFromDirectory(engine::AssetPath("sprites"));
 
@@ -147,6 +140,26 @@ void PlayingState::OnEnter(engine::core::Game &game) {
       loaded);
 
   BuildDemoScene(game);
+}
+
+void PlayingState::OnRender(engine::core::Game &game) {
+  auto &renderer = game.GetRenderer();
+  auto &reg = m_world.Registry();
+  auto &camera = reg.Get<engine::components::Camera2D>(m_camera);
+
+  const float aspect = renderer.AspectRatio();
+  const glm::mat4 vp = camera.ViewProjectionMatrix(aspect);
+  const engine::math::Rect bounds = camera.VisibleWorldBounds(aspect);
+
+  renderer.BeginFrame(vp, bounds);
+  DrawWorldGrid(renderer, bounds, m_atlas);
+  renderer.RenderSprites(m_world);
+  renderer.RenderLights(m_world);
+  renderer.EndFrame();
+
+  auto *font = game.Resources().GetFont("main_font");
+  m_textRenderer.Draw(*font, "Gold: 100", {60.0f, 100.0f}, 2.0f,
+                      {1.0f, 0.85f, 0.2f, 1.0f}, game.Display().UiProjection());
 }
 
 void PlayingState::OnUpdate(engine::core::Game &game, double dt) {
@@ -218,7 +231,7 @@ void PlayingState::OnFixedUpdate(engine::core::Game &game, double dt) {
 
   engine::systems::AnimationSystem(reg, dt);
   engine::systems::ParticleSystem(reg, dt);
-  engine::systems::MoveTowardTargetSytem(reg, dt);
+  engine::systems::MoveTowardTargetSystem(reg, dt);
   engine::systems::CameraFollowSystem(reg, dt);
 
   reg.FlushDeferred();
@@ -228,26 +241,6 @@ void PlayingState::OnLateUpdate(engine::core::Game &game, double dt) {
   auto &reg = m_world.Registry();
 
   engine::systems::CameraFollowSystem(reg, dt);
-}
-
-void PlayingState::OnRender(engine::core::Game &game) {
-  auto &renderer = game.GetRenderer();
-  auto &reg = m_world.Registry();
-  auto &camera = reg.Get<engine::components::Camera2D>(m_camera);
-
-  renderer.Begin(camera.ViewProjectionMatrix());
-
-  engine::systems::LightingSystem(reg, renderer);
-
-  DrawWorldGrid(renderer, camera, m_atlas);
-
-  engine::systems::RenderSystem(m_world, renderer, camera);
-
-  renderer.End();
-
-  auto *font = game.Resources().GetFont("main_font");
-  m_textRenderer.Draw(*font, "Gold: 100", {60.0f, 100.0f}, 2.0f,
-                      {1.0f, 0.85f, 0.2f, 1.0f}, game.Display().UiProjection());
 }
 
 void PlayingState::OnImGui(engine::core::Game &game) {
@@ -281,10 +274,15 @@ void PlayingState::OnScroll(engine::core::Game &game, double dx, double dy) {
   auto &reg = m_world.Registry();
   auto &camera = reg.Get<engine::components::Camera2D>(m_camera);
 
+  const auto fbSize = game.Display().FramebufferSize();
+
   auto cursor = game.Input().CursorPos();
-  const auto before = camera.ScreenToWorldFromCursor({cursor.x, cursor.y});
+  glm::vec2 cursorFb = game.Display().CursorToFramebuffer(
+      {static_cast<float>(cursor.x), static_cast<float>(cursor.y)});
+
+  const auto before = camera.ScreenToWorld(cursorFb, fbSize);
   camera.ZoomBy(dy > 0 ? 1.1f : 1.0f / 1.1f);
-  const auto after = camera.ScreenToWorldFromCursor({cursor.x, cursor.y});
+  const auto after = camera.ScreenToWorld(cursorFb, fbSize);
   const auto delta = before - after;
   camera.Move({delta.x, delta.y});
 }
@@ -300,7 +298,11 @@ void PlayingState::OnMouseButton(engine::core::Game &game,
   auto &camera = reg.Get<engine::components::Camera2D>(m_camera);
   auto &in = game.Input();
 
-  glm::vec2 worldPos = camera.ScreenToWorldFromCursor(in.CursorPos());
+  const auto fbSize = game.Display().FramebufferSize();
+  auto cursor = in.CursorPos();
+  glm::vec2 cursorFb = game.Display().CursorToFramebuffer(
+      {static_cast<float>(cursor.x), static_cast<float>(cursor.y)});
+  glm::vec2 worldPos = camera.ScreenToWorld(cursorFb, fbSize);
 
   if (button == engine::input::MouseButton::Left) {
     auto &animation = reg.Get<engine::components::Animator>(m_hero);
@@ -365,9 +367,9 @@ void PlayingState::BuildDemoScene(engine::core::Game &game) {
   hero_light.ambient = {0.15f, 0.08f, 0.02f};
   hero_light.diffuse = {1.00f, 0.65f, 0.25f}; // warm fire orange
   hero_light.specular = {0.00f, 0.00f, 0.00f};
-  hero_light.constant = 1.00f;
-  hero_light.linear = 0.045f;
-  hero_light.quadratic = 0.0075f;
+  hero_light.constant = 1.0f;
+  hero_light.linear = 1.5f;
+  hero_light.quadratic = 1.2f;
 
   // Enemy
   m_enemy = m_world.CreateEntity("Enemy");
@@ -414,9 +416,9 @@ void PlayingState::BuildDemoScene(engine::core::Game &game) {
   torch.ambient = {0.15f, 0.08f, 0.02f};
   torch.diffuse = {1.00f, 0.65f, 0.25f}; // warm fire orange
   torch.specular = {0.00f, 0.00f, 0.00f};
-  torch.constant = 1.00f;
-  torch.linear = 0.35f;
-  torch.quadratic = 0.44f;
+  torch.constant = 1.0f;
+  torch.linear = 2.0f;
+  torch.quadratic = 3.5f;
 }
 
 void PlayingState::ApplyRegion(engine::ecs::Entity e, const char *region) {

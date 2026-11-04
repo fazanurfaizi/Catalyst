@@ -1,4 +1,4 @@
-#include "engine/graphics/FullscreenQuad.hpp"
+#include "engine/graphics/pipeline/FullscreenQuad.hpp"
 
 #include <glad/gl.h>
 

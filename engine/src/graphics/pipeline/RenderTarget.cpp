@@ -1,4 +1,4 @@
-#include "engine/graphics/RenderTarget.hpp"
+#include "engine/graphics/pipeline/RenderTarget.hpp"
 #include "engine/utils/Logger.hpp"
 
 #include <glad/gl.h>

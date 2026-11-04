@@ -23,7 +23,7 @@ void Display::OnWindowResize(int w, int h) {
 }
 
 void Display::OnFramebufferResize(int w, int h) {
-  m_framebufferSize = {w > 0 ? w : 1, h > 0 ? h : 1};
+  m_framebufferSize = {w, h};
   m_uiDirty = true;
 }
 

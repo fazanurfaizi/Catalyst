@@ -6,21 +6,28 @@ add_library(engine STATIC
   src/core/Game.cpp
   src/core/GameStateManager.cpp
 
-  src/graphics/Font.cpp
-  src/graphics/FullscreenQuad.cpp
-  src/graphics/LightRenderer.cpp
-  src/graphics/LightTileCuller.cpp
-  src/graphics/RenderTarget.cpp
   src/graphics/Renderer.cpp
-  src/graphics/Shader.cpp
-  src/graphics/SpriteBatch.cpp
-  src/graphics/SpriteDrawList.cpp
-  src/graphics/Texture.cpp
-  src/graphics/TextureAtlas.cpp
   src/graphics/TextRenderer.cpp
-  src/graphics/TextLayout.cpp
-  src/graphics/stbi_image_impl.cpp
-  src/graphics/stb_truetype_impl.cpp
+
+  src/graphics/gl/Shader.cpp
+
+  src/graphics/lighting/LightRenderer.cpp
+  src/graphics/lighting/LightTileCuller.cpp
+
+  src/graphics/pipeline/FullscreenQuad.cpp
+  src/graphics/pipeline/RenderTarget.cpp
+  
+  src/graphics/sprite/SpriteBatch.cpp
+  src/graphics/sprite/SpriteDrawList.cpp
+
+  src/graphics/stb/stbi_image_impl.cpp
+  src/graphics/stb/stb_truetype_impl.cpp
+
+  src/graphics/text/Font.cpp
+  src/graphics/text/TextLayout.cpp
+
+  src/graphics/texture/Texture.cpp
+  src/graphics/texture/TextureAtlas.cpp
   
   src/input/InputSystem.cpp
   

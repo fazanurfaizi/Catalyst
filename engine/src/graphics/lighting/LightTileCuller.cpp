@@ -1,5 +1,5 @@
-#include "engine/graphics/LightTileCuller.hpp"
-#include "engine/graphics/LightBuffer.hpp"
+#include "engine/graphics/lighting/LightTileCuller.hpp"
+#include "engine/graphics/lighting/LightBuffer.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -48,14 +48,14 @@ void LightTileCuller::Build(const PointLightGpu *lights, int count) {
     const float py = L.position.y;
     const int x0 = std::max(
         0, static_cast<int>(std::floor((px - R - m_origin.x) / m_tileW)));
-    const int x1 = std::min(
-        static_cast<int>(m_tilesX) - 1,
-        static_cast<int>(std::floor((px + R - m_origin.x) / m_tileW)));
+    const int x1 =
+        std::min(static_cast<int>(m_tilesX) - 1,
+                 static_cast<int>(std::floor((px + R - m_origin.x) / m_tileW)));
     const int y0 = std::max(
         0, static_cast<int>(std::floor((py - R - m_origin.y) / m_tileH)));
-    const int y1 = std::min(
-        static_cast<int>(m_tilesY) - 1,
-        static_cast<int>(std::floor((py + R - m_origin.y) / m_tileH)));
+    const int y1 =
+        std::min(static_cast<int>(m_tilesY) - 1,
+                 static_cast<int>(std::floor((py + R - m_origin.y) / m_tileH)));
     for (int y = y0; y <= y1; ++y) {
       for (int x = x0; x <= x1; ++x) {
         ++m_offsets[y * m_tilesX + x + 1];
@@ -81,15 +81,15 @@ void LightTileCuller::Build(const PointLightGpu *lights, int count) {
 
     const int x0 = std::max(
         0, static_cast<int>(std::floor((px - R - m_origin.x) / m_tileW)));
-    const int x1 = std::min(
-        static_cast<int>(m_tilesX) - 1,
-        static_cast<int>(std::floor((px + R - m_origin.x) / m_tileW)));
+    const int x1 =
+        std::min(static_cast<int>(m_tilesX) - 1,
+                 static_cast<int>(std::floor((px + R - m_origin.x) / m_tileW)));
 
     const int y0 = std::max(
         0, static_cast<int>(std::floor((py - R - m_origin.y) / m_tileH)));
-    const int y1 = std::min(
-        static_cast<int>(m_tilesY) - 1,
-        static_cast<int>(std::floor((py + R - m_origin.y) / m_tileH)));
+    const int y1 =
+        std::min(static_cast<int>(m_tilesY) - 1,
+                 static_cast<int>(std::floor((py + R - m_origin.y) / m_tileH)));
 
     for (int y = y0; y <= y1; ++y) {
       for (int x = x0; x <= x1; ++x) {

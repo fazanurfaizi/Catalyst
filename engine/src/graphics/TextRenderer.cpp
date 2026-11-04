@@ -1,6 +1,7 @@
 #include "engine/graphics/TextRenderer.hpp"
 
-#include "engine/graphics/TextLayout.hpp"
+#include "engine/assets/AssetPath.hpp"
+#include "engine/graphics/text/TextLayout.hpp"
 #include "engine/utils/Logger.hpp"
 #include "glad/gl.h"
 
@@ -10,38 +11,8 @@
 
 namespace engine::graphics {
 
-const char *vShaderSrc = R"(
-  #version 330 core
-
-  layout(location = 0) in vec2 aPosition;
-  layout(location = 1) in vec2 aTexCoords;
-
-  out vec2 vTexCoords;
-  uniform mat4 uProjection;
-
-  void main() {
-    gl_Position = uProjection * vec4(aPosition, 0.0, 1.0);
-    vTexCoords = aTexCoords; 
-  }
-)";
-
-const char *fShaderSrc = R"(
-  #version 330 core
-
-  in vec2 vTexCoords;
-  out vec4 vColor;
-
-  uniform sampler2D uText;
-  uniform vec4 uTextColor;
-
-  void main() {
-    float alpha = texture(uText, vTexCoords).r;
-    vColor = vec4(uTextColor.rgb, uTextColor.a * alpha);
-  }
-)";
-
 TextRenderer::TextRenderer() {
-  if (!m_shader.Compile(vShaderSrc, fShaderSrc)) {
+  if (!m_shader.LoadFromFile(AssetPath("shaders/text"))) {
     Logger::Error("[TextRenderer] Failed to compile text shader");
     return;
   }

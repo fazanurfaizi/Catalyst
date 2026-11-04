@@ -1,7 +1,7 @@
 #pragma once
 
-#include "engine/graphics/Shader.hpp"
-#include "engine/graphics/Texture.hpp"
+#include "engine/graphics/gl/Shader.hpp"
+#include "engine/graphics/texture/Texture.hpp"
 #include "glad/gl.h"
 #include <cstddef>
 #include <cstdint>

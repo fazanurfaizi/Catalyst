@@ -1,4 +1,4 @@
-#include "engine/graphics/Shader.hpp"
+#include "engine/graphics/gl/Shader.hpp"
 
 #include "engine/utils/Logger.hpp"
 

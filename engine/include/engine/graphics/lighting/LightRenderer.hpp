@@ -1,6 +1,6 @@
 #pragma once
 
-#include "engine/graphics/LightBuffer.hpp"
+#include "engine/graphics/lighting/LightBuffer.hpp"
 #include <cstdint>
 
 namespace engine::graphics {

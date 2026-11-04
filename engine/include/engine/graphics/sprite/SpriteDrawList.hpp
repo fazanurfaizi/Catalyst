@@ -1,6 +1,6 @@
 #pragma once
 
-#include "engine/graphics/Texture.hpp"
+#include "engine/graphics/texture/Texture.hpp"
 #include "engine/math/Color.hpp"
 #include <glm/glm.hpp>
 #include <vector>

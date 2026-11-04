@@ -1,7 +1,6 @@
 #pragma once
 
 #include "SparseSet.hpp"
-#include "engine/utils/Logger.hpp"
 
 #include <cassert>
 #include <cstdint>

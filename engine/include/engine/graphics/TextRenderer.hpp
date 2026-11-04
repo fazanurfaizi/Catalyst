@@ -1,8 +1,8 @@
 #pragma once
 
-#include "engine/graphics/Font.hpp"
-#include "engine/graphics/Shader.hpp"
-#include "engine/graphics/TextLayout.hpp"
+#include "engine/graphics/gl/Shader.hpp"
+#include "engine/graphics/text/Font.hpp"
+#include "engine/graphics/text/TextLayout.hpp"
 
 #include <glm/glm.hpp>
 #include <string>

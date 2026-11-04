@@ -1,8 +1,8 @@
 #include "engine/resources/ResourceManager.hpp"
 #include "engine/assets/AssetPath.hpp"
-#include "engine/graphics/Font.hpp"
-#include "engine/graphics/Shader.hpp"
-#include "engine/graphics/Texture.hpp"
+#include "engine/graphics/gl/Shader.hpp"
+#include "engine/graphics/text/Font.hpp"
+#include "engine/graphics/texture/Texture.hpp"
 #include "engine/utils/Logger.hpp"
 #include <memory>
 

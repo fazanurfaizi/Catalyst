@@ -30,8 +30,8 @@ struct SpotLight {
   vec4 position;
   vec4 direction;
   vec4 color;
-  vec4 attenuation;
   vec4 cone;
+  vec4 attenuation;
 };
 
 layout(std140, binding = 0) uniform PointLightBlock {
@@ -81,18 +81,13 @@ void main() {
 
   for (uint i = start; i < end; ++i) {
     uint li = uTileIndices[i];
+    if (li >= uint(uPointLightCount)) continue;
     PointLight L = uPointLights[li];
     float d = length(L.position.xy - world);
     float att = 1.0 / (L.attenuation.x + L.attenuation.y * d + L.attenuation.z * d * d);
     light += att * (L.ambient.rgb + L.diffuse.rgb);
+    // light += att * L.diffuse.rgb;
   }
-  // for (int i = 0; i < uPointLightCount; ++i) {
-  //   PointLight L = uPointLights[i];
-  //   float d = length(L.position.xy - world);
-  //   float att = 1.0 / (L.attenuation.x + L.attenuation.y * d
-  //         + L.attenuation.z * d * d);
-  //   light += att * (L.ambient.rgb + L.diffuse.rgb);
-  // }
 
   for (int i = 0; i < uSpotLightCount; ++i) {
     vec2 toFrag = world - uSpotLights[i].position.xy;

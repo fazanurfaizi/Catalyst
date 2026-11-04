@@ -1,4 +1,4 @@
-#include "engine/graphics/Texture.hpp"
+#include "engine/graphics/texture/Texture.hpp"
 
 #include "engine/utils/Logger.hpp"
 

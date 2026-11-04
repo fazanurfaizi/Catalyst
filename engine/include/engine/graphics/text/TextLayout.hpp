@@ -1,6 +1,6 @@
 #pragma once
 
-#include "engine/graphics/Font.hpp"
+#include "engine/graphics/text/Font.hpp"
 #include <glm/glm.hpp>
 #include <string>
 #include <vector>
