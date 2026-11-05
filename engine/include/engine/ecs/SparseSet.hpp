@@ -102,7 +102,9 @@ public:
     return dense_.back();
   }
 
-  [[nodiscard]] Entity *Entities() noexcept { return entities_.data(); }
+  [[nodiscard]] Entity *Entities() noexcept override {
+    return entities_.data();
+  }
   [[nodiscard]] const Entity *Entities() const noexcept override {
     return entities_.data();
   }
