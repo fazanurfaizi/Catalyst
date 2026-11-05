@@ -1,4 +1,4 @@
-#include "engine/resources/ResourceManager.hpp"
+#include "engine/assets/AssetManager.hpp"
 #include "engine/assets/AssetPath.hpp"
 #include "engine/graphics/gl/Shader.hpp"
 #include "engine/graphics/text/Font.hpp"
@@ -6,17 +6,15 @@
 #include "engine/utils/Logger.hpp"
 #include <memory>
 
-namespace engine::resources {
+namespace engine::assets {
 
-ResourceManager::ResourceManager() = default;
-ResourceManager::~ResourceManager() = default;
-ResourceManager::ResourceManager(ResourceManager &&) noexcept = default;
-ResourceManager &
-ResourceManager::operator=(ResourceManager &&) noexcept = default;
+AssetManager::AssetManager() = default;
+AssetManager::~AssetManager() = default;
+AssetManager::AssetManager(AssetManager &&) noexcept = default;
+AssetManager &AssetManager::operator=(AssetManager &&) noexcept = default;
 
-graphics::Texture *
-ResourceManager::LoadTexture(const std::string &key,
-                             const std::string &relativePath) {
+graphics::Texture *AssetManager::LoadTexture(const std::string &key,
+                                             const std::string &relativePath) {
   auto it = m_textures.find(key);
   if (it != m_textures.end()) {
     return it->second.get();
@@ -24,7 +22,7 @@ ResourceManager::LoadTexture(const std::string &key,
 
   auto texture = std::make_unique<graphics::Texture>();
   if (!texture->LoadFromFile(GetAssetPath(relativePath))) {
-    Logger::Error("[ResourceManager] Failed to load texture: %s",
+    Logger::Error("[AssetManager] Failed to load texture: %s",
                   relativePath.c_str());
     return nullptr;
   }
@@ -34,13 +32,13 @@ ResourceManager::LoadTexture(const std::string &key,
   return ptr;
 }
 
-graphics::Texture *ResourceManager::GetTexture(const std::string &key) {
+graphics::Texture *AssetManager::GetTexture(const std::string &key) {
   auto it = m_textures.find(key);
   return it != m_textures.end() ? it->second.get() : nullptr;
 }
 
-graphics::Shader *ResourceManager::LoadShader(const std::string &key,
-                                              const std::string &relativePath) {
+graphics::Shader *AssetManager::LoadShader(const std::string &key,
+                                           const std::string &relativePath) {
 
   auto it = m_shaders.find(key);
   if (it != m_shaders.end()) {
@@ -49,8 +47,8 @@ graphics::Shader *ResourceManager::LoadShader(const std::string &key,
 
   auto shader = std::make_unique<graphics::Shader>();
   if (!shader->LoadFromFile(GetAssetPath(relativePath))) {
-    Logger::Error("[ResourceManager] shader '%s' failed to load (%s)",
-                  key.c_str(), relativePath.c_str());
+    Logger::Error("[AssetManager] shader '%s' failed to load (%s)", key.c_str(),
+                  relativePath.c_str());
     return nullptr;
   }
 
@@ -59,14 +57,14 @@ graphics::Shader *ResourceManager::LoadShader(const std::string &key,
   return ptr;
 }
 
-graphics::Shader *ResourceManager::GetShader(const std::string &key) {
+graphics::Shader *AssetManager::GetShader(const std::string &key) {
   auto it = m_shaders.find(key);
   return it != m_shaders.end() ? it->second.get() : nullptr;
 }
 
-graphics::Font *ResourceManager::LoadFont(const std::string &key,
-                                          const std::string &relativePath,
-                                          float fontSize) {
+graphics::Font *AssetManager::LoadFont(const std::string &key,
+                                       const std::string &relativePath,
+                                       float fontSize) {
   auto it = m_fonts.find(key);
   if (it != m_fonts.end()) {
     return it->second.get();
@@ -74,7 +72,7 @@ graphics::Font *ResourceManager::LoadFont(const std::string &key,
 
   auto font = std::make_unique<graphics::Font>();
   if (!font->LoadFromFile(GetAssetPath(relativePath), fontSize)) {
-    Logger::Error("[ResourceManager] Failed to load font: %s",
+    Logger::Error("[AssetManager] Failed to load font: %s",
                   relativePath.c_str());
     return nullptr;
   }
@@ -84,19 +82,19 @@ graphics::Font *ResourceManager::LoadFont(const std::string &key,
   return ptr;
 }
 
-graphics::Font *ResourceManager::GetFont(const std::string &key) {
+graphics::Font *AssetManager::GetFont(const std::string &key) {
   auto it = m_fonts.find(key);
   return it != m_fonts.end() ? it->second.get() : nullptr;
 }
 
-std::string
-ResourceManager::GetAssetPath(const std::string &relativePath) const {
+std::string AssetManager::GetAssetPath(const std::string &relativePath) const {
   return AssetPath(relativePath);
 }
 
-void ResourceManager::Clear() {
+void AssetManager::Clear() {
   m_textures.clear();
   m_fonts.clear();
+  m_shaders.clear();
 }
 
-} // namespace engine::resources
+} // namespace engine::assets

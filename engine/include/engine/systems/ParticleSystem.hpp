@@ -19,7 +19,7 @@ inline void ParticleSystem(ecs::Registry &reg, float dt) {
   for (auto [e, t, emitter] :
        reg.View<components::Transform, components::ParticleEmitter>()) {
     if (emitter.timeEmitted >= emitter.duration) {
-      reg.Remove<components::ParticleEmitter>(e);
+      reg.DestroyDeferred(e);
       continue;
     }
 
@@ -54,6 +54,8 @@ inline void ParticleSystem(ecs::Registry &reg, float dt) {
     }
     emitter.timeEmitted += dt;
   }
+
+  reg.FlushDeferred();
 
   // Tick
   for (auto [e, t, p] :

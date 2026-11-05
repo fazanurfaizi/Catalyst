@@ -25,6 +25,8 @@ public:
   virtual std::size_t Size() const noexcept = 0;
   virtual void Remove(Entity e) noexcept = 0;
   virtual void Clear() noexcept = 0;
+  virtual Entity *Entities() noexcept = 0;
+  virtual const Entity *Entities() const noexcept = 0;
 };
 
 namespace detail {
@@ -44,7 +46,8 @@ public:
 
   // IStorage
   [[nodiscard]] bool Contains(Entity e) const noexcept override {
-    return e.index < spare_.size() && spare_[e.index] != detail::kEmpty;
+    return e.index < spare_.size() && spare_[e.index] != detail::kEmpty &&
+           entities_[spare_[e.index]].generation == e.generation;
   }
 
   [[nodiscard]] std::size_t Size() const noexcept override {
@@ -100,7 +103,7 @@ public:
   }
 
   [[nodiscard]] Entity *Entities() noexcept { return entities_.data(); }
-  [[nodiscard]] const Entity *Entities() const noexcept {
+  [[nodiscard]] const Entity *Entities() const noexcept override {
     return entities_.data();
   }
   [[nodiscard]] T *Data() noexcept { return dense_.data(); }

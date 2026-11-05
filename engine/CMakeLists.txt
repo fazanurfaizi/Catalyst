@@ -1,5 +1,6 @@
 add_library(engine STATIC
   src/assets/AnimationLibrary.cpp
+  src/assets/AssetManager.cpp
 
   src/audio/AudioEngine.cpp
 
@@ -35,8 +36,6 @@ add_library(engine STATIC
 
   src/platform/Display.cpp
   src/platform/Window.cpp
-
-  src/resources/ResourceManager.cpp
 
   src/scene/World.cpp
 

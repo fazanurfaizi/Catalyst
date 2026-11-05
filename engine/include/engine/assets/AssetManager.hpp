@@ -3,6 +3,7 @@
 #include <memory>
 #include <string>
 #include <unordered_map>
+#include <vector>
 
 namespace engine::graphics {
 
@@ -12,19 +13,19 @@ class Shader;
 
 } // namespace engine::graphics
 
-namespace engine::resources {
+namespace engine::assets {
 
-class ResourceManager {
+class AssetManager {
 public:
-  ResourceManager();
+  AssetManager();
 
-  ~ResourceManager();
+  ~AssetManager();
 
-  ResourceManager(const ResourceManager &) = delete;
-  ResourceManager &operator=(const ResourceManager &) = delete;
+  AssetManager(const AssetManager &) = delete;
+  AssetManager &operator=(const AssetManager &) = delete;
 
-  ResourceManager(ResourceManager &&) noexcept;
-  ResourceManager &operator=(ResourceManager &&) noexcept;
+  AssetManager(AssetManager &&) noexcept;
+  AssetManager &operator=(AssetManager &&) noexcept;
 
   graphics::Texture *LoadTexture(const std::string &key,
                                  const std::string &relativePath);
@@ -50,4 +51,4 @@ private:
   std::unordered_map<std::string, std::unique_ptr<graphics::Shader>> m_shaders;
 };
 
-} // namespace engine::resources
+} // namespace engine::assets

@@ -77,7 +77,6 @@ else()
   add_compile_definitions(ASSETS_PATH="${CMAKE_CURRENT_SOURCE_DIR}/assets/")
 endif()
 
-
 # Add Subdirectories
 # Build vendor libraries
 add_subdirectory(vendor)

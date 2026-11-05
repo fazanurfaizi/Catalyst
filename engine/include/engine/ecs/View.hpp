@@ -20,6 +20,7 @@ template <Component... Ts> class View {
 public:
   explicit View(Registry &registry) : registry_(&registry) {
     storages_ = std::make_tuple(&registry.template StorageOf<Ts>()...);
+    FindLeader();
   }
 
   template <Component... Xs> [[nodiscard]] View Without() const {
@@ -28,14 +29,16 @@ public:
     return r;
   }
 
-  [[nodiscard]] const std::size_t Size() const { return leader_size_; }
+  [[nodiscard]] const std::size_t Size() const {
+    return leader_snapshot_.size();
+  }
 
   class Iterator {
   public:
     Iterator(View *v, std::size_t i) : view_(v), idx_(i) { SkipInvalid(); }
 
     [[nodiscard]] auto operator*() const {
-      Entity e = view_->leader_entities_[idx_];
+      Entity e = view_->leader_snapshot_[idx_];
       return Deref(e, std::index_sequence_for<Ts...>{});
     }
 
@@ -55,8 +58,8 @@ public:
     }
 
     void SkipInvalid() {
-      while (idx_ < view_->leader_size_ &&
-             !view_->Matches(view_->leader_entities_[idx_])) {
+      while (idx_ < view_->leader_snapshot_.size() &&
+             !view_->Matches(view_->leader_snapshot_[idx_])) {
         ++idx_;
       }
     }
@@ -70,25 +73,41 @@ public:
     return Iterator(this, 0);
   }
 
-  Iterator end() { return Iterator(this, leader_size_); }
+  Iterator end() { return Iterator(this, leader_snapshot_.size()); }
 
 private:
   void FindLeader() {
-    leader_entities_ = nullptr;
-    leader_size_ = 0;
+    leader_snapshot_.clear();
     std::size_t best = std::numeric_limits<std::size_t>::max();
+
+    IStorage *best_storage = nullptr;
     std::apply(
         [&](auto *...s) {
           auto check = [&](auto *st) {
             if (st->Size() < best) {
               best = st->Size();
-              leader_entities_ = st->Entities();
+              best_storage = st;
             }
           };
           (check(s), ...);
         },
         storages_);
-    leader_size_ = (best == std::numeric_limits<std::size_t>::max()) ? 0 : best;
+
+    if (best_storage != nullptr && best > 0 &&
+        best != std::numeric_limits<std::size_t>::max()) {
+      FillLeaderSnapshot(best_storage);
+    }
+  }
+
+  void FillLeaderSnapshot(IStorage *storage) {
+    std::apply(
+        [&](auto *...s) {
+          ((s == storage ? (leader_snapshot_.assign(s->Entities(),
+                                                    s->Entities() + s->Size()))
+                         : (void)0),
+           ...);
+        },
+        storages_);
   }
 
   [[nodiscard]] bool Matches(Entity e) const {
@@ -107,8 +126,7 @@ private:
   Registry *registry_;
   std::tuple<SparseSet<Ts> *...> storages_;
   std::vector<std::type_index> excluded_;
-  Entity *leader_entities_ = nullptr;
-  std::size_t leader_size_ = 0;
+  std::vector<Entity> leader_snapshot_;
 };
 
 } // namespace engine::ecs
