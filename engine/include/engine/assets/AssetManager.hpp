@@ -29,16 +29,15 @@ public:
 
   graphics::Texture *LoadTexture(const std::string &key,
                                  const std::string &relativePath);
-  graphics::Texture *GetTexture(const std::string &key);
+  graphics::Texture *GetTexture(const std::string &key) const;
 
   graphics::Shader *LoadShader(const std::string &key,
                                const std::string &relativePath);
-
-  graphics::Shader *GetShader(const std::string &key);
+  graphics::Shader *GetShader(const std::string &key) const;
 
   graphics::Font *LoadFont(const std::string &key,
                            const std::string &relativePath, float fontSize);
-  graphics::Font *GetFont(const std::string &key);
+  graphics::Font *GetFont(const std::string &key) const;
 
   std::string GetAssetPath(const std::string &relativePath) const;
 

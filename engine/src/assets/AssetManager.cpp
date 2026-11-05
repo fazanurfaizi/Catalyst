@@ -32,7 +32,7 @@ graphics::Texture *AssetManager::LoadTexture(const std::string &key,
   return ptr;
 }
 
-graphics::Texture *AssetManager::GetTexture(const std::string &key) {
+graphics::Texture *AssetManager::GetTexture(const std::string &key) const {
   auto it = m_textures.find(key);
   return it != m_textures.end() ? it->second.get() : nullptr;
 }
@@ -57,7 +57,7 @@ graphics::Shader *AssetManager::LoadShader(const std::string &key,
   return ptr;
 }
 
-graphics::Shader *AssetManager::GetShader(const std::string &key) {
+graphics::Shader *AssetManager::GetShader(const std::string &key) const {
   auto it = m_shaders.find(key);
   return it != m_shaders.end() ? it->second.get() : nullptr;
 }
@@ -82,7 +82,7 @@ graphics::Font *AssetManager::LoadFont(const std::string &key,
   return ptr;
 }
 
-graphics::Font *AssetManager::GetFont(const std::string &key) {
+graphics::Font *AssetManager::GetFont(const std::string &key) const {
   auto it = m_fonts.find(key);
   return it != m_fonts.end() ? it->second.get() : nullptr;
 }
