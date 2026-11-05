@@ -232,7 +232,6 @@ void PlayingState::OnFixedUpdate(engine::core::Game &game, double dt) {
   engine::systems::AnimationSystem(reg, dt);
   engine::systems::ParticleSystem(reg, dt);
   engine::systems::MoveTowardTargetSystem(reg, dt);
-  engine::systems::CameraFollowSystem(reg, dt);
 
   reg.FlushDeferred();
 }
