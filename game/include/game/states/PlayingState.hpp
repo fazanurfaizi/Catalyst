@@ -8,6 +8,7 @@
 #include "engine/graphics/texture/TextureAtlas.hpp"
 #include "engine/input/InputCodes.hpp"
 #include "engine/scene/World.hpp"
+#include <string_view>
 
 class PlayingState final : public engine::core::GameState {
 public:
@@ -44,6 +45,6 @@ private:
   engine::ecs::Entity m_torch{};
 
   void BuildDemoScene(engine::core::Game &game);
-  void ApplyRegion(engine::ecs::Entity e, const char *region);
+  void ApplyRegion(engine::ecs::Entity e, std::string_view region);
   void DrawSceneDebug(engine::core::Game &game);
 };

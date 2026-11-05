@@ -3,7 +3,9 @@
 #include "engine/components/AnimationClip.hpp"
 #include "engine/graphics/texture/TextureAtlas.hpp"
 
+#include <functional>
 #include <string>
+#include <string_view>
 #include <unordered_map>
 
 namespace engine::assets {
@@ -23,11 +25,13 @@ public:
                 const std::string &regionPrefix, int frameCount,
                 float frameDurationSec, bool loop = true);
 
-  const components::AnimationClip *Get(const std::string &name) const;
+  const components::AnimationClip *Get(std::string_view name) const;
   int Count() const { return static_cast<int>(m_clips.size()); }
 
 private:
-  std::unordered_map<std::string, components::AnimationClip> m_clips;
+  std::unordered_map<std::string, components::AnimationClip,
+                     graphics::StringHash, std::equal_to<>>
+      m_clips;
 };
 
 } // namespace engine::assets

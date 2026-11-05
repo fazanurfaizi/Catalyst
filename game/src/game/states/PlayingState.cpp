@@ -121,9 +121,6 @@ void PlayingState::OnEnter(engine::core::Game &game) {
     engine::Logger::Error("Atlas pack failed");
   }
 
-  m_animations.AddStrip("coin_spin", m_atlas, "coin", 6, 0.2f,
-                        /*loop=*/true);
-
   m_animations.AddStrip("hero_idle", m_atlas, "hero_idle", 10, 0.15f, true);
   m_animations.AddStrip("hero_attack", m_atlas, "hero_attack", 10, 0.08f,
                         false);
@@ -420,19 +417,22 @@ void PlayingState::BuildDemoScene(engine::core::Game &game) {
   torch.quadratic = 3.5f;
 }
 
-void PlayingState::ApplyRegion(engine::ecs::Entity e, const char *region) {
-  auto *r = m_atlas.GetRegion(region);
-  if (!r) {
-    engine::Logger::Warn("[Game] unknown region: %s", region);
+void PlayingState::ApplyRegion(engine::ecs::Entity e, std::string_view region) {
+  const auto id = m_atlas.TryGetRegionId(region);
+  if (!m_atlas.IsValid(id)) {
+    engine::Logger::Warn("[Game] unknown region: %s",
+                         std::string(region).c_str());
     return;
   }
+
+  auto *r = m_atlas.GetRegionById(id);
   auto &reg = m_world.Registry();
   auto &s = reg.Get<engine::components::Sprite>(e);
 
   s.texture = &m_atlas.GetTexture();
   s.uvMin = r->uvMin;
   s.uvMax = r->uvMax;
-  // s.regionId =
+  s.regionId = id;
 }
 
 void PlayingState::DrawSceneDebug(engine::core::Game &game) {

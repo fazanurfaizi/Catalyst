@@ -15,6 +15,7 @@ inline void AnimationSystem(ecs::Registry &reg, float dt) {
     const auto &frame = anim.clip->frames[anim.currentFrame];
     sprite.uvMin = frame.uvMin;
     sprite.uvMax = frame.uvMax;
+    sprite.regionId = frame.regionId;
   }
 }
 

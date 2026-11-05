@@ -314,9 +314,6 @@ void Renderer::ExecuteLight() {
                         {m_tileCuller.TileWorldW(), m_tileCuller.TileWorldH()});
   m_lightShader.SetVec2("uWorldOrigin", m_tileCuller.WorldOrigin());
 
-  // m_sceneRT.BindColorTexture(0);
-  // m_lightShader.SetInt("uScene", 0);
-
   m_fullscreenQuad.Draw();
 }
 
@@ -344,9 +341,9 @@ void Renderer::ExecuteBlit(Attachment src) {
   if (src == AttachLightColor) {
     m_lightRT.BindColorTexture(0);
     m_sceneRT.BindColorTexture(1);
-    m_compositeShader.SetInt("uScene", 0); // binds light as "scene" source
+    m_compositeShader.SetInt("uScene", 0);
     m_compositeShader.SetInt("uLight", 1);
-    m_compositeShader.SetInt("uMode", 2); // mode=1 outputs uScene verbatim
+    m_compositeShader.SetInt("uMode", 2);
   } else {
     m_sceneRT.BindColorTexture(0);
     m_lightRT.BindColorTexture(1);
