@@ -1,6 +1,6 @@
 #pragma once
 
-#include "engine/assets/AnimationLibrary.hpp"
+#include "engine/animation/AnimationLibrary.hpp"
 #include "engine/core/Game.hpp"
 #include "engine/core/GameState.hpp"
 #include "engine/ecs/Entity.hpp"
@@ -32,7 +32,7 @@ public:
 
 private:
   engine::scene::World m_world;
-  engine::assets::AnimationLibrary m_animations;
+  engine::animation::AnimationLibrary m_animations;
 
   engine::graphics::TextureAtlas m_atlas;
   engine::graphics::TextRenderer m_textRenderer;

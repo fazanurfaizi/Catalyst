@@ -1,5 +1,6 @@
 add_library(engine STATIC
-  src/assets/AnimationLibrary.cpp
+  src/animation/AnimationLibrary.cpp
+
   src/assets/AssetManager.cpp
 
   src/audio/AudioEngine.cpp

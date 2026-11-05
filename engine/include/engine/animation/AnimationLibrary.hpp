@@ -8,7 +8,7 @@
 #include <string_view>
 #include <unordered_map>
 
-namespace engine::assets {
+namespace engine::animation {
 
 class AnimationLibrary {
 public:
@@ -34,4 +34,4 @@ private:
       m_clips;
 };
 
-} // namespace engine::assets
+} // namespace engine::animation

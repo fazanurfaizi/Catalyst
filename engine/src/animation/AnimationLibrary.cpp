@@ -1,4 +1,4 @@
-#include "engine/assets/AnimationLibrary.hpp"
+#include "engine/animation/AnimationLibrary.hpp"
 
 #include "engine/components/AnimationClip.hpp"
 #include "engine/graphics/texture/TextureAtlas.hpp"
@@ -6,7 +6,7 @@
 #include <string>
 #include <utility>
 
-namespace engine::assets {
+namespace engine::animation {
 
 void AnimationLibrary::Add(components::AnimationClip clip) {
   if (clip.name.empty()) {
@@ -68,4 +68,4 @@ AnimationLibrary::Get(std::string_view name) const {
   return it != m_clips.end() ? &it->second : nullptr;
 }
 
-} // namespace engine::assets
+} // namespace engine::animation
