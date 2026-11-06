@@ -1,5 +1,5 @@
 #include "engine/graphics/sprite/SpriteBatch.hpp"
-#include "engine/assets/AssetPath.hpp"
+#include "engine/asset/AssetPath.hpp"
 #include "engine/graphics/sprite/SpriteDrawList.hpp"
 #include "engine/graphics/texture/Texture.hpp"
 #include "engine/utils/Logger.hpp"

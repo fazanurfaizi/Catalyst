@@ -1,6 +1,6 @@
 #include "engine/graphics/TextRenderer.hpp"
 
-#include "engine/assets/AssetPath.hpp"
+#include "engine/asset/AssetPath.hpp"
 #include "engine/graphics/text/TextLayout.hpp"
 #include "engine/utils/Logger.hpp"
 #include "glad/gl.h"

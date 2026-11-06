@@ -1,7 +1,7 @@
 #pragma once
 
-#include "engine/assets/AssetManager.hpp"
-#include "engine/audio/AudioEngine.hpp"
+#include "engine/asset/AssetManager.hpp"
+// #include "engine/audio/AudioEngine.hpp"
 #include "engine/core/Clock.hpp"
 #include "engine/core/GameStateManager.hpp"
 #include "engine/platform/Window.hpp"
@@ -77,10 +77,10 @@ public:
   graphics::Renderer &GetRenderer() { return *m_renderer; }
   const graphics::Renderer &GetRenderer() const { return *m_renderer; }
 
-  assets::AssetManager &Resources() { return m_resources; }
-  const assets::AssetManager &Resources() const { return m_resources; }
+  asset::AssetManager &Resources() { return m_resources; }
+  const asset::AssetManager &Resources() const { return m_resources; }
 
-  audio::AudioEngine &GetAudio() { return m_audio; }
+  // audio::AudioEngine &GetAudio() { return m_audio; }
 
 protected:
   virtual void OnStart() {}
@@ -93,9 +93,9 @@ private:
   std::unique_ptr<platform::Window> m_window;
 
   GameStateManager m_stateManager;
-  audio::AudioEngine m_audio;
+  // audio::AudioEngine m_audio;
   std::unique_ptr<graphics::Renderer> m_renderer;
-  assets::AssetManager m_resources;
+  asset::AssetManager m_resources;
 
   Clock m_clock;
 

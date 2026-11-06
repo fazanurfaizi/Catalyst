@@ -1,12 +1,36 @@
 add_library(engine STATIC
   src/animation/AnimationLibrary.cpp
 
+  src/assets/core/Asset.cpp
+  src/assets/core/AssetHandle.cpp
+  src/assets/core/AssetRecord.cpp
+  src/assets/core/AssetType.cpp
+  src/assets/core/ImportError.cpp
+  src/assets/core/ImportRequest.cpp
+  src/assets/core/ImportResult.cpp
+
+  src/assets/finalizer/AnimationFinalizer.cpp
+  src/assets/finalizer/AssetFinalizer.cpp
+  src/assets/finalizer/FontFinalizer.cpp
+  src/assets/finalizer/SoundFinalizer.cpp
+  src/assets/finalizer/Texture2DFinalizer.cpp
+
+  src/assets/importer/animation/AnimationImporter.cpp
+  src/assets/importer/font/FontImporter.cpp
+  src/assets/importer/sound/SoundImporter.cpp
+  src/assets/importer/texture2d/Texture2DImporter.cpp
+  src/assets/importer/ImporterRegistry.cpp
+
   src/assets/AssetManager.cpp
 
   src/audio/AudioEngine.cpp
+  src/audio/MusicPlayer.cpp
+  src/audio/assets/Sound.cpp
 
   src/core/Game.cpp
   src/core/GameStateManager.cpp
+
+  src/graphics/assets/AnimationAsset.cpp
 
   src/graphics/Renderer.cpp
   src/graphics/TextRenderer.cpp

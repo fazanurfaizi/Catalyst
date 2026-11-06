@@ -1,6 +1,6 @@
 #include "engine/graphics/Renderer.hpp"
 
-#include "engine/assets/AssetPath.hpp"
+#include "engine/asset/AssetPath.hpp"
 #include "engine/components/Light.hpp"
 #include "engine/components/Sprite.hpp"
 #include "engine/components/Transform.hpp"

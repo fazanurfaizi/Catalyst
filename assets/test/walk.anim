@@ -1,0 +1,13 @@
+{
+  "Animation": "walk",
+  "Duration": 2.0,
+  "Tracks": [
+    {
+      "TrackProperty": "Position",
+      "Keyframes": [
+        { "Time": 0.0, "Value": [0, 0] },
+        { "Time": 2.0, "Value": [100, 0] }
+      ]
+    }
+  ]
+}

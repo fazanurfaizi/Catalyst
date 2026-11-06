@@ -6,12 +6,22 @@
 
 namespace engine::audio {
 
+namespace {
+void OnSoundFinished([[maybe_unused]] void *data, ma_sound *sound) {
+  ma_sound_uninit(sound);
+  delete sound;
+}
+} // namespace
+
 struct AudioEngine::Impl {
   ma_engine engine{};
-  ma_sound music{};
   bool engineInited = false;
-  bool musicLoaded = false;
 };
+
+AudioEngine &AudioEngine::Get() {
+  static AudioEngine instance;
+  return instance;
+}
 
 AudioEngine::AudioEngine() : m_impl(new Impl()) {}
 
@@ -32,44 +42,60 @@ bool AudioEngine::Init() {
 }
 
 void AudioEngine::Shutdown() {
-  if (m_impl->musicLoaded) {
-    ma_sound_uninit(&m_impl->music);
-    m_impl->musicLoaded = false;
-  }
-  if (m_impl->engineInited) {
-    ma_engine_uninit(&m_impl->engine);
-    m_impl->engineInited = false;
-  }
+  if (!m_impl->engineInited)
+    return;
+  ma_engine_uninit(&m_impl->engine);
+  m_impl->engineInited = false;
 }
 
-void AudioEngine::PlaySound(const std::string &filepath) {
-  ma_engine_play_sound(&m_impl->engine, filepath.c_str(), nullptr);
+bool AudioEngine::IsInitialized() const { return m_impl->engineInited; }
+
+void AudioEngine::PlayOneShot(const SoundAsset &sound, float volume) {
+  if (!m_impl->engineInited) {
+    Logger::Warn("[AudioEngine] PlayOneShot before Init, ignoring");
+    return;
+  }
+
+  auto *instance = new ma_sound();
+  if (ma_sound_init_from_file(
+          &m_impl->engine, sound.sourcePath.string().c_str(),
+          MA_SOUND_FLAG_DECODE, nullptr, nullptr, instance) != MA_SUCCESS) {
+    Logger::Error("[AudioEngine] Failed to init sound from '%s'",
+                  sound.sourcePath.string().c_str());
+    delete instance;
+    return;
+  }
+
+  ma_sound_set_volume(instance, volume);
+  ma_sound_set_end_callback(instance, OnSoundFinished, nullptr);
+  ma_sound_start(instance);
 }
 
-bool AudioEngine::PlayMusic(const std::string &filepath) {
-  StopMusic();
+void AudioEngine::PlaySoundPath(const std::string &filepath, float volume) {
+  if (!m_impl->engineInited)
+    return;
+
+  auto *instance = new ma_sound();
   if (ma_sound_init_from_file(&m_impl->engine, filepath.c_str(),
-                              MA_SOUND_FLAG_STREAM, nullptr, nullptr,
-                              &m_impl->music) != MA_SUCCESS) {
-    Logger::Error("[AudioEngine] Failed to load music: %s", filepath.c_str());
-    return false;
+                              MA_SOUND_FLAG_DECODE, nullptr, nullptr,
+                              instance) != MA_SUCCESS) {
+    delete instance;
+    return;
   }
-  ma_sound_set_looping(&m_impl->music, MA_TRUE);
-  ma_sound_start(&m_impl->music);
-  m_impl->musicLoaded = true;
-  return true;
-}
 
-void AudioEngine::StopMusic() {
-  if (m_impl->musicLoaded) {
-    ma_sound_stop(&m_impl->music);
-    ma_sound_uninit(&m_impl->music);
-    m_impl->musicLoaded = false;
-  }
+  ma_sound_set_volume(instance, volume);
+  ma_sound_set_end_callback(instance, OnSoundFinished, nullptr);
+  ma_sound_start(instance);
 }
 
 void AudioEngine::SetMasterVolume(float volume) {
+  if (!m_impl->engineInited)
+    return;
   ma_engine_set_volume(&m_impl->engine, volume);
+}
+
+ma_engine *AudioEngine::GetHandle() const {
+  return m_impl->engineInited ? &m_impl->engine : nullptr;
 }
 
 } // namespace engine::audio

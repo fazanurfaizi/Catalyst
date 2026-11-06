@@ -1,29 +1,36 @@
 #pragma once
 
+#include "engine/audio/assets/Sound.hpp"
 #include <string>
+
+struct ma_engine;
 
 namespace engine::audio {
 
 class AudioEngine {
 public:
-  AudioEngine();
-  ~AudioEngine();
+  static AudioEngine &Get();
 
   AudioEngine(const AudioEngine &) = delete;
   AudioEngine &operator=(const AudioEngine &) = delete;
 
   bool Init();
   void Shutdown();
+  bool IsInitialized() const;
 
-  // Play a sound effect once (fire-and-forget)
-  void PlaySound(const std::string &filepath);
+  void PlayOneShot(const SoundAsset &sound, float volume = 1.0f);
 
-  // Load a music track and play it in a loop (BGM)
-  bool PlayMusic(const std::string &filepath);
-  void StopMusic();
+  /** Path-based convenience, resolved against ASSETS_PATH. */
+  void PlaySoundPath(const std::string &path, float volume = 1.0f);
+
   void SetMasterVolume(float volume);
 
+  ma_engine *GetHandle() const;
+
 private:
+  AudioEngine();
+  ~AudioEngine();
+
   struct Impl;
   Impl *m_impl = nullptr;
 };
