@@ -1,5 +1,6 @@
 #pragma once
 
+#include "engine/graphics/assets/TextureAsset.hpp"
 #include <cstdint>
 #include <string>
 
@@ -23,8 +24,8 @@ public:
   void CreateCheckerboard(int cells, std::uint32_t colorA,
                           std::uint32_t colorB);
 
-  void Upload(int width, int height, const std::uint8_t *pixels,
-              bool generateMipmaps = true);
+  void Upload(int width, int height, ImageFormat format,
+              const std::uint8_t *pixels, bool generateMipmaps = true);
 
   void Bind(std::uint32_t unit = 0) const;
 

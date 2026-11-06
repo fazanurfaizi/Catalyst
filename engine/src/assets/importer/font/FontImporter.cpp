@@ -49,6 +49,13 @@ ImportResult<ImportedAssetDataPtr> ImportFont(const ImportRequest &request) {
             .WithPath(request.absolutePath));
   }
 
+  int rawAscent = 0, rawDescent = 0, rawLineGap = 0;
+  stbtt_GetFontVMetrics(&fontInfo, &rawAscent, &rawDescent, &rawLineGap);
+  const float pxPerUnit = stbtt_ScaleForPixelHeight(&fontInfo, kFontPixelSize);
+  const float ascent = static_cast<float>(rawAscent) * pxPerUnit;
+  const float descent = static_cast<float>(rawDescent) * pxPerUnit; // negative
+  const float lineGap = static_cast<float>(rawLineGap) * pxPerUnit;
+
   // Single-channel coverage
   std::vector<std::uint8_t> atlasPixels(kAtlasWidth * kAtlasHeight, 0);
 
@@ -82,6 +89,9 @@ ImportResult<ImportedAssetDataPtr> ImportFont(const ImportRequest &request) {
   result->atlasPixels = std::move(atlasPixels);
   result->firstCodepoint = kFirstCodepoint;
   result->textHeight = static_cast<std::uint32_t>(kFontPixelSize);
+  result->ascent = ascent;
+  result->descent = descent;
+  result->lineGap = lineGap;
   result->glyphs.resize(kCharCount);
 
   const float atlasW = static_cast<float>(kAtlasWidth);

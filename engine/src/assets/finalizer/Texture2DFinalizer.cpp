@@ -36,10 +36,10 @@ Texture2DFinalizer::Finalize(AssetHandle handle,
   buffer.data = const_cast<std::uint8_t *>(data.pixelBytes.data());
   buffer.size = data.pixelBytes.size();
 
-  std::shared_ptr<graphics::Texture2DAsset> texture =
+  std::shared_ptr<Asset> texture =
       graphics::Texture2DAsset::Create(handle, spec, buffer);
 
-  return std::static_pointer_cast<Asset>(std::move(texture));
+  return texture;
 }
 
 } // namespace engine::asset

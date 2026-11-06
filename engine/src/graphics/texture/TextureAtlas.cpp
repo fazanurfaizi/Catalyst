@@ -310,7 +310,8 @@ bool TextureAtlas::Pack() {
     m_regionIds.emplace(s.name, static_cast<RegionId>(i));
   }
 
-  m_texture.Upload(bestSize, bestSize, dst.data(), /*generateMipmaps=*/false);
+  m_texture.Upload(bestSize, bestSize, ImageFormat::RGBA8, dst.data(),
+                   /*generateMipmaps=*/false);
 
   Logger::Info("[TextureAtlas] packed %zu sources into %d x %d", n, bestSize,
                bestSize);

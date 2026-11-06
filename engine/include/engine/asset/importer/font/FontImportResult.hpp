@@ -24,6 +24,10 @@ public:
   std::vector<GlyphCpu> glyphs;
   std::uint32_t textHeight = 0;
   std::uint32_t firstCodepoint = 0;
+
+  float ascent = 0.0f;
+  float descent = 0.0f;
+  float lineGap = 0.0f;
 };
 
 } // namespace engine::asset

@@ -7,9 +7,38 @@
 #include "engine/asset/importer/ImporterRegistry.hpp"
 #include "engine/utils/Logger.hpp"
 #include <cassert>
+
+#include <GLFW/glfw3.h>
+#include <glad/gl.h>
+
 // #include "game/KingdomRushGame.hpp"
 
 int main(int /*argc*/, char ** /*argv*/) {
+  if (!glfwInit()) {
+    engine::Logger::Error("GLWF INIT FAILED");
+    return 0;
+  }
+
+  glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
+  glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+  glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+  glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+
+  GLFWwindow *window = glfwCreateWindow(1, 1, "asset-test", nullptr, nullptr);
+  if (!window) {
+    engine::Logger::Error("GLFW CREATE WINDOW FAILED");
+    return 0;
+  }
+  glfwMakeContextCurrent(window);
+
+  if (!gladLoadGL(glfwGetProcAddress)) {
+    engine::Logger::Error("gladLoadGL failed");
+    glfwDestroyWindow(window);
+    return 0;
+  }
+
+  assert(glGenTextures != nullptr);
+
   engine::asset::ImporterRegistry registry;
   engine::asset::AssetManager::RegisterDefaultImporters(registry);
 
@@ -19,8 +48,8 @@ int main(int /*argc*/, char ** /*argv*/) {
     engine::asset::AssetType expectedType;
   };
   const Case cases[] = {
-      // {".png", "assets/test/hero.png", engine::asset::AssetType::Texture2D},
-      // {".ttf", "assets/test/Roboto.ttf", engine::asset::AssetType::Font},
+      {".png", "assets/test/hero.png", engine::asset::AssetType::Texture2D},
+      {".ttf", "assets/test/Roboto.ttf", engine::asset::AssetType::Font},
       {".wav", "assets/test/click.wav", engine::asset::AssetType::Sound},
       {".anim", "assets/test/walk.anim", engine::asset::AssetType::Animation},
   };
@@ -38,10 +67,8 @@ int main(int /*argc*/, char ** /*argv*/) {
       continue;
     }
 
-    // Result type is the concrete subclass.
     assert(imported.Value()->GetAssetType() == c.expectedType);
 
-    // Finalize into a live engine object stamped with a handle.
     engine::asset::AssetHandle handle = engine::asset::AssetHandle::Generate();
     std::shared_ptr<engine::asset::Asset> asset =
         engine::asset::AssetFinalizer::Finalize(handle,
@@ -52,6 +79,8 @@ int main(int /*argc*/, char ** /*argv*/) {
 
     engine::Logger::Info("OK: %s -> %s", c.ext, c.path);
   }
+  glfwDestroyWindow(window);
+  glfwTerminate();
   // KingdomRushGame game;
   // game.Run();
   // return 0;

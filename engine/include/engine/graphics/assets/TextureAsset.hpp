@@ -20,9 +20,9 @@ struct TextureSpecification {
   bool magFilterLinear = false;
 };
 
-class Texture : public asset::Asset {
+class TextureAsset : public asset::Asset {
 public:
-  virtual ~Texture() = default;
+  virtual ~TextureAsset() = default;
 
   virtual const TextureSpecification &GetSpecification() const = 0;
 
@@ -34,8 +34,11 @@ public:
 
   virtual void Bind(uint32_t slot = 0) const = 0;
 
-  virtual bool operator==(const Texture &other) const = 0;
-  virtual bool equals(const Texture &other) const = 0;
+  virtual bool operator==(const TextureAsset &other) const = 0;
+  virtual bool equals(const TextureAsset &other) const = 0;
+
+protected:
+  explicit TextureAsset(asset::AssetHandle handle) : asset::Asset(handle) {}
 };
 
 } // namespace engine::graphics

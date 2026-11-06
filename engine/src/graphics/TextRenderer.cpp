@@ -1,6 +1,7 @@
 #include "engine/graphics/TextRenderer.hpp"
 
 #include "engine/asset/AssetPath.hpp"
+#include "engine/graphics/assets/FontAsset.hpp"
 #include "engine/graphics/text/TextLayout.hpp"
 #include "engine/utils/Logger.hpp"
 #include "glad/gl.h"
@@ -44,15 +45,18 @@ TextRenderer::~TextRenderer() {
   glDeleteBuffers(1, &m_vbo);
 }
 
-void TextRenderer::Draw(const Font &font, const std::string &text,
+void TextRenderer::Draw(const FontAsset &asset, const std::string &text,
                         const glm::vec2 &position, float scale,
                         const glm::vec4 &color, const glm::mat4 &projection,
                         float maxWidth, TextAlignment alignment) {
+  if (!asset.font)
+    return;
+
   if (text.empty())
     return;
 
-  TextLayout::BuildTextBatch(font, text, maxWidth, scale, alignment, m_vertices,
-                             position);
+  TextLayout::BuildTextBatch(*asset.font, text, maxWidth, scale, alignment,
+                             m_vertices, position);
 
   if (m_vertices.empty())
     return;
@@ -69,7 +73,7 @@ void TextRenderer::Draw(const Font &font, const std::string &text,
   m_shader.SetInt("uText", 0);
 
   glActiveTexture(GL_TEXTURE0);
-  glBindTexture(GL_TEXTURE_2D, font.GetTextureId());
+  glBindTexture(GL_TEXTURE_2D, asset.font->GetTextureId());
   glBindVertexArray(m_vao);
 
   glBindBuffer(GL_ARRAY_BUFFER, m_vbo);
