@@ -60,6 +60,17 @@ int main(int /*argc*/, char ** /*argv*/) {
 
     engine::asset::ImportRequest req{c.path};
     auto imported = importer->Import(req);
+    auto handle = engine::asset::AssetHandle::Generate();
+
+    imported.Match(
+        [&](engine::asset::ImportedAssetDataPtr &data) {
+          auto asset =
+              engine::asset::AssetFinalizer::Finalize(handle, std::move(data));
+        },
+        [&](const engine::asset::ImportError &err) {
+          engine::Logger::Error("[Imported] import failed: %s",
+                                err.ToString().c_str());
+        });
     if (imported.IsError()) {
       engine::Logger::Error("Import failed for '%s': %s", c.path,
                             imported.Error().ToString().c_str());
@@ -69,10 +80,8 @@ int main(int /*argc*/, char ** /*argv*/) {
 
     assert(imported.Value()->GetAssetType() == c.expectedType);
 
-    engine::asset::AssetHandle handle = engine::asset::AssetHandle::Generate();
-    std::shared_ptr<engine::asset::Asset> asset =
-        engine::asset::AssetFinalizer::Finalize(handle,
-                                                std::move(imported.Value()));
+    auto asset = engine::asset::AssetFinalizer::Finalize(
+        handle, std::move(imported.Value()));
     assert(asset && "finalize failed");
     assert(asset->Handle() == handle && "handle not stamped");
     assert(asset->Type() == c.expectedType);

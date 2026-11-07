@@ -7,7 +7,6 @@ add_library(engine STATIC
   src/assets/core/AssetType.cpp
   src/assets/core/ImportError.cpp
   src/assets/core/ImportRequest.cpp
-  src/assets/core/ImportResult.cpp
 
   src/assets/finalizer/AnimationFinalizer.cpp
   src/assets/finalizer/AssetFinalizer.cpp

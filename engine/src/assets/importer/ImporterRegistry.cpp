@@ -22,7 +22,10 @@ std::string ImporterRegistry::NormalizeExtension(std::string_view extension) {
 }
 
 void ImporterRegistry::Register(std::unique_ptr<IAssetImporter> importer) {
-  assert(importer != nullptr);
+  if (!importer) {
+    Logger::Error("[ImporterRegistry] Register null pointer");
+    return;
+  }
 
   IAssetImporter *raw = importer.get();
 
