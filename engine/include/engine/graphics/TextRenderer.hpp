@@ -15,6 +15,11 @@ public:
   TextRenderer();
   ~TextRenderer();
 
+  void Draw(const Font &font, const std::string &text,
+            const glm::vec2 &position, float scale, const glm::vec4 &color,
+            const glm::mat4 &projection, float maxWidth = 0.0f,
+            TextAlignment alignment = TextAlignment::Left);
+
   void Draw(const FontAsset &asset, const std::string &text,
             const glm::vec2 &position, float scale, const glm::vec4 &color,
             const glm::mat4 &projection, float maxWidth = 0.0f,

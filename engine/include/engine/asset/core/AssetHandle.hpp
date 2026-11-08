@@ -32,7 +32,17 @@ public:
   [[nodiscard]] ValueType Value() const noexcept { return m_value; }
   std::string ToString() const;
 
-  bool operator<=>(const AssetHandle &other) const noexcept = default;
+  bool operator==(const AssetHandle &other) const noexcept {
+    return m_value == other.m_value;
+  }
+
+  bool operator!=(const AssetHandle &other) const noexcept {
+    return m_value != other.m_value;
+  }
+
+  bool operator<(const AssetHandle &other) const noexcept {
+    return m_value < other.m_value;
+  }
 
 private:
   explicit AssetHandle(ValueType value) noexcept : m_value(value) {}

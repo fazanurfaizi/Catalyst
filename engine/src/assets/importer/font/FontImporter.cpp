@@ -14,7 +14,7 @@ constexpr std::uint32_t kFirstCodepoint = 32; // ' ' (space)
 constexpr std::uint32_t kCharCount = 95;      // printable ASCII
 constexpr std::uint32_t kAtlasWidth = 1024;
 constexpr std::uint32_t kAtlasHeight = 1024;
-constexpr float kFontPixelSize = 180.0f;
+constexpr float kFontPixelSize = 18.0f;
 
 ImportResult<ImportedAssetDataPtr> ImportFont(const ImportRequest &request) {
   std::ifstream in(request.absolutePath, std::ios::binary);

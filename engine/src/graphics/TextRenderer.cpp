@@ -45,18 +45,15 @@ TextRenderer::~TextRenderer() {
   glDeleteBuffers(1, &m_vbo);
 }
 
-void TextRenderer::Draw(const FontAsset &asset, const std::string &text,
+void TextRenderer::Draw(const Font &font, const std::string &text,
                         const glm::vec2 &position, float scale,
                         const glm::vec4 &color, const glm::mat4 &projection,
                         float maxWidth, TextAlignment alignment) {
-  if (!asset.font)
-    return;
-
   if (text.empty())
     return;
 
-  TextLayout::BuildTextBatch(*asset.font, text, maxWidth, scale, alignment,
-                             m_vertices, position);
+  TextLayout::BuildTextBatch(font, text, maxWidth, scale, alignment, m_vertices,
+                             position);
 
   if (m_vertices.empty())
     return;
@@ -73,7 +70,7 @@ void TextRenderer::Draw(const FontAsset &asset, const std::string &text,
   m_shader.SetInt("uText", 0);
 
   glActiveTexture(GL_TEXTURE0);
-  glBindTexture(GL_TEXTURE_2D, asset.font->GetTextureId());
+  glBindTexture(GL_TEXTURE_2D, font.GetTextureId());
   glBindVertexArray(m_vao);
 
   glBindBuffer(GL_ARRAY_BUFFER, m_vbo);
@@ -89,6 +86,18 @@ void TextRenderer::Draw(const FontAsset &asset, const std::string &text,
   glBindVertexArray(0);
   glBindTexture(GL_TEXTURE_2D, 0);
   m_shader.Unbind();
+}
+
+void TextRenderer::Draw(const FontAsset &fontAsset, const std::string &text,
+                        const glm::vec2 &position, float scale,
+                        const glm::vec4 &color, const glm::mat4 &projection,
+                        float maxWidth, TextAlignment alignment) {
+  if (!fontAsset.font) {
+    return;
+  }
+
+  Draw(*fontAsset.font, text, position, scale, color, projection, maxWidth,
+       alignment);
 }
 
 } // namespace engine::graphics

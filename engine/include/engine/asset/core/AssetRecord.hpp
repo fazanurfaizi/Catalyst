@@ -23,12 +23,14 @@ AssetRecordState AssetRecordStateFromString(const std::string &str) noexcept;
 struct AssetRecord {
   AssetRecord() = delete;
 
-  AssetRecord(AssetHandle h, AssetType t, std::filesystem::path p)
-      : handle(h), type(t), path(std::move(p)) {}
+  AssetRecord(AssetHandle h, AssetType t, std::filesystem::path p,
+              std::string n)
+      : handle(h), type(t), path(std::move(p)), name(std::move(n)) {}
 
   AssetHandle handle;
   AssetType type;
   std::filesystem::path path;
+  std::string name;
 
   AssetRecordState state = AssetRecordState::Valid;
   std::uint64_t settingsHash = 0;

@@ -1,7 +1,9 @@
 add_library(engine STATIC
   src/animation/AnimationLibrary.cpp
 
-  src/assets/core/Asset.cpp
+  src/assets/cache/AssetCache.cpp
+  src/assets/cache/AssetState.cpp
+
   src/assets/core/AssetHandle.cpp
   src/assets/core/AssetRecord.cpp
   src/assets/core/AssetType.cpp
@@ -19,6 +21,9 @@ add_library(engine STATIC
   src/assets/importer/sound/SoundImporter.cpp
   src/assets/importer/texture2d/Texture2DImporter.cpp
   src/assets/importer/ImporterRegistry.cpp
+
+  src/assets/manager/AssetManagerRuntime.cpp
+  src/assets/manager/AssetManagerEditor.cpp
 
   src/assets/AssetManager.cpp
 
