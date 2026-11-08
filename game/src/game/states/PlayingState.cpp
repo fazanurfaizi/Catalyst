@@ -1,9 +1,11 @@
 #include "game/states/PlayingState.hpp"
 
 #include "engine/asset/AssetPath.hpp"
+#include "engine/asset/manager/AssetManagerEditor.hpp"
 #include "engine/components/Light.hpp"
 #include "engine/core/Game.hpp"
 #include "engine/graphics/Renderer.hpp"
+#include "engine/graphics/assets/FontAsset.hpp"
 #include "engine/graphics/texture/TextureAtlas.hpp"
 #include "engine/math/Color.hpp"
 #include "engine/scene/SceneSerializer.hpp"
@@ -73,6 +75,25 @@ void DrawWorldGrid(engine::graphics::Renderer &renderer,
 void PlayingState::OnEnter(engine::core::Game &game) {
   engine::Logger::Info("OnInitialize");
 
+  using engine::asset::AssetManagerEditor;
+
+  m_font =
+      game.Assets()->AcquireByName<engine::graphics::FontAsset>("main_font");
+  if (!m_font) {
+    engine::Logger::Error(
+        "PlayingState: failed to acquire main font; text disabled");
+  }
+
+  m_bgm = game.Assets()->AcquireByName<engine::audio::SoundAsset>("main_bgm");
+  if (!m_bgm) {
+    engine::Logger::Error(
+        "PlayingState: failed to acquire main bgm; audio disabled");
+  }
+
+  if (m_bgm) {
+    engine::audio::AudioEngine::Get().PlayOneShot(*m_bgm, 0.5f);
+  }
+
   auto &reg = m_world.Registry();
   m_camera = m_world.CreateEntity("MainCamera");
 
@@ -86,8 +107,6 @@ void PlayingState::OnEnter(engine::core::Game &game) {
   game.GetRenderer().SetAmbientLight({0.03f, 0.04f, 0.25f});
 
   const int loaded = m_atlas.AddFromDirectory(engine::AssetPath("sprites"));
-
-  // game.Resources().LoadFont("main_font", "fonts/Roboto-Regular.ttf", 32.0f);
 
   m_atlas.AddSolid("solidWhite", 0xFFFFFFFF, 16);
 
@@ -127,9 +146,6 @@ void PlayingState::OnEnter(engine::core::Game &game) {
   m_animations.AddStrip("hero_move", m_atlas, "hero_move", 10, 0.1f, true);
   m_animations.AddStrip("coin_spin", m_atlas, "coin", 6, 0.08f, true);
 
-  // game.GetAudio().PlayMusic(
-  //     game.Resources().GetAssetPath("audio/bg_theme.mp3"));
-
   engine::Logger::Info(
       loaded > 0
           ? "[Game] using %d real PNGs + fallbacks"
@@ -155,9 +171,11 @@ void PlayingState::OnRender(engine::core::Game &game) {
   renderer.EndFrame();
 
   // auto *font = game.Resources().GetFont("main_font");
-  // m_textRenderer.Draw(*font, "Gold: 100", {60.0f, 100.0f}, 2.0f,
-  //                     {1.0f, 0.85f, 0.2f, 1.0f},
-  //                     game.Display().UiProjection());
+  if (m_font) {
+    m_textRenderer.Draw(
+        *m_font, "Gold: 100", {20.0f, 30.0f}, 2.0f, {1.0f, 0.85f, 0.2f, 1.0f},
+        game.Display().UiProjection() / game.Display().AspectRatio());
+  }
 }
 
 void PlayingState::OnUpdate(engine::core::Game &game, double dt) {

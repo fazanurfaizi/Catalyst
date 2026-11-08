@@ -37,6 +37,9 @@ private:
   engine::graphics::TextureAtlas m_atlas;
   engine::graphics::TextRenderer m_textRenderer;
 
+  std::shared_ptr<engine::graphics::FontAsset> m_font;
+  std::shared_ptr<engine::audio::SoundAsset> m_bgm;
+
   engine::ecs::Entity m_camera{};
   engine::ecs::Entity m_coin{};
   engine::ecs::Entity m_tower{};

@@ -1,5 +1,8 @@
 #include "engine/core/Game.hpp"
 
+#include "engine/asset/AssetManager.hpp"
+#include "engine/asset/manager/AssetManagerEditor.hpp"
+#include "engine/asset/manager/AssetManagerRuntime.hpp"
 #include "engine/core/Clock.hpp"
 #include "engine/graphics/Renderer.hpp"
 #include "engine/utils/Logger.hpp"
@@ -37,7 +40,6 @@ Game::Game(const platform::WindowConfig &config, const DebugConfig &debug)
   }
 
   m_renderer = std::make_unique<graphics::Renderer>();
-
   const auto fb = m_window->GetDisplay().FramebufferSize();
   m_renderer->Init(fb.x, fb.y);
 
@@ -78,13 +80,16 @@ Game::Game(const platform::WindowConfig &config, const DebugConfig &debug)
 }
 
 Game::~Game() {
+  m_stateManager.Clear(*this);
+
+  audio::AudioEngine::Get().Shutdown();
+  m_assets.reset();
+
   if (m_imguiInited) {
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplGlfw_Shutdown();
     ImGui::DestroyContext();
   }
-
-  m_stateManager.Clear(*this);
 }
 
 double Game::ElapsedTime() const { return m_clock.ElapsedTime(); }
@@ -107,6 +112,20 @@ bool Game::Run() {
     Logger::Error("Game::Run called without a valid window");
     return false;
   }
+  if (!m_renderer) {
+    Logger::Error("Game::Run callced without a renderer");
+    return false;
+  }
+
+  if (!audio::AudioEngine::Get().Init()) {
+    Logger::Error("Audio failed to initialiez; continuing without audio");
+  }
+
+  asset::AssetManager::RegisterDefaultImporters(m_importerRegistry);
+  m_assets = std::make_unique<asset::AssetManagerEditor>(
+      m_importerRegistry,
+      "" // Dev mode: playing state passes absolute paths
+  );
 
   OnStart();
 
@@ -120,9 +139,6 @@ bool Game::Run() {
   }
 
   m_running = true;
-
-  // Fixed 60 Hz logic clock; rebased so OnStart/asset loading does not count
-  // as the first frame delta.
   m_clock.Reset();
 
   while (m_running && !CloseRequested()) {

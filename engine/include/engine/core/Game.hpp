@@ -1,7 +1,10 @@
 #pragma once
 
 #include "engine/asset/AssetManager.hpp"
-// #include "engine/audio/AudioEngine.hpp"
+#include "engine/asset/importer/ImporterRegistry.hpp"
+#include "engine/asset/manager/AssetManagerEditor.hpp"
+#include "engine/asset/manager/IAssetManager.hpp"
+#include "engine/audio/AudioEngine.hpp"
 #include "engine/core/Clock.hpp"
 #include "engine/core/GameStateManager.hpp"
 #include "engine/platform/Window.hpp"
@@ -77,10 +80,18 @@ public:
   graphics::Renderer &GetRenderer() { return *m_renderer; }
   const graphics::Renderer &GetRenderer() const { return *m_renderer; }
 
-  asset::AssetManager &Resources() { return m_resources; }
-  const asset::AssetManager &Resources() const { return m_resources; }
+  asset::IAssetManager *Assets() { return m_assets.get(); }
+  const asset::IAssetManager *Assets() const { return m_assets.get(); }
 
-  // audio::AudioEngine &GetAudio() { return m_audio; }
+  asset::AssetManagerEditor *AssetsEditor() { return m_assets.get(); }
+  const asset::AssetManagerEditor *AssetsEditor() const {
+    return m_assets.get();
+  }
+
+  audio::AudioEngine &GetAudio() { return audio::AudioEngine::Get(); }
+  const audio::AudioEngine &GetAudio() const {
+    return audio::AudioEngine::Get();
+  }
 
 protected:
   virtual void OnStart() {}
@@ -93,9 +104,11 @@ private:
   std::unique_ptr<platform::Window> m_window;
 
   GameStateManager m_stateManager;
-  // audio::AudioEngine m_audio;
+
+  asset::ImporterRegistry m_importerRegistry;
+  std::unique_ptr<asset::AssetManagerEditor> m_assets;
+
   std::unique_ptr<graphics::Renderer> m_renderer;
-  asset::AssetManager m_resources;
 
   Clock m_clock;
 
