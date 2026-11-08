@@ -1,9 +1,9 @@
 #include "engine/core/Game.hpp"
 
 #include "engine/asset/AssetManager.hpp"
-#include "engine/asset/manager/AssetManagerEditor.hpp"
 #include "engine/asset/manager/AssetManagerRuntime.hpp"
 #include "engine/core/Clock.hpp"
+#include "engine/core/GameConfigSerializer.hpp"
 #include "engine/graphics/Renderer.hpp"
 #include "engine/utils/Logger.hpp"
 #include "imgui.h"
@@ -16,6 +16,7 @@
 
 #include <cstdio>
 #include <memory>
+#include <utility>
 
 namespace engine::core {
 
@@ -25,8 +26,10 @@ void GlfwErrorCallback(int code, const char *desc) {
 }
 } // namespace
 
-Game::Game(const platform::WindowConfig &config, const DebugConfig &debug)
-    : m_config(config), m_debug(debug) {
+Game::Game(const platform::WindowConfig &config, const DebugConfig &debug,
+           std::filesystem::path gameConfigPath)
+    : m_config(config), m_debug(debug),
+      m_gameConfigPath(std::move(gameConfigPath)) {
   m_window = platform::Window::Create(m_config);
   if (!m_window) {
     Logger::Error("glfwInit failed");
@@ -122,10 +125,26 @@ bool Game::Run() {
   }
 
   asset::AssetManager::RegisterDefaultImporters(m_importerRegistry);
-  m_assets = std::make_unique<asset::AssetManagerEditor>(
-      m_importerRegistry,
-      "" // Dev mode: playing state passes absolute paths
-  );
+
+  auto configOpt = GameConfigSerializer::Load(m_gameConfigPath);
+  if (!configOpt) {
+    Logger::Error("Game::Run: could not load '%s'; running with no assets",
+                  m_gameConfigPath.c_str());
+    m_gameConfig = GameConfig{};
+    m_gameConfig.root = std::filesystem::current_path();
+  } else {
+    m_gameConfig = std::move(*configOpt);
+    Logger::Info("Loaded game config: '%s' (%zu assets, root '%s')",
+                 m_gameConfig.projectName.c_str(), m_gameConfig.assets.size(),
+                 m_gameConfig.root.c_str());
+  }
+
+  m_assets = std::make_unique<asset::AssetManagerRuntime>(m_importerRegistry,
+                                                          m_gameConfig.root);
+
+  for (auto &record : m_gameConfig.assets) {
+    m_assets->AddRecord(std::move(record));
+  }
 
   OnStart();
 

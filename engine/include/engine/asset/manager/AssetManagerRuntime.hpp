@@ -38,7 +38,7 @@ public:
 
   bool IsValid(AssetHandle handle) const override;
 
-  void AddRecord(AssetRecord record);
+  void AddRecord(AssetRecord record) override;
 
 protected:
   ImporterRegistry &m_registry;

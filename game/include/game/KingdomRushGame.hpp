@@ -1,6 +1,5 @@
 #pragma once
 
-#include "engine/asset/AssetPath.hpp"
 #include "engine/core/Game.hpp"
 #include "engine/core/GameState.hpp"
 #include "engine/platform/Window.hpp"
@@ -23,12 +22,5 @@ public:
         }()) {}
 
 protected:
-  void OnStart() override {
-    if (auto *editor = AssetsEditor()) {
-      editor->ImportAsset(engine::AssetPath("fonts/Roboto-Regular.ttf"),
-                          "main_font");
-      editor->ImportAsset(engine::AssetPath("audio/bg_theme.mp3"), "main_bgm");
-    }
-    SetState(std::make_unique<MenuState>());
-  }
+  void OnStart() override { SetState(std::make_unique<MenuState>()); }
 };

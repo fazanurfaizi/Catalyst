@@ -6,8 +6,10 @@
 #include "engine/asset/manager/IAssetManager.hpp"
 #include "engine/audio/AudioEngine.hpp"
 #include "engine/core/Clock.hpp"
+#include "engine/core/GameConfig.hpp"
 #include "engine/core/GameStateManager.hpp"
 #include "engine/platform/Window.hpp"
+#include <filesystem>
 #include <memory>
 
 #include <glm/glm.hpp>
@@ -28,7 +30,8 @@ struct DebugConfig {
 class Game {
 public:
   explicit Game(const platform::WindowConfig &config,
-                const DebugConfig &debug = {});
+                const DebugConfig &debug = {},
+                std::filesystem::path gameConfigPath = "game.json");
   virtual ~Game();
 
   Game(const Game &) = delete;
@@ -83,15 +86,12 @@ public:
   asset::IAssetManager *Assets() { return m_assets.get(); }
   const asset::IAssetManager *Assets() const { return m_assets.get(); }
 
-  asset::AssetManagerEditor *AssetsEditor() { return m_assets.get(); }
-  const asset::AssetManagerEditor *AssetsEditor() const {
-    return m_assets.get();
-  }
-
   audio::AudioEngine &GetAudio() { return audio::AudioEngine::Get(); }
   const audio::AudioEngine &GetAudio() const {
     return audio::AudioEngine::Get();
   }
+
+  const GameConfig &GetGameConfig() const { return m_gameConfig; }
 
 protected:
   virtual void OnStart() {}
@@ -100,13 +100,16 @@ protected:
 private:
   platform::WindowConfig m_config{};
   DebugConfig m_debug{};
+  std::filesystem::path m_gameConfigPath;
 
   std::unique_ptr<platform::Window> m_window;
 
   GameStateManager m_stateManager;
 
   asset::ImporterRegistry m_importerRegistry;
-  std::unique_ptr<asset::AssetManagerEditor> m_assets;
+  std::unique_ptr<asset::IAssetManager> m_assets;
+
+  GameConfig m_gameConfig{};
 
   std::unique_ptr<graphics::Renderer> m_renderer;
 

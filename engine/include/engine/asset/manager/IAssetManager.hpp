@@ -72,6 +72,8 @@ public:
 
   /** True if the handle refers to a known record. */
   virtual bool IsValid(AssetHandle handle) const = 0;
+
+  virtual void AddRecord(AssetRecord record) = 0;
 };
 
 } // namespace engine::asset
