@@ -37,6 +37,7 @@ add_library(engine STATIC
   src/core/Game.cpp
   src/core/GameStateManager.cpp
   src/core/GameConfigSerializer.cpp
+  src/core/LoadingState.cpp
 
   src/graphics/assets/AnimationAsset.cpp
   src/graphics/assets/Texture2DAsset.cpp

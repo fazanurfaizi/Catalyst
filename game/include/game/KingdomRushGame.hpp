@@ -2,6 +2,7 @@
 
 #include "engine/core/Game.hpp"
 #include "engine/core/GameState.hpp"
+#include "engine/core/LoadingState.hpp"
 #include "engine/platform/Window.hpp"
 
 #include "game/states/MenuState.hpp"
@@ -10,6 +11,7 @@
 #include <imgui.h>
 
 #include <cmath>
+#include <memory>
 
 class KingdomRushGame final : public engine::core::Game {
 public:
@@ -22,5 +24,8 @@ public:
         }()) {}
 
 protected:
-  void OnStart() override { SetState(std::make_unique<MenuState>()); }
+  void OnStart() override {
+    SetState(std::make_unique<engine::core::LoadingState>(
+        std::make_unique<MenuState>()));
+  }
 };
