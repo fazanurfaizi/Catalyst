@@ -1,8 +1,9 @@
 #include "engine/animation/AnimationLibrary.hpp"
 
 #include "engine/components/AnimationClip.hpp"
-#include "engine/graphics/texture/TextureAtlas.hpp"
+#include "engine/graphics/assets/TextureAtlasAsset.hpp"
 #include "engine/utils/Logger.hpp"
+#include <cassert>
 #include <string>
 #include <utility>
 
@@ -25,7 +26,7 @@ void AnimationLibrary::Add(components::AnimationClip clip) {
 }
 
 bool AnimationLibrary::AddStrip(const std::string &clipName,
-                                const graphics::TextureAtlas &atlas,
+                                const graphics::TextureAtlasAsset &atlas,
                                 const std::string &regionPrefix, int frameCount,
                                 float frameDurationSec, bool loop) {
   if (frameCount <= 0 || frameDurationSec <= 0.0f) {
@@ -41,7 +42,7 @@ bool AnimationLibrary::AddStrip(const std::string &clipName,
 
   for (int i = 0; i < frameCount; ++i) {
     const std::string regionName = regionPrefix + "_" + std::to_string(i);
-    const auto id = atlas.TryGetRegionId(regionName);
+    const auto id = atlas.GetRegionId(regionName);
     if (!atlas.IsValid(id)) {
       engine::Logger::Error(
           "[AnimationLibrary] missing atlas region '%s' for clip '%s'",
@@ -49,6 +50,7 @@ bool AnimationLibrary::AddStrip(const std::string &clipName,
       return false;
     }
     const graphics::AtlasRegion *r = atlas.GetRegionById(id);
+    assert(r != nullptr);
 
     components::AnimationFrame frame;
     frame.regionId = id;

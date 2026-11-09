@@ -15,11 +15,14 @@ add_library(engine STATIC
   src/assets/finalizer/FontFinalizer.cpp
   src/assets/finalizer/SoundFinalizer.cpp
   src/assets/finalizer/Texture2DFinalizer.cpp
+  src/assets/finalizer/TextureAtlasFinalizer.cpp
 
   src/assets/importer/animation/AnimationImporter.cpp
   src/assets/importer/font/FontImporter.cpp
   src/assets/importer/sound/SoundImporter.cpp
   src/assets/importer/texture2d/Texture2DImporter.cpp
+  src/assets/importer/texture-atlas/TextureAtlasImporter.cpp
+  src/assets/importer/texture-atlas/TextureAtlasBuilder.cpp
   src/assets/importer/ImporterRegistry.cpp
 
   src/assets/manager/AssetManagerRuntime.cpp
@@ -59,7 +62,6 @@ add_library(engine STATIC
   src/graphics/text/TextLayout.cpp
 
   src/graphics/texture/Texture.cpp
-  src/graphics/texture/TextureAtlas.cpp
   
   src/input/InputSystem.cpp
   

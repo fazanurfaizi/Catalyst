@@ -1,23 +1,23 @@
-#include "engine/graphics/texture/TextureAtlas.hpp"
-
+#include "engine/asset/importer/texture-atlas/TextureAtlasBuilder.hpp"
+#include "engine/graphics/assets/TextureAtlasAsset.hpp"
 #include "engine/utils/Logger.hpp"
-#include "glad/gl.h"
+
+#include <glm/glm.hpp>
 
 #include <algorithm>
 #include <array>
-#include <cmath>
+#include <cstddef>
 #include <filesystem>
-#include <limits>
 #include <numeric>
 #include <stb/stb_image.h>
-#include <system_error>
-#include <utility>
+#include <stb/stb_image_resize.h>
+#include <vector>
 
-namespace engine::graphics {
+namespace engine::asset {
 
 namespace {
 
-std::array<std::string, 3> kAllowedImageExtensions = {".png", ".jpg", ".jpeg"};
+std::array<std::string, 1> kAllowedImageExtensions = {".png"};
 
 std::uint8_t *PixelAt(std::vector<std::uint8_t> &data, int stride, int x,
                       int y) {
@@ -38,7 +38,7 @@ void Unpack(std::uint32_t c, std::uint8_t out[4]) {
 
 } // namespace
 
-int TextureAtlas::AddFromDirectory(const std::string &directory) {
+int TextureAtlasBuilder::AddFromDirectory(const std::string &directory) {
   namespace fs = std::filesystem;
 
   std::error_code ec;
@@ -98,9 +98,9 @@ int TextureAtlas::AddFromDirectory(const std::string &directory) {
 
   return added;
 }
-
-bool TextureAtlas::AddFromFile(const std::string &name,
-                               const std::string &path) {
+bool TextureAtlasBuilder::AddFromFile(const std::string &name,
+                                      const std::string &path,
+                                      int maxDimension) {
   if (HasSource(name)) {
     Logger::Error("[TextureAtlas] duplicate source name: %s", name.c_str());
     return false;
@@ -110,6 +110,7 @@ bool TextureAtlas::AddFromFile(const std::string &name,
   int w = 0;
   int h = 0;
   int channels = 0;
+
   stbi_uc *data = stbi_load(path.c_str(), &w, &h, &channels, STBI_rgb_alpha);
   if (!data) {
     const char *dsc = stbi_failure_reason() ? stbi_failure_reason() : "?";
@@ -119,9 +120,21 @@ bool TextureAtlas::AddFromFile(const std::string &name,
 
   Source src;
   src.name = name;
-  src.width = w;
-  src.height = h;
-  src.rgba8.assign(data, data + static_cast<std::size_t>(w) * h * 4);
+
+  if (maxDimension > 0 && (w > maxDimension || h > maxDimension)) {
+    const int newW = (w >= h) ? maxDimension : (w * maxDimension / h);
+    const int newH = (h >= w) ? maxDimension : (h * maxDimension / w);
+    src.width = newW;
+    src.height = newH;
+    src.rgba8.resize(static_cast<std::size_t>(newW) * newH * 4);
+    stbir_resize_uint8(data, w, h, 0, src.rgba8.data(), newW, newH, 0,
+                       STBI_rgb_alpha);
+  } else {
+    src.width = w;
+    src.height = h;
+    src.rgba8.assign(data, data + static_cast<std::size_t>(w) * h * 4);
+  }
+
   stbi_image_free(data);
 
   AddSource(std::move(src));
@@ -129,9 +142,9 @@ bool TextureAtlas::AddFromFile(const std::string &name,
   return true;
 }
 
-bool TextureAtlas::AddFromPixels(const std::string &name, int w, int h,
-                                 const std::uint8_t *rgba) {
-  if (w <= 0 || h <= 0 || !rgba)
+bool TextureAtlasBuilder::AddFromPixels(const std::string &name, int w, int h,
+                                        const std::uint8_t *rgba8) {
+  if (w <= 0 || h <= 0 || !rgba8)
     return false;
 
   if (HasSource(name)) {
@@ -143,20 +156,20 @@ bool TextureAtlas::AddFromPixels(const std::string &name, int w, int h,
   src.name = name;
   src.width = w;
   src.height = h;
-  src.rgba8.assign(rgba, rgba + static_cast<std::size_t>(w) * h * 4);
+  src.rgba8.assign(rgba8, rgba8 + static_cast<std::size_t>(w) * h * 4);
 
   AddSource(std::move(src));
 
   return true;
 }
 
-void TextureAtlas::AddSource(Source &&src) {
+void TextureAtlasBuilder::AddSource(Source &&src) {
   m_sourceNames.emplace(src.name);
   m_sources.push_back(std::move(src));
 }
 
-bool TextureAtlas::AddSolid(const std::string &name, std::uint32_t rgba,
-                            int size) {
+bool TextureAtlasBuilder::AddSolid(const std::string &name, std::uint32_t rgba,
+                                   int size) {
   if (size < 1)
     size = 1;
   std::uint8_t c[4];
@@ -172,8 +185,8 @@ bool TextureAtlas::AddSolid(const std::string &name, std::uint32_t rgba,
   return AddFromPixels(name, size, size, pixels.data());
 }
 
-bool TextureAtlas::AddCheckerboard(const std::string &name, int cells,
-                                   std::uint32_t a, std::uint32_t b) {
+bool TextureAtlasBuilder::AddCheckerboard(const std::string &name, int cells,
+                                          std::uint32_t a, std::uint32_t b) {
   if (cells < 1)
     cells = 1;
   constexpr int kCellPx = 8;
@@ -198,24 +211,17 @@ bool TextureAtlas::AddCheckerboard(const std::string &name, int cells,
   return AddFromPixels(name, size, size, pixels.data());
 }
 
-bool TextureAtlas::Pack() {
+bool TextureAtlasBuilder::Pack(Packed &out, int maxSize) const {
   if (m_sources.empty()) {
-    Logger::Error("[TextureAtlas] Pack called with no sources");
+    Logger::Error("[TextureAtlasBuilder] Pack called with no sources");
     return false;
   }
 
   const std::size_t n = m_sources.size();
-  if (n > std::numeric_limits<RegionId>::max()) {
-    Logger::Error("[TextureAtlas] too many sources (%zu) for RegionId (%u)", n,
-                  static_cast<unsigned>(std::numeric_limits<RegionId>::max()));
-    return false;
-  }
 
-  GLint maxTex = 0;
-  glGetIntegerv(GL_MAX_TEXTURE_SIZE, &maxTex);
-  if (maxTex <= 0)
-    maxTex = 4096;
-  Logger::Info("[TextureAtlas] GL_MAX_TEXTURE_SIZE = %d", maxTex);
+  int sizeLimit = 256;
+  while (sizeLimit * 2 <= maxSize)
+    sizeLimit *= 2;
 
   constexpr int kPad = 1;
 
@@ -228,11 +234,9 @@ bool TextureAtlas::Pack() {
   std::vector<glm::ivec2> bestPositions;
   int bestSize = 0;
 
-  for (int size = 256; size <= maxTex; size *= 2) {
+  for (int size = 256; size <= sizeLimit; size *= 2) {
     std::vector<glm::ivec2> pos(n);
-    int shelfY = 0;
-    int shelfH = 0;
-    int cursorX = 0;
+    int shelfY = 0, shelfH = 0, cursorX = 0;
     bool fits = true;
 
     for (std::size_t idx : order) {
@@ -244,7 +248,6 @@ bool TextureAtlas::Pack() {
         fits = false;
         break;
       }
-
       if (cursorX + w > size) {
         shelfY += shelfH;
         shelfH = 0;
@@ -268,18 +271,26 @@ bool TextureAtlas::Pack() {
   }
 
   if (bestSize == 0) {
-    Logger::Error("[TextureAtlas] cannot pack %zu sources within %dx%d", n,
-                  maxTex, maxTex);
+    int largestW = 0, largestH = 0;
+    std::size_t totalPaddedArea = 0;
+    for (const auto &s : m_sources) {
+      largestW = std::max(largestW, s.width);
+      largestH = std::max(largestH, s.height);
+      totalPaddedArea += static_cast<std::size_t>(s.width + 2) * (s.height + 2);
+    }
+    Logger::Error(
+        "[TextureAtlasBuilder] cannot pack %zu sources within %dx%d "
+        "(largest source %dx%d, total padded area %zu px = %.1f%% of %d²)",
+        n, sizeLimit, sizeLimit, largestW, largestH, totalPaddedArea,
+        100.0 * totalPaddedArea / (double(sizeLimit) * sizeLimit), sizeLimit);
     return false;
   }
 
-  std::vector<std::uint8_t> dst(
-      static_cast<std::size_t>(bestSize) * bestSize * 4, 0);
-
-  m_regionsById.assign(n, {});
-  m_regionNamesById.assign(n, {});
-  m_regionIds.clear();
-  m_regionIds.reserve(n);
+  out.width = bestSize;
+  out.height = bestSize;
+  out.rgba8.assign(static_cast<std::size_t>(bestSize) * bestSize * 4, 0);
+  out.regions.clear();
+  out.regions.reserve(n);
 
   for (std::size_t i = 0; i < n; ++i) {
     const auto &s = m_sources[i];
@@ -291,7 +302,7 @@ bool TextureAtlas::Pack() {
         const int sx = std::clamp(xx, 0, s.width - 1);
         const int sy = std::clamp(yy, 0, s.height - 1);
         const auto *sp = PixelAt(s.rgba8, s.width, sx, sy);
-        auto *dp = PixelAt(dst, bestSize, px + xx, py + yy);
+        auto *dp = PixelAt(out.rgba8, out.width, px + xx, py + yy);
         dp[0] = sp[0];
         dp[1] = sp[1];
         dp[2] = sp[2];
@@ -299,67 +310,18 @@ bool TextureAtlas::Pack() {
       }
     }
 
-    AtlasRegion r;
-    r.uvMin = {static_cast<float>(px) / bestSize,
-               static_cast<float>(py) / bestSize};
-    r.uvMax = {static_cast<float>(px + s.width) / bestSize,
-               static_cast<float>(py + s.height) / bestSize};
+    graphics::AtlasRegion region;
+    region.uvMin = {static_cast<float>(px) / bestSize,
+                    static_cast<float>(py) / bestSize};
+    region.uvMax = {static_cast<float>(px + s.width) / bestSize,
+                    static_cast<float>(py + s.height) / bestSize};
 
-    m_regionsById[i] = r;
-    m_regionNamesById[i] = s.name;
-    m_regionIds.emplace(s.name, static_cast<RegionId>(i));
+    out.regions.emplace_back(s.name, region);
   }
 
-  m_texture.Upload(bestSize, bestSize, ImageFormat::RGBA8, dst.data(),
-                   /*generateMipmaps=*/false);
-
-  Logger::Info("[TextureAtlas] packed %zu sources into %d x %d", n, bestSize,
-               bestSize);
-  return m_texture.IsValid();
+  Logger::Info("[TextureAtlasBuilder] packed %zu sources into %dx%d", n,
+               bestSize, bestSize);
+  return true;
 }
 
-const AtlasRegion *TextureAtlas::GetRegionById(RegionId id) const {
-  return id < m_regionIds.size() ? &m_regionsById[id] : nullptr;
-}
-
-std::string_view TextureAtlas::GetRegionNameById(RegionId id) const {
-  return id < m_regionNamesById.size() ? std::string_view(m_regionNamesById[id])
-                                       : std::string_view{};
-}
-
-const AtlasRegion *TextureAtlas::GetRegion(const std::string &name) const {
-  auto it = m_regionIds.find(name);
-  return it == m_regionIds.end() ? nullptr : &m_regionsById[it->second];
-}
-
-TextureAtlas::RegionId
-TextureAtlas::TryGetRegionId(std::string_view name) const {
-  auto it = m_regionIds.find(name);
-  return it == m_regionIds.end() ? kInvalidRegionId : it->second;
-}
-
-bool TextureAtlas::HasSource(const std::string_view name) const {
-  return m_sourceNames.contains(name);
-}
-
-bool TextureAtlas::HasRegion(const std::string_view name) const {
-  return m_regionIds.contains(name);
-}
-
-std::vector<std::string> TextureAtlas::RegionNames() const {
-  std::vector<std::string> out(m_regionNamesById.begin(),
-                               m_regionNamesById.end());
-  std::sort(out.begin(), out.end());
-  return out;
-}
-
-std::vector<std::string> TextureAtlas::SourceNames() const {
-  std::vector<std::string> out;
-  out.reserve(m_sources.size());
-  for (const auto &s : m_sources)
-    out.push_back(s.name);
-  std::sort(out.begin(), out.end());
-  return out;
-}
-
-} // namespace engine::graphics
+} // namespace engine::asset

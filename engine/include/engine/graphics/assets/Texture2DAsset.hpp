@@ -41,10 +41,6 @@ public:
   bool equals(const TextureAsset &other) const override {
     return GetRendererID() == other.GetRendererID();
   }
-
-private:
-  TextureSpecification m_spec;
-  Texture m_texture;
 };
 
 } // namespace engine::graphics

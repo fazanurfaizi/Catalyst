@@ -10,6 +10,8 @@ const char *AssetTypeToString(AssetType type) noexcept {
     return "Font";
   case AssetType::Texture2D:
     return "Texture2D";
+  case AssetType::TextureAtlas:
+    return "TextureAtlas";
   case AssetType::Shader:
     return "Shader";
   case AssetType::Sound:
@@ -32,6 +34,8 @@ AssetType AssetTypeFromString(const std::string &type) noexcept {
     return AssetType::Font;
   if (type == "Texture2D")
     return AssetType::Texture2D;
+  if (type == "TextureAtlas")
+    return AssetType::TextureAtlas;
   if (type == "Shader")
     return AssetType::Shader;
   if (type == "Sound")

@@ -1,6 +1,7 @@
 #pragma once
 
-#include "engine/graphics/assets/TextureAsset.hpp"
+#include "engine/graphics/assets/TextureFormat.hpp"
+
 #include <cstdint>
 #include <string>
 

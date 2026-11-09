@@ -10,6 +10,7 @@
 namespace engine::graphics {
 
 namespace {
+
 struct GLFormat {
   GLint internalFormat;
   GLenum pixelFormat;

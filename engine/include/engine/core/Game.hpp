@@ -2,7 +2,6 @@
 
 #include "engine/asset/AssetManager.hpp"
 #include "engine/asset/importer/ImporterRegistry.hpp"
-#include "engine/asset/manager/AssetManagerEditor.hpp"
 #include "engine/asset/manager/IAssetManager.hpp"
 #include "engine/audio/AudioEngine.hpp"
 #include "engine/core/Clock.hpp"

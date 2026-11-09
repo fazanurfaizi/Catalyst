@@ -1,12 +1,11 @@
 #include "game/states/PlayingState.hpp"
 
-#include "engine/asset/AssetPath.hpp"
 #include "engine/asset/manager/AssetManagerEditor.hpp"
 #include "engine/components/Light.hpp"
 #include "engine/core/Game.hpp"
 #include "engine/graphics/Renderer.hpp"
 #include "engine/graphics/assets/FontAsset.hpp"
-#include "engine/graphics/texture/TextureAtlas.hpp"
+#include "engine/graphics/assets/TextureAtlasAsset.hpp"
 #include "engine/math/Color.hpp"
 #include "engine/scene/SceneSerializer.hpp"
 #include "engine/utils/Logger.hpp"
@@ -32,7 +31,7 @@
 namespace {
 void DrawWorldGrid(engine::graphics::Renderer &renderer,
                    const engine::math::Rect &bounds,
-                   const engine::graphics::TextureAtlas &atlas) {
+                   const engine::graphics::TextureAtlasAsset &atlas) {
   auto *region = atlas.GetRegion("solidWhite");
   if (!region)
     return;
@@ -94,6 +93,15 @@ void PlayingState::OnEnter(engine::core::Game &game) {
     engine::audio::AudioEngine::Get().PlayOneShot(*m_bgm, 0.5f);
   }
 
+  m_atlas = game.Assets()->AcquireByName<engine::graphics::TextureAtlasAsset>(
+      "main_atlas");
+
+  if (!m_atlas) {
+    engine::Logger::Error(
+        "PlayingState: 'main_atlas' missing; nothing will render");
+    return;
+  }
+
   auto &reg = m_world.Registry();
   m_camera = m_world.CreateEntity("MainCamera");
 
@@ -106,51 +114,11 @@ void PlayingState::OnEnter(engine::core::Game &game) {
   auto framebufferSize = game.Display().FramebufferSize();
   game.GetRenderer().SetAmbientLight({0.03f, 0.04f, 0.25f});
 
-  const int loaded = m_atlas.AddFromDirectory(engine::AssetPath("sprites"));
-
-  m_atlas.AddSolid("solidWhite", 0xFFFFFFFF, 16);
-
-  if (!m_atlas.HasRegion("checkerRed"))
-    m_atlas.AddCheckerboard("checkerRed", 8, 0xCC3333FF, 0x661111FF);
-  if (!m_atlas.HasRegion("checkerBlue"))
-    m_atlas.AddCheckerboard("checkerBlue", 8, 0x3366CCFF, 0x112244FF);
-  if (!m_atlas.HasSource("tower"))
-    m_atlas.AddSolid("tower", 0xE65555FF, 16);
-  if (!m_atlas.HasSource("enemy"))
-    m_atlas.AddCheckerboard("enemy", 8, 0x3366CCFF, 0x112244FF);
-
-  if (!m_atlas.HasSource("hero_idle_0"))
-    for (int i = 0; i < 10; ++i)
-      m_atlas.AddCheckerboard("hero_idle_" + std::to_string(i), 9 + i,
-                              0xCC3333FF, 0x661111FF);
-
-  if (!m_atlas.HasSource("hero_attack_0"))
-    for (int i = 0; i < 10; ++i)
-      m_atlas.AddCheckerboard("hero_attack_" + std::to_string(i), 9 + i,
-                              0xFFDD66FF, 0xAA8800FF);
-
-  if (!m_atlas.HasSource("coin_0")) {
-    for (int i = 0; i < 6; ++i) {
-      m_atlas.AddCheckerboard("coin_" + std::to_string(i), 4 + 1, 0xFFDD66FF,
-                              0xAA8800FF);
-    }
-  }
-
-  if (!m_atlas.Pack()) {
-    engine::Logger::Error("Atlas pack failed");
-  }
-
-  m_animations.AddStrip("hero_idle", m_atlas, "hero_idle", 10, 0.15f, true);
-  m_animations.AddStrip("hero_attack", m_atlas, "hero_attack", 10, 0.08f,
+  m_animations.AddStrip("hero_idle", *m_atlas, "hero_idle", 10, 0.15f, true);
+  m_animations.AddStrip("hero_attack", *m_atlas, "hero_attack", 10, 0.08f,
                         false);
-  m_animations.AddStrip("hero_move", m_atlas, "hero_move", 10, 0.1f, true);
-  m_animations.AddStrip("coin_spin", m_atlas, "coin", 6, 0.08f, true);
-
-  engine::Logger::Info(
-      loaded > 0
-          ? "[Game] using %d real PNGs + fallbacks"
-          : "[Game] no assets/sprites/*.png — using procedural fallbacks",
-      loaded);
+  m_animations.AddStrip("hero_move", *m_atlas, "hero_move", 10, 0.1f, true);
+  m_animations.AddStrip("coin_spin", *m_atlas, "coin", 6, 0.08f, true);
 
   BuildDemoScene(game);
 }
@@ -165,7 +133,7 @@ void PlayingState::OnRender(engine::core::Game &game) {
   const engine::math::Rect bounds = camera.VisibleWorldBounds(aspect);
 
   renderer.BeginFrame(vp, bounds);
-  DrawWorldGrid(renderer, bounds, m_atlas);
+  DrawWorldGrid(renderer, bounds, *m_atlas);
   renderer.RenderSprites(m_world);
   renderer.RenderLights(m_world);
   renderer.EndFrame();
@@ -368,7 +336,7 @@ void PlayingState::BuildDemoScene(engine::core::Game &game) {
                                             .scale = {1.2f, 1.7f}});
   reg.Emplace<engine::components::Sprite>(
       m_hero, engine::components::Sprite{
-                  .texture = &m_atlas.GetTexture(),
+                  .texture = &m_atlas->GetTexture(),
                   .layer = engine::components::RenderLayer::Entities});
   reg.Emplace<engine::components::Velocity>(m_hero,
                                             engine::components::Velocity{
@@ -403,7 +371,7 @@ void PlayingState::BuildDemoScene(engine::core::Game &game) {
   reg.Emplace<engine::components::Sprite>(
       m_coin, engine::components::Sprite{
                   .color = engine::math::kColorWhite,
-                  .texture = &m_atlas.GetTexture(),
+                  .texture = &m_atlas->GetTexture(),
                   .layer = engine::components::RenderLayer::Ground});
   reg.Emplace<engine::components::Animator>(m_coin);
   ApplyRegion(m_coin, "coin_0");
@@ -422,7 +390,7 @@ void PlayingState::BuildDemoScene(engine::core::Game &game) {
   reg.Emplace<engine::components::Sprite>(
       m_torch, engine::components::Sprite{
                    .color = engine::math::kColorWhite,
-                   .texture = &m_atlas.GetTexture(),
+                   .texture = &m_atlas->GetTexture(),
                    .layer = engine::components::RenderLayer::Entities,
                });
   ApplyRegion(m_torch, "tower"); // reuse an orange-red solid as the torch body
@@ -437,18 +405,18 @@ void PlayingState::BuildDemoScene(engine::core::Game &game) {
 }
 
 void PlayingState::ApplyRegion(engine::ecs::Entity e, std::string_view region) {
-  const auto id = m_atlas.TryGetRegionId(region);
-  if (!m_atlas.IsValid(id)) {
+  const auto id = m_atlas->GetRegionId(region);
+  auto *r = m_atlas->GetRegionById(id);
+  if (!r) {
     engine::Logger::Warn("[Game] unknown region: %s",
                          std::string(region).c_str());
     return;
   }
 
-  auto *r = m_atlas.GetRegionById(id);
   auto &reg = m_world.Registry();
   auto &s = reg.Get<engine::components::Sprite>(e);
 
-  s.texture = &m_atlas.GetTexture();
+  s.texture = &m_atlas->GetTexture();
   s.uvMin = r->uvMin;
   s.uvMax = r->uvMax;
   s.regionId = id;
@@ -519,9 +487,9 @@ void PlayingState::DrawSceneDebug(engine::core::Game &game) {
                .maxScale = 0.3f,
                .startColor = {1.0f, 0.8f, 0.2f, 1.0f},
                .endColor = {1.0f, 0.0f, 0.0f, 0.0f},
-               .texture = &m_atlas.GetTexture()});
+               .texture = &m_atlas->GetTexture()});
 
-    if (auto *r = m_atlas.GetRegion("solidWhite")) {
+    if (auto *r = m_atlas->GetRegion("solidWhite")) {
       reg.Get<engine::components::ParticleEmitter>(e).uvMin = r->uvMin;
       reg.Get<engine::components::ParticleEmitter>(e).uvMax = r->uvMax;
     }

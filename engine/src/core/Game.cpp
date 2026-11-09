@@ -116,7 +116,7 @@ bool Game::Run() {
     return false;
   }
   if (!m_renderer) {
-    Logger::Error("Game::Run callced without a renderer");
+    Logger::Error("Game::Run called without a renderer");
     return false;
   }
 

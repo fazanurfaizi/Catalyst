@@ -5,7 +5,7 @@
 #include "engine/core/GameState.hpp"
 #include "engine/ecs/Entity.hpp"
 #include "engine/graphics/TextRenderer.hpp"
-#include "engine/graphics/texture/TextureAtlas.hpp"
+#include "engine/graphics/assets/TextureAtlasAsset.hpp"
 #include "engine/input/InputCodes.hpp"
 #include "engine/scene/World.hpp"
 #include <string_view>
@@ -34,10 +34,10 @@ private:
   engine::scene::World m_world;
   engine::animation::AnimationLibrary m_animations;
 
-  engine::graphics::TextureAtlas m_atlas;
   engine::graphics::TextRenderer m_textRenderer;
 
   std::shared_ptr<engine::graphics::FontAsset> m_font;
+  std::shared_ptr<engine::graphics::TextureAtlasAsset> m_atlas;
   std::shared_ptr<engine::audio::SoundAsset> m_bgm;
 
   engine::ecs::Entity m_camera{};

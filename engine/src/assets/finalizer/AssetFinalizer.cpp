@@ -5,9 +5,11 @@
 #include "engine/asset/finalizer/FontFinalizer.hpp"
 #include "engine/asset/finalizer/SoundFinalizer.hpp"
 #include "engine/asset/finalizer/Texture2DFinalizer.hpp"
+#include "engine/asset/finalizer/TextureAtlasFinalizer.hpp"
 #include "engine/asset/importer/animation/AnimationImportResult.hpp"
 #include "engine/asset/importer/font/FontImportResult.hpp"
 #include "engine/asset/importer/sound/SoundImportResult.hpp"
+#include "engine/asset/importer/texture-atlas/TextureAtlasImportResult.hpp"
 #include "engine/asset/importer/texture2d/Texture2DImportResult.hpp"
 #include "engine/utils/Logger.hpp"
 #include <memory>
@@ -26,6 +28,9 @@ std::shared_ptr<Asset> AssetFinalizer::Finalize(AssetHandle handle,
   case AssetType::Texture2D:
     return Texture2DFinalizer::Finalize(
         handle, static_cast<const Texture2DImportResult &>(*data));
+  case AssetType::TextureAtlas:
+    return TextureAtlasFinalizer::Finalize(
+        handle, static_cast<const TextureAtlasImportResult &>(*data));
   case AssetType::Font:
     return FontFinalizer::Finalize(
         handle, static_cast<const FontImportResult &>(*data));

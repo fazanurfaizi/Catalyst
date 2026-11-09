@@ -8,6 +8,7 @@ enum class AssetType : std::uint16_t {
   None = 0,
   Font,
   Texture2D,
+  TextureAtlas,
   Shader,
   Sound,
   Animation,

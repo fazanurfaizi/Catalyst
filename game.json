@@ -17,6 +17,11 @@
       "type": "Texture2D",
       "path": "textures/tower.png",
       "name": "main_tower"
+    },
+    {
+      "type": "TextureAtlas",
+      "path": "atlas/atlas.atlas",
+      "name": "main_atlas"
     }
   ]
 }
