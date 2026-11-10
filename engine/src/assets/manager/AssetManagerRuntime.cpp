@@ -67,6 +67,9 @@ std::shared_ptr<Asset> AssetManagerRuntime::AcquireRaw(AssetHandle handle) {
   if (!record) {
     Logger::Error("[AssetManagerRuntime] unknown handle %s",
                   handle.ToString().c_str());
+    m_cache.MarkFailed(
+        handle, ImportError::Make(ImportError::Code::Internal,
+                                  "No record registered for this handle"));
     return nullptr;
   }
 
@@ -120,5 +123,11 @@ void AssetManagerRuntime::Retry(AssetHandle handle) {
 }
 
 void AssetManagerRuntime::Release(AssetHandle handle) { m_cache.Clear(handle); }
+
+void AssetManagerRuntime::Reimport(AssetHandle handle) {
+  m_cache.Clear(handle);
+  (void)AcquireRaw(handle);
+  ++m_reloadGeneration;
+}
 
 } // namespace engine::asset

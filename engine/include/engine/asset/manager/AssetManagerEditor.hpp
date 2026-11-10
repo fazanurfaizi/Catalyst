@@ -11,8 +11,6 @@ public:
 
   AssetHandle ImportAsset(const std::filesystem::path &relativePath,
                           std::string name = {});
-
-  void Reimport(AssetHandle handle);
 };
 
 } // namespace engine::asset

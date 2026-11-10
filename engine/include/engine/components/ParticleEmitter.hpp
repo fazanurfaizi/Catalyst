@@ -1,9 +1,10 @@
 #pragma once
 
 #include "RenderLayer.hpp"
-#include "engine/graphics/texture/Texture.hpp"
+#include "engine/asset/core/AssetHandle.hpp"
 #include "engine/math/Color.hpp"
 #include <glm/glm.hpp>
+#include <string>
 
 namespace engine::components {
 
@@ -24,9 +25,8 @@ struct ParticleEmitter {
   math::Color startColor{1.0f, 1.0f, 1.0f, 1.0f};
   math::Color endColor{1.0f, 0.0f, 0.0f, 0.0f};
 
-  const graphics::Texture *texture = nullptr;
-  glm::vec2 uvMin{0.0f, 0.0f};
-  glm::vec2 uvMax{1.0f, 1.0f};
+  asset::AssetHandle atlas{};
+  std::string regionName = "solidWhite";
   RenderLayer layer{RenderLayer::Overlay};
 };
 

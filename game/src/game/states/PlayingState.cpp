@@ -102,6 +102,10 @@ void PlayingState::OnEnter(engine::core::Game &game) {
     return;
   }
 
+  m_atlasHandle = game.Assets()->FindByName("main_atlas");
+
+  m_lastReloadGen = game.Assets()->GetReloadGeneration();
+
   auto &reg = m_world.Registry();
   m_camera = m_world.CreateEntity("MainCamera");
 
@@ -134,11 +138,10 @@ void PlayingState::OnRender(engine::core::Game &game) {
 
   renderer.BeginFrame(vp, bounds);
   DrawWorldGrid(renderer, bounds, *m_atlas);
-  renderer.RenderSprites(m_world);
+  renderer.RenderSprites(m_world, game.Assets());
   renderer.RenderLights(m_world);
   renderer.EndFrame();
 
-  // auto *font = game.Resources().GetFont("main_font");
   if (m_font) {
     m_textRenderer.Draw(
         *m_font, "Gold: 100", {20.0f, 30.0f}, 2.0f, {1.0f, 0.85f, 0.2f, 1.0f},
@@ -147,6 +150,11 @@ void PlayingState::OnRender(engine::core::Game &game) {
 }
 
 void PlayingState::OnUpdate(engine::core::Game &game, double dt) {
+  if (game.Assets()->GetReloadGeneration() != m_lastReloadGen) {
+    m_lastReloadGen = game.Assets()->GetReloadGeneration();
+    ReloadAssets(game);
+  }
+
   auto &reg = m_world.Registry();
   auto &camera = reg.Get<engine::components::Camera2D>(m_camera);
   auto &in = game.Input();
@@ -170,28 +178,26 @@ void PlayingState::OnUpdate(engine::core::Game &game, double dt) {
 void PlayingState::OnFixedUpdate(engine::core::Game &game, double dt) {
   auto &reg = m_world.Registry();
 
+  const auto atlasHandle = game.Assets()->FindByName("main_atlas");
+
   if (reg.IsAlive(m_hero)) {
     auto &a = reg.Get<engine::components::Animator>(m_hero);
     auto &t = reg.Get<engine::components::Transform>(m_hero);
     auto &v = reg.Get<engine::components::Velocity>(m_hero);
 
-    auto *idleClip = m_animations.Get("hero_idle");
-    auto *attackClip = m_animations.Get("hero_attack");
-    auto *moveClip = m_animations.Get("hero_move");
-
-    if (idleClip && attackClip && a.finished && a.clip == attackClip) {
-      a.Play(idleClip);
+    // Transition: attack finished -> idle.
+    if (a.finished && a.clipName == "hero_attack") {
+      engine::components::PlayAnimation(a, atlasHandle, "hero_idle");
     }
 
     if (!v.ArrivedAtTarget(t.position)) {
-      if (idleClip && a.clip != attackClip && a.clip != moveClip && moveClip) {
-        a.Play(moveClip);
+      if (a.clipName != "hero_attack" && a.clipName != "hero_move") {
+        engine::components::PlayAnimation(a, atlasHandle, "hero_move");
       }
     } else {
       t.position = v.targetPosition;
-
-      if (idleClip && a.clip != attackClip && a.clip != idleClip) {
-        a.Play(idleClip);
+      if (a.clipName != "hero_attack" && a.clipName != "hero_idle") {
+        engine::components::PlayAnimation(a, atlasHandle, "hero_idle");
       }
     }
   }
@@ -213,7 +219,7 @@ void PlayingState::OnFixedUpdate(engine::core::Game &game, double dt) {
     light.diffuse = glm::vec3{1.00f, 0.65f, 0.25f} * flicker;
   }
 
-  engine::systems::AnimationSystem(reg, dt);
+  engine::systems::AnimationSystem(reg, m_animations, static_cast<float>(dt));
   engine::systems::ParticleSystem(reg, dt);
   engine::systems::MoveTowardTargetSystem(reg, dt);
 
@@ -289,10 +295,9 @@ void PlayingState::OnMouseButton(engine::core::Game &game,
 
   if (button == engine::input::MouseButton::Left) {
     auto &animation = reg.Get<engine::components::Animator>(m_hero);
-    auto *idleClip = m_animations.Get("hero_idle");
-    auto *attackClip = m_animations.Get("hero_attack");
-    if (idleClip && attackClip && animation.clip == idleClip) {
-      animation.Play(attackClip);
+    if (animation.clipName == "hero_idle") {
+      engine::components::PlayAnimation(
+          animation, game.Assets()->FindByName("main_atlas"), "hero_attack");
     }
   }
 
@@ -336,7 +341,6 @@ void PlayingState::BuildDemoScene(engine::core::Game &game) {
                                             .scale = {1.2f, 1.7f}});
   reg.Emplace<engine::components::Sprite>(
       m_hero, engine::components::Sprite{
-                  .texture = &m_atlas->GetTexture(),
                   .layer = engine::components::RenderLayer::Entities});
   reg.Emplace<engine::components::Velocity>(m_hero,
                                             engine::components::Velocity{
@@ -371,15 +375,22 @@ void PlayingState::BuildDemoScene(engine::core::Game &game) {
   reg.Emplace<engine::components::Sprite>(
       m_coin, engine::components::Sprite{
                   .color = engine::math::kColorWhite,
-                  .texture = &m_atlas->GetTexture(),
                   .layer = engine::components::RenderLayer::Ground});
   reg.Emplace<engine::components::Animator>(m_coin);
   ApplyRegion(m_coin, "coin_0");
 
-  if (auto *idleClip = m_animations.Get("hero_idle"))
-    reg.Get<engine::components::Animator>(m_hero).Play(idleClip);
-  if (auto *coinClip = m_animations.Get("coin_spin"))
-    reg.Get<engine::components::Animator>(m_coin).Play(coinClip);
+  if (reg.IsAlive(m_hero)) {
+    auto &a = reg.Get<engine::components::Animator>(m_hero);
+    if (a.finished && a.clipName == "hero_idle") {
+      engine::components::PlayAnimation(a, m_atlasHandle, "hero_idle");
+    }
+  }
+  if (reg.IsAlive(m_coin)) {
+    auto &a = reg.Get<engine::components::Animator>(m_coin);
+    if (a.finished && a.clipName == "coin_spin") {
+      engine::components::PlayAnimation(a, m_atlasHandle, "coin_spin");
+    }
+  }
 
   m_torch = m_world.CreateEntity("Torch");
   reg.Emplace<engine::components::Transform>(m_torch,
@@ -390,7 +401,6 @@ void PlayingState::BuildDemoScene(engine::core::Game &game) {
   reg.Emplace<engine::components::Sprite>(
       m_torch, engine::components::Sprite{
                    .color = engine::math::kColorWhite,
-                   .texture = &m_atlas->GetTexture(),
                    .layer = engine::components::RenderLayer::Entities,
                });
   ApplyRegion(m_torch, "tower"); // reuse an orange-red solid as the torch body
@@ -405,21 +415,16 @@ void PlayingState::BuildDemoScene(engine::core::Game &game) {
 }
 
 void PlayingState::ApplyRegion(engine::ecs::Entity e, std::string_view region) {
-  const auto id = m_atlas->GetRegionId(region);
-  auto *r = m_atlas->GetRegionById(id);
-  if (!r) {
-    engine::Logger::Warn("[Game] unknown region: %s",
+  if (!m_atlas)
+    return;
+  if (!m_atlas->GetRegion(std::string(region))) {
+    engine::Logger::Warn("[PlayingState] unknown region: %s",
                          std::string(region).c_str());
     return;
   }
-
-  auto &reg = m_world.Registry();
-  auto &s = reg.Get<engine::components::Sprite>(e);
-
-  s.texture = &m_atlas->GetTexture();
-  s.uvMin = r->uvMin;
-  s.uvMax = r->uvMax;
-  s.regionId = id;
+  auto &s = m_world.Registry().Get<engine::components::Sprite>(e);
+  s.atlas = m_atlasHandle;
+  s.regionName = std::string(region);
 }
 
 void PlayingState::DrawSceneDebug(engine::core::Game &game) {
@@ -487,15 +492,45 @@ void PlayingState::DrawSceneDebug(engine::core::Game &game) {
                .maxScale = 0.3f,
                .startColor = {1.0f, 0.8f, 0.2f, 1.0f},
                .endColor = {1.0f, 0.0f, 0.0f, 0.0f},
-               .texture = &m_atlas->GetTexture()});
-
-    if (auto *r = m_atlas->GetRegion("solidWhite")) {
-      reg.Get<engine::components::ParticleEmitter>(e).uvMin = r->uvMin;
-      reg.Get<engine::components::ParticleEmitter>(e).uvMax = r->uvMax;
-    }
+               .atlas = m_atlasHandle,
+               .regionName = "solidWhite",
+               .layer = engine::components::RenderLayer::Overlay,
+           });
   }
 
   ImGui::Separator();
 
   ImGui::End();
+}
+
+void PlayingState::ReloadAssets(engine::core::Game &game) {
+  auto newFont =
+      game.Assets()->AcquireByName<engine::graphics::FontAsset>("main_font");
+  auto newAtlas =
+      game.Assets()->AcquireByName<engine::graphics::TextureAtlasAsset>(
+          "main_atlas");
+
+  if (!newAtlas) {
+    engine::Logger::Warn(
+        "[PlayingState] reload: 'main_atlas' unavailable; keeping previous");
+    return;
+  }
+
+  m_font = std::move(newFont);
+  m_atlas = std::move(newAtlas);
+
+  m_animations = engine::animation::AnimationLibrary{};
+  m_animations.AddStrip("hero_idle", *m_atlas, "hero_idle", 10, 0.15f, true);
+  m_animations.AddStrip("hero_attack", *m_atlas, "hero_attack", 10, 0.08f,
+                        false);
+  m_animations.AddStrip("hero_move", *m_atlas, "hero_move", 10, 0.10f, true);
+  m_animations.AddStrip("coin_spin", *m_atlas, "coin", 6, 0.08f, true);
+
+  ApplyRegion(m_hero, "hero_idle_0");
+  ApplyRegion(m_tower, "tower");
+  ApplyRegion(m_enemy, "enemy");
+  ApplyRegion(m_coin, "coin_0");
+  ApplyRegion(m_torch, "tower");
+
+  engine::Logger::Info("[PlayingState] assets reloaded");
 }

@@ -8,6 +8,11 @@
 #include "engine/core/GameConfig.hpp"
 #include "engine/core/GameStateManager.hpp"
 #include "engine/platform/Window.hpp"
+
+#ifdef CATALYST_EDITOR
+#include "engine/asset/watcher/AssetWatcher.hpp"
+#endif // CATALYST_EDITOR
+
 #include <filesystem>
 #include <memory>
 
@@ -92,6 +97,10 @@ public:
 
   const GameConfig &GetGameConfig() const { return m_gameConfig; }
 
+#ifdef CATALYST_EDITOR
+  asset::AssetWatcher *GetWatcher() { return m_watcher.get(); }
+#endif // CATALYST_EDITOR
+
 protected:
   virtual void OnStart() {}
   virtual void OnShutdown() {}
@@ -111,6 +120,10 @@ private:
   GameConfig m_gameConfig{};
 
   std::unique_ptr<graphics::Renderer> m_renderer;
+
+#ifdef CATALYST_EDITOR
+  std::unique_ptr<asset::AssetWatcher> m_watcher;
+#endif // CATALYST_EDITOR
 
   Clock m_clock;
 

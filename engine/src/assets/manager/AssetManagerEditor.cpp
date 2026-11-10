@@ -28,9 +28,4 @@ AssetManagerEditor::ImportAsset(const std::filesystem::path &relativePath,
   return handle;
 }
 
-void AssetManagerEditor::Reimport(AssetHandle handle) {
-  m_cache.Clear(handle);
-  (void)AcquireRaw(handle);
-}
-
 } // namespace engine::asset

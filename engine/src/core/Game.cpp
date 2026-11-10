@@ -83,6 +83,12 @@ Game::Game(const platform::WindowConfig &config, const DebugConfig &debug,
 }
 
 Game::~Game() {
+#ifdef CATALYST_EDITOR
+  if (m_watcher) {
+    m_watcher->Stop();
+  }
+#endif // CATALYST_EDITOR
+
   m_stateManager.Clear(*this);
 
   audio::AudioEngine::Get().Shutdown();
@@ -146,6 +152,26 @@ bool Game::Run() {
     m_assets->AddRecord(std::move(record));
   }
 
+#ifdef CATALYST_EDITOR
+  m_watcher =
+      std::make_unique<asset::AssetWatcher>(std::chrono::milliseconds(500));
+
+  for (const auto &record : m_gameConfig.assets) {
+    if (record.state != asset::AssetRecordState::Valid)
+      continue;
+
+    const std::filesystem::path abs = m_gameConfig.root / record.path;
+    const std::filesystem::path parent = abs.parent_path();
+
+    m_watcher->WatchDirectory(record.handle, parent);
+
+    Logger::Info("[Game] watching '%s' for handle '%s'", parent.c_str(),
+                 record.name.empty() ? record.path.c_str()
+                                     : record.name.c_str());
+  }
+  m_watcher->Start();
+#endif
+
   OnStart();
 
   m_window->PollEvents();
@@ -161,6 +187,15 @@ bool Game::Run() {
   m_clock.Reset();
 
   while (m_running && !CloseRequested()) {
+#ifdef CATALYST_EDITOR
+    if (m_watcher) {
+      for (const auto &ev : m_watcher->Poll()) {
+        Logger::Info("[hot-reload] %s", ev.path.c_str());
+        m_assets->Reimport(ev.handle);
+      }
+    }
+#endif // CATALYST_EDITOR
+
     m_window->Input().BeginFrame();
     m_window->PollEvents();
 

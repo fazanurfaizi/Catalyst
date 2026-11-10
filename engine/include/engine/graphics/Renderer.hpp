@@ -1,5 +1,6 @@
 #pragma once
 
+#include "engine/asset/manager/IAssetManager.hpp"
 #include "engine/graphics/gl/Shader.hpp"
 #include "engine/graphics/lighting/LightBuffer.hpp"
 #include "engine/graphics/lighting/LightRenderer.hpp"
@@ -41,7 +42,8 @@ public:
                   const math::Rect &visibleBounds);
   void EndFrame();
 
-  void RenderSprites(scene::World &world);
+  void RenderSprites(scene::World &world, asset::IAssetManager *assets);
+  // void RenderParticles(scene::World &world, asset::IAssetManager *assets);
   void RenderLights(scene::World &world);
 
   void Draw(const glm::vec2 &position, const glm::vec2 &scale, float rotation,

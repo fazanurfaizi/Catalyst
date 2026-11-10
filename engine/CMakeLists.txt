@@ -28,6 +28,9 @@ add_library(engine STATIC
   src/assets/manager/AssetManagerRuntime.cpp
   src/assets/manager/AssetManagerEditor.cpp
 
+  src/assets/watcher/AssetWatcher.cpp
+  src/assets/watcher/FileEvent.cpp
+
   src/assets/AssetManager.cpp
 
   src/audio/AudioEngine.cpp
@@ -79,6 +82,11 @@ add_library(engine STATIC
 target_include_directories(engine PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>
+)
+
+target_compile_definitions(engine PUBLIC
+  $<$<CONFIG:Debug>:CATALYST_EDITOR>
+  $<$<CONFIG:RelWithDebInfo>:CATALYST_EDITOR>
 )
 
 # C++20 propagates to consumers automatically

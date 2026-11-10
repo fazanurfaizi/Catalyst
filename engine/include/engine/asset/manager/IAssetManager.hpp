@@ -74,6 +74,14 @@ public:
   virtual bool IsValid(AssetHandle handle) const = 0;
 
   virtual void AddRecord(AssetRecord record) = 0;
+
+  /** Clears the cache entry and reloads. Unlike Retry, works from any
+   *  state (Loaded included).
+   *  */
+  virtual void Reimport(AssetHandle handle) = 0;
+
+  /** Increments on every successful or attempted Reimport. */
+  virtual std::uint64_t GetReloadGeneration() const = 0;
 };
 
 } // namespace engine::asset

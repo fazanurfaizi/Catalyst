@@ -42,20 +42,16 @@ bool AnimationLibrary::AddStrip(const std::string &clipName,
 
   for (int i = 0; i < frameCount; ++i) {
     const std::string regionName = regionPrefix + "_" + std::to_string(i);
-    const auto id = atlas.GetRegionId(regionName);
-    if (!atlas.IsValid(id)) {
+
+    if (!atlas.GetRegion(regionName)) {
       engine::Logger::Error(
-          "[AnimationLibrary] missing atlas region '%s' for clip '%s'",
+          "[AnimationLibrary] missing region '%s' for clip '%s'",
           regionName.c_str(), clipName.c_str());
       return false;
     }
-    const graphics::AtlasRegion *r = atlas.GetRegionById(id);
-    assert(r != nullptr);
 
     components::AnimationFrame frame;
-    frame.regionId = id;
-    frame.uvMin = r->uvMin;
-    frame.uvMax = r->uvMax;
+    frame.regionName = regionName;
     frame.durationSec = frameDurationSec;
     clip.frames.push_back(frame);
   }

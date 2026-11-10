@@ -40,12 +40,22 @@ public:
 
   void AddRecord(AssetRecord record) override;
 
+  void Reimport(AssetHandle handle) override;
+
+  std::uint64_t GetReloadGeneration() const override {
+    return m_reloadGeneration;
+  }
+
 protected:
   ImporterRegistry &m_registry;
   std::filesystem::path m_projectRoot;
+
   AssetCache m_cache;
+
   std::map<AssetHandle, AssetRecord> m_records;
   std::unordered_map<std::string, AssetHandle> m_nameToHandle;
+
+  std::uint64_t m_reloadGeneration = 0;
 };
 
 } // namespace engine::asset
