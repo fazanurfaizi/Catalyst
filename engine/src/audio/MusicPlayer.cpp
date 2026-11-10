@@ -8,6 +8,29 @@ namespace engine::audio {
 
 MusicPlayer::MusicPlayer() : m_sound(new ma_sound()) {}
 
+MusicPlayer::MusicPlayer(MusicPlayer &&other) noexcept
+    : m_sound(other.m_sound), m_loaded(other.m_loaded) {
+  other.m_sound = nullptr;
+  other.m_loaded = false;
+}
+
+MusicPlayer &MusicPlayer::operator=(MusicPlayer &&other) noexcept {
+  if (this != &other) {
+    if (m_loaded) {
+      ma_sound_stop(m_sound);
+      ma_sound_uninit(m_sound);
+    }
+    delete m_sound;
+
+    m_sound = other.m_sound;
+    m_loaded = other.m_loaded;
+
+    other.m_sound = nullptr;
+    other.m_loaded = false;
+  }
+  return *this;
+}
+
 MusicPlayer::~MusicPlayer() {
   if (m_loaded) {
     ma_sound_stop(m_sound);
@@ -35,6 +58,9 @@ bool MusicPlayer::Load(const std::string &path) {
   }
   m_loaded = true;
 
+  ma_sound_set_looping(m_sound, m_loop ? MA_TRUE : MA_FALSE);
+  ma_sound_set_volume(m_sound, m_volume);
+
   return true;
 }
 
@@ -56,6 +82,10 @@ void MusicPlayer::SetVolume(float v) {
 void MusicPlayer::SetLooping(bool loop) {
   if (m_loaded)
     ma_sound_set_looping(m_sound, loop ? MA_TRUE : MA_FALSE);
+}
+
+bool MusicPlayer::IsPlaying() const {
+  return m_loaded && ma_sound_is_playing(m_sound);
 }
 
 } // namespace engine::audio

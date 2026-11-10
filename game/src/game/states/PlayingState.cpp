@@ -1,6 +1,7 @@
 #include "game/states/PlayingState.hpp"
 
 #include "engine/asset/manager/AssetManagerEditor.hpp"
+#include "engine/audio/MusicPlayer.hpp"
 #include "engine/components/Light.hpp"
 #include "engine/core/Game.hpp"
 #include "engine/graphics/Renderer.hpp"
@@ -78,28 +79,28 @@ void PlayingState::OnEnter(engine::core::Game &game) {
 
   m_font =
       game.Assets()->AcquireByName<engine::graphics::FontAsset>("main_font");
-  if (!m_font) {
-    engine::Logger::Error(
-        "PlayingState: failed to acquire main font; text disabled");
-  }
 
   m_bgm = game.Assets()->AcquireByName<engine::audio::SoundAsset>("main_bgm");
-  if (!m_bgm) {
-    engine::Logger::Error(
-        "PlayingState: failed to acquire main bgm; audio disabled");
-  }
-
-  if (m_bgm) {
-    engine::audio::AudioEngine::Get().PlayOneShot(*m_bgm, 0.5f);
-  }
 
   m_atlas = game.Assets()->AcquireByName<engine::graphics::TextureAtlasAsset>(
       "main_atlas");
 
-  if (!m_atlas) {
-    engine::Logger::Error(
-        "PlayingState: 'main_atlas' missing; nothing will render");
-    return;
+  if (m_bgm) {
+    m_music = std::make_unique<engine::audio::MusicPlayer>();
+    m_music->SetLooping(true);
+    m_music->SetVolume(0.4f);
+
+    if (m_music->Load(m_bgm->sourcePath.string())) {
+      m_music->Play();
+      engine::Logger::Info("[PlayingState] BGM plaing: '%s'",
+                           m_bgm->sourcePath.string().c_str());
+    } else {
+      engine::Logger::Warn("[PlayingState] failed to load BGM '%s'",
+                           m_bgm->sourcePath.string().c_str());
+      m_music.reset();
+    }
+  } else {
+    engine::Logger::Warn("[PlayingState] 'main_bgm' missing; audio disabled");
   }
 
   m_atlasHandle = game.Assets()->FindByName("main_atlas");
@@ -509,6 +510,8 @@ void PlayingState::ReloadAssets(engine::core::Game &game) {
   auto newAtlas =
       game.Assets()->AcquireByName<engine::graphics::TextureAtlasAsset>(
           "main_atlas");
+  auto newBgm =
+      game.Assets()->AcquireByName<engine::audio::SoundAsset>("main_bgm");
 
   if (!newAtlas) {
     engine::Logger::Warn(
@@ -518,6 +521,18 @@ void PlayingState::ReloadAssets(engine::core::Game &game) {
 
   m_font = std::move(newFont);
   m_atlas = std::move(newAtlas);
+
+  if (m_music && newBgm) {
+    m_bgm = std::move(newBgm);
+    if (m_music->Load(m_bgm->sourcePath.string())) {
+      m_music->Play();
+      engine::Logger::Info("[PlayingState] BGM reloaded");
+    } else {
+      engine::Logger::Warn(
+          "[PlayingState] BGM reload failed; continuing without audio");
+      m_music.reset();
+    }
+  }
 
   m_animations = engine::animation::AnimationLibrary{};
   m_animations.AddStrip("hero_idle", *m_atlas, "hero_idle", 10, 0.15f, true);

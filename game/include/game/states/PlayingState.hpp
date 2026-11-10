@@ -1,6 +1,8 @@
 #pragma once
 
 #include "engine/animation/AnimationLibrary.hpp"
+#include "engine/asset/core/AssetHandle.hpp"
+#include "engine/audio/MusicPlayer.hpp"
 #include "engine/core/Game.hpp"
 #include "engine/core/GameState.hpp"
 #include "engine/ecs/Entity.hpp"
@@ -8,7 +10,6 @@
 #include "engine/graphics/assets/TextureAtlasAsset.hpp"
 #include "engine/input/InputCodes.hpp"
 #include "engine/scene/World.hpp"
-#include "engine/asset/core/AssetHandle.hpp"
 #include <string_view>
 
 class PlayingState final : public engine::core::GameState {
@@ -40,6 +41,7 @@ private:
   std::shared_ptr<engine::graphics::FontAsset> m_font;
   std::shared_ptr<engine::graphics::TextureAtlasAsset> m_atlas;
   std::shared_ptr<engine::audio::SoundAsset> m_bgm;
+  std::unique_ptr<engine::audio::MusicPlayer> m_music;
 
   engine::asset::AssetHandle m_atlasHandle;
 

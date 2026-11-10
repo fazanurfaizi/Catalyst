@@ -12,8 +12,11 @@ public:
   MusicPlayer();
   ~MusicPlayer();
 
-  MusicPlayer(const MusicPlayer &) = default;
-  MusicPlayer &operator=(const MusicPlayer &) = default;
+  MusicPlayer(const MusicPlayer &) = delete;
+  MusicPlayer &operator=(const MusicPlayer &) = delete;
+
+  MusicPlayer(MusicPlayer &&) noexcept;
+  MusicPlayer &operator=(MusicPlayer &&) noexcept;
 
   bool Load(const std::string &path);
   void Play();
@@ -21,9 +24,13 @@ public:
   void SetVolume(float volume);
   void SetLooping(bool loop);
 
+  bool IsPlaying() const;
+
 private:
   ma_sound *m_sound = nullptr;
   bool m_loaded = false;
+  bool m_loop = false;
+  float m_volume = 1.0f;
 };
 
 } // namespace engine::audio
