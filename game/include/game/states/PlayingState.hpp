@@ -43,6 +43,7 @@ private:
   std::shared_ptr<engine::audio::SoundAsset> m_bgm;
   std::unique_ptr<engine::audio::MusicPlayer> m_music;
 
+  engine::asset::AssetHandle m_fontHandle{};
   engine::asset::AssetHandle m_atlasHandle;
 
   engine::ecs::Entity m_camera{};
@@ -52,10 +53,15 @@ private:
   engine::ecs::Entity m_enemy{};
   engine::ecs::Entity m_torch{};
 
-  std::uint64_t m_lastReloadGen = 0;
-  void ReloadAssets(engine::core::Game &game);
+  engine::ecs::Entity m_goldText{};
+  engine::ecs::Entity m_waveText{};
+  engine::ecs::Entity m_livesText{};
 
+  std::uint64_t m_lastReloadGen = 0;
+
+  void BuildUI(engine::core::Game &game);
   void BuildDemoScene(engine::core::Game &game);
   void ApplyRegion(engine::ecs::Entity e, std::string_view region);
   void DrawSceneDebug(engine::core::Game &game);
+  void ReloadAssets(engine::core::Game &game);
 };

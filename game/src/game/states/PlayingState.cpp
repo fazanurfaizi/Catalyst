@@ -3,12 +3,14 @@
 #include "engine/asset/manager/AssetManagerEditor.hpp"
 #include "engine/audio/MusicPlayer.hpp"
 #include "engine/components/Light.hpp"
+#include "engine/components/TextComponent.hpp"
 #include "engine/core/Game.hpp"
 #include "engine/graphics/Renderer.hpp"
 #include "engine/graphics/assets/FontAsset.hpp"
 #include "engine/graphics/assets/TextureAtlasAsset.hpp"
 #include "engine/math/Color.hpp"
 #include "engine/scene/SceneSerializer.hpp"
+#include "engine/systems/TextRenderSystem.hpp"
 #include "engine/utils/Logger.hpp"
 
 #include "engine/components/Animator.hpp"
@@ -77,6 +79,9 @@ void PlayingState::OnEnter(engine::core::Game &game) {
 
   using engine::asset::AssetManagerEditor;
 
+  m_fontHandle = game.Assets()->FindByName("main_font");
+  m_atlasHandle = game.Assets()->FindByName("main_atlas");
+
   m_font =
       game.Assets()->AcquireByName<engine::graphics::FontAsset>("main_font");
 
@@ -92,7 +97,7 @@ void PlayingState::OnEnter(engine::core::Game &game) {
 
     if (m_music->Load(m_bgm->sourcePath.string())) {
       m_music->Play();
-      engine::Logger::Info("[PlayingState] BGM plaing: '%s'",
+      engine::Logger::Info("[PlayingState] BGM playing: '%s'",
                            m_bgm->sourcePath.string().c_str());
     } else {
       engine::Logger::Warn("[PlayingState] failed to load BGM '%s'",
@@ -102,8 +107,6 @@ void PlayingState::OnEnter(engine::core::Game &game) {
   } else {
     engine::Logger::Warn("[PlayingState] 'main_bgm' missing; audio disabled");
   }
-
-  m_atlasHandle = game.Assets()->FindByName("main_atlas");
 
   m_lastReloadGen = game.Assets()->GetReloadGeneration();
 
@@ -126,6 +129,7 @@ void PlayingState::OnEnter(engine::core::Game &game) {
   m_animations.AddStrip("coin_spin", *m_atlas, "coin", 6, 0.08f, true);
 
   BuildDemoScene(game);
+  BuildUI(game);
 }
 
 void PlayingState::OnRender(engine::core::Game &game) {
@@ -143,11 +147,10 @@ void PlayingState::OnRender(engine::core::Game &game) {
   renderer.RenderLights(m_world);
   renderer.EndFrame();
 
-  if (m_font) {
-    m_textRenderer.Draw(
-        *m_font, "Gold: 100", {20.0f, 30.0f}, 2.0f, {1.0f, 0.85f, 0.2f, 1.0f},
-        game.Display().UiProjection() / game.Display().AspectRatio());
-  }
+  const glm::mat4 uiProjection =
+      game.Display().UiProjection() / game.Display().AspectRatio();
+  engine::systems::TextRenderSystem(reg, *game.Assets(), m_textRenderer,
+                                    uiProjection);
 }
 
 void PlayingState::OnUpdate(engine::core::Game &game, double dt) {
@@ -548,4 +551,42 @@ void PlayingState::ReloadAssets(engine::core::Game &game) {
   ApplyRegion(m_torch, "tower");
 
   engine::Logger::Info("[PlayingState] assets reloaded");
+}
+
+void PlayingState::BuildUI(engine::core::Game &game) {
+  auto &reg = m_world.Registry();
+
+  m_goldText = m_world.CreateEntity("GoldText");
+  reg.Emplace<engine::components::Transform>(
+      m_goldText, engine::components::Transform{.position = {20.0f, 30.0f}});
+  {
+    auto &t = reg.Emplace<engine::components::TextComponent>(m_goldText);
+    t.text = "Gold: 100";
+    t.font = m_fontHandle;
+    t.color = {1.0f, 0.85f, 0.2f, 1.0f};
+    t.scale = 2.0f;
+    t.alignment = engine::graphics::TextAlignment::Left;
+  }
+
+  m_waveText = m_world.CreateEntity("WaveText");
+  reg.Emplace<engine::components::Transform>(
+      m_waveText, engine::components::Transform{.position = {400.0f, 30.0f}});
+  {
+    auto &t = reg.Emplace<engine::components::TextComponent>(m_waveText);
+    t.text = "Wave 1 / 10";
+    t.font = m_fontHandle;
+    t.color = {1.0f, 1.0f, 1.0f, 1.0f};
+    t.scale = 1.5f;
+  }
+
+  m_livesText = m_world.CreateEntity("LivesText");
+  reg.Emplace<engine::components::Transform>(
+      m_livesText, engine::components::Transform{.position = {400.0f, 70.0f}});
+  {
+    auto &t = reg.Emplace<engine::components::TextComponent>(m_livesText);
+    t.text = "Lives: 20";
+    t.font = m_fontHandle;
+    t.color = {1.0f, 0.4f, 0.4f, 1.0f};
+    t.scale = 1.5f;
+  }
 }
