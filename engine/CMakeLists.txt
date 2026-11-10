@@ -8,7 +8,6 @@ add_library(engine STATIC
   src/assets/core/AssetRecord.cpp
   src/assets/core/AssetType.cpp
   src/assets/core/ImportError.cpp
-  src/assets/core/ImportRequest.cpp
 
   src/assets/finalizer/AnimationFinalizer.cpp
   src/assets/finalizer/AssetFinalizer.cpp
@@ -35,7 +34,7 @@ add_library(engine STATIC
   src/assets/watcher/AssetWatcher.cpp
   src/assets/watcher/FileEvent.cpp
 
-  src/assets/AssetManager.cpp
+  src/assets/AssetModule.cpp
 
   src/audio/AudioEngine.cpp
   src/audio/MusicPlayer.cpp

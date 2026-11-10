@@ -1,6 +1,5 @@
 #include "engine/core/Game.hpp"
 
-#include "engine/asset/AssetManager.hpp"
 #include "engine/asset/manager/AssetManagerRuntime.hpp"
 #include "engine/core/Clock.hpp"
 #include "engine/core/GameConfigSerializer.hpp"
@@ -130,7 +129,7 @@ bool Game::Run() {
     Logger::Error("Audio failed to initialiez; continuing without audio");
   }
 
-  asset::AssetManager::RegisterDefaultImporters(m_importerRegistry);
+  asset::AssetModule::RegisterDefaultImporters(m_importerRegistry);
 
   auto configOpt = GameConfigSerializer::Load(m_gameConfigPath);
   if (!configOpt) {

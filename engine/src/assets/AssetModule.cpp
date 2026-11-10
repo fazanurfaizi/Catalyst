@@ -1,4 +1,4 @@
-#include "engine/asset/AssetManager.hpp"
+#include "engine/asset/AssetModule.hpp"
 #include "engine/asset/importer/ImporterRegistry.hpp"
 #include "engine/asset/importer/animation/AnimationImporter.hpp"
 #include "engine/asset/importer/font/FontImporter.hpp"
@@ -8,7 +8,7 @@
 
 namespace engine::asset {
 
-void AssetManager::RegisterDefaultImporters(ImporterRegistry &registry) {
+void AssetModule::RegisterDefaultImporters(ImporterRegistry &registry) {
   registry.Register(std::make_unique<Texture2DImporter>());
   registry.Register(std::make_unique<TextureAtlasImporter>());
   registry.Register(std::make_unique<FontImporter>());

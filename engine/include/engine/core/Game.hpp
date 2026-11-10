@@ -1,6 +1,6 @@
 #pragma once
 
-#include "engine/asset/AssetManager.hpp"
+#include "engine/asset/AssetModule.hpp"
 #include "engine/asset/importer/ImporterRegistry.hpp"
 #include "engine/asset/manager/IAssetManager.hpp"
 #include "engine/audio/AudioEngine.hpp"

@@ -42,14 +42,17 @@ void MusicPlayer::Play() {
   if (m_loaded)
     ma_sound_start(m_sound);
 }
+
 void MusicPlayer::Stop() {
   if (m_loaded)
     ma_sound_stop(m_sound);
 }
+
 void MusicPlayer::SetVolume(float v) {
   if (m_loaded)
     ma_sound_set_volume(m_sound, v);
 }
+
 void MusicPlayer::SetLooping(bool loop) {
   if (m_loaded)
     ma_sound_set_looping(m_sound, loop ? MA_TRUE : MA_FALSE);

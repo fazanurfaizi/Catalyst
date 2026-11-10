@@ -4,7 +4,7 @@ namespace engine::asset {
 
 class ImporterRegistry;
 
-class AssetManager {
+class AssetModule {
 public:
   static void RegisterDefaultImporters(ImporterRegistry &registry);
 };
