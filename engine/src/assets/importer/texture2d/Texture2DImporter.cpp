@@ -1,5 +1,6 @@
 #include "engine/asset/importer/texture2d/Texture2DImporter.hpp"
 #include "engine/asset/importer/texture2d/Texture2DImportResult.hpp"
+#include "engine/asset/importer/texture2d/Texture2DImportSettings.hpp"
 
 #include <algorithm>
 #include <cstddef>
@@ -12,6 +13,15 @@ namespace engine::asset {
 namespace {
 ImportResult<ImportedAssetDataPtr>
 ImportTexture2D(const ImportRequest &request) {
+  const Texture2DImportSettings *settings = nullptr;
+  if (request.settings &&
+      request.settings->GetImporterId() == "catalyst.texture2d") {
+    settings = static_cast<const Texture2DImportSettings *>(request.settings);
+  }
+  static const Texture2DImportSettings kDefaultSettings{};
+  if (!settings)
+    settings = &kDefaultSettings;
+
   if (!std::filesystem::exists(request.absolutePath)) {
     return ImportResult<ImportedAssetDataPtr>::Err(
         ImportError::Make(ImportError::Code::FileNotFound,
@@ -47,6 +57,7 @@ ImportTexture2D(const ImportRequest &request) {
   result->height = static_cast<std::uint32_t>(h);
   result->format = TextureFormat::RGBA8;
   result->pixelBytes.assign(raw, raw + total);
+  result->magFilterLinear = settings->magFilterLinear;
   stbi_image_free(raw);
 
   // Flip rows to engine convention (bottom-up data)

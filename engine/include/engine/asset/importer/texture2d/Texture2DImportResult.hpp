@@ -20,5 +20,6 @@ public:
   std::uint32_t height = 0;
   TextureFormat format = TextureFormat::RGBA8;
   std::vector<std::uint8_t> pixelBytes;
+  bool magFilterLinear = false;
 };
 } // namespace engine::asset

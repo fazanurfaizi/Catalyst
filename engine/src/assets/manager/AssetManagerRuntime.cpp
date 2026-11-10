@@ -1,5 +1,6 @@
 #include "engine/asset/manager/AssetManagerRuntime.hpp"
 #include "engine/asset/finalizer/AssetFinalizer.hpp"
+#include "engine/asset/persistence/SidecarSerializer.hpp"
 #include "engine/utils/Logger.hpp"
 #include <utility>
 
@@ -83,6 +84,7 @@ std::shared_ptr<Asset> AssetManagerRuntime::AcquireRaw(AssetHandle handle) {
   }
 
   // Find importer by extension
+  const std::filesystem::path absPath = m_projectRoot / record->path;
   IAssetImporter *importer =
       m_registry.FindForExtension(record->path.extension().string());
   if (!importer) {
@@ -92,9 +94,12 @@ std::shared_ptr<Asset> AssetManagerRuntime::AcquireRaw(AssetHandle handle) {
     return nullptr;
   }
 
+  std::uint64_t settingHash = 0;
+  auto settings = LoadSidecarSettings(absPath, importer, &settingHash);
+
   // Import CPU
   m_cache.MarkLoading(handle);
-  ImportRequest request{m_projectRoot / record->path};
+  ImportRequest request{absPath, settings.get()};
   auto imported = importer->Import(request);
   if (imported.IsError()) {
     m_cache.MarkFailed(handle, imported.Error());

@@ -38,7 +38,8 @@ void Unpack(std::uint32_t c, std::uint8_t out[4]) {
 
 } // namespace
 
-int TextureAtlasBuilder::AddFromDirectory(const std::string &directory) {
+int TextureAtlasBuilder::AddFromDirectory(const std::string &directory,
+                                          int maxDimension) {
   namespace fs = std::filesystem;
 
   std::error_code ec;
@@ -86,7 +87,7 @@ int TextureAtlasBuilder::AddFromDirectory(const std::string &directory) {
       name += (part.has_extension() ? part.stem().string() : part.string());
     }
 
-    if (AddFromFile(name, path.string())) {
+    if (AddFromFile(name, path.string()), maxDimension) {
       ++added;
     }
   }

@@ -9,9 +9,9 @@
 #include <cstdio>
 #include <fstream>
 
-using json = nlohmann::json;
-
 namespace engine::core {
+
+using json = nlohmann::json;
 
 namespace {
 

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "engine/asset/importer/IAssetImporter.hpp"
+#include "engine/asset/importer/font/FontImportSettings.hpp"
 
 namespace engine::asset {
 
@@ -15,7 +16,7 @@ public:
   }
 
   std::unique_ptr<ImportSettings> GetDefaultSettings() const override {
-    return nullptr;
+    return std::make_unique<FontImportSettings>();
   }
 
   ImportResult<ImportedAssetDataPtr>

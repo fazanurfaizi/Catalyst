@@ -21,7 +21,7 @@ public:
     std::vector<std::pair<std::string, graphics::AtlasRegion>> regions;
   };
 
-  int AddFromDirectory(const std::string &directory);
+  int AddFromDirectory(const std::string &directory, int maxDimension = 0);
   bool AddFromFile(const std::string &name, const std::string &path,
                    int maxDimension = 512);
   bool AddFromPixels(const std::string &name, int w, int h,

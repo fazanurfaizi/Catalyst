@@ -24,6 +24,10 @@ add_library(engine STATIC
   src/assets/importer/texture-atlas/TextureAtlasImporter.cpp
   src/assets/importer/texture-atlas/TextureAtlasBuilder.cpp
   src/assets/importer/ImporterRegistry.cpp
+  src/assets/importer/font/FontImportSettings.cpp
+  src/assets/importer/texture2d/Texture2DImportSettings.cpp
+  src/assets/importer/texture-atlas/TextureAtlasImportSettings.cpp
+  src/assets/persistence/SidecarSerializer.cpp
 
   src/assets/manager/AssetManagerRuntime.cpp
   src/assets/manager/AssetManagerEditor.cpp
@@ -103,13 +107,13 @@ target_link_libraries(engine PUBLIC
   glm
   glfw
   glad
+  nlohmann_json::nlohmann_json
 )
 
 # Internal-only dependencies.
 target_link_libraries(engine PRIVATE
   imgui
   stb_image
-  nlohmann_json::nlohmann_json
   miniaudio
 )
 

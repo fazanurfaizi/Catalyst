@@ -31,6 +31,7 @@ Texture2DFinalizer::Finalize(AssetHandle handle,
   spec.width = static_cast<int>(data.width);
   spec.height = static_cast<int>(data.height);
   spec.format = ToImageFormat(data.format);
+  spec.magFilterLinear = data.magFilterLinear;
 
   Buffer buffer;
   buffer.data = const_cast<std::uint8_t *>(data.pixelBytes.data());

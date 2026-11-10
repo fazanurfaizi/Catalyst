@@ -2,6 +2,7 @@
 #include "engine/asset/core/ImportError.hpp"
 #include "engine/asset/importer/texture-atlas/TextureAtlasBuilder.hpp"
 #include "engine/asset/importer/texture-atlas/TextureAtlasImportResult.hpp"
+#include "engine/asset/importer/texture-atlas/TextureAtlasImportSettings.hpp"
 
 #include <charconv>
 #include <nlohmann/json.hpp>
@@ -10,9 +11,9 @@
 #include <filesystem>
 #include <fstream>
 
-using nlohmann::json;
-
 namespace engine::asset {
+
+using nlohmann::json;
 
 namespace {
 const std::uint32_t ParseHex(std::string_view hexStr) {
@@ -36,6 +37,19 @@ const std::uint32_t ParseHex(std::string_view hexStr) {
 
 ImportResult<ImportedAssetDataPtr>
 ImportTextureAtlas(const ImportRequest &request) {
+  const TextureAtlasImportSettings *settings = nullptr;
+  if (request.settings &&
+      request.settings->GetImporterId() == "catalyst.texture_atlas") {
+    settings =
+        static_cast<const TextureAtlasImportSettings *>(request.settings);
+  }
+  static const TextureAtlasImportSettings kDefaultSettings{};
+  if (!settings)
+    settings = &kDefaultSettings;
+
+  const int maxAtlasDimension = settings->maxAtlasDimension;
+  const int maxSpriteDimension = settings->maxSpriteDimension;
+
   std::ifstream in(request.absolutePath);
   if (!in) {
     return ImportResult<ImportedAssetDataPtr>::Err(
@@ -69,7 +83,7 @@ ImportTextureAtlas(const ImportRequest &request) {
 
     if (type == "directory") {
       const auto dir = manifestDir / entry.value("path", "");
-      builder.AddFromDirectory(dir.string());
+      builder.AddFromDirectory(dir.string(), maxSpriteDimension);
     } else if (type == "solid") {
       const std::string name = entry.value("name", "");
       if (entry.value("ifMissing", false) && builder.HasSource(name))
@@ -87,10 +101,8 @@ ImportTextureAtlas(const ImportRequest &request) {
     }
   }
 
-  constexpr int kDefaultAtlasMaxSize = 4096;
-
   TextureAtlasBuilder::Packed packed;
-  if (!builder.Pack(packed, kDefaultAtlasMaxSize)) {
+  if (!builder.Pack(packed, maxAtlasDimension)) {
     return ImportResult<ImportedAssetDataPtr>::Err(
         ImportError::Make(ImportError::Code::TooLarge, "Atlas packing failed")
             .WithPath(request.absolutePath));

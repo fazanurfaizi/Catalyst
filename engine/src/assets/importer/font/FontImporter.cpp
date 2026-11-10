@@ -10,13 +10,22 @@ namespace engine::asset {
 
 namespace {
 
-constexpr std::uint32_t kFirstCodepoint = 32; // ' ' (space)
-constexpr std::uint32_t kCharCount = 95;      // printable ASCII
-constexpr std::uint32_t kAtlasWidth = 1024;
-constexpr std::uint32_t kAtlasHeight = 1024;
-constexpr float kFontPixelSize = 18.0f;
-
 ImportResult<ImportedAssetDataPtr> ImportFont(const ImportRequest &request) {
+  const FontImportSettings *settings = nullptr;
+  if (request.settings &&
+      request.settings->GetImporterId() == "catalyst.font") {
+    settings = static_cast<const FontImportSettings *>(request.settings);
+  }
+  static const FontImportSettings kDefaultSettings{};
+  if (!settings)
+    settings = &kDefaultSettings;
+
+  const float pixelSize = settings->pixelSize;
+  const float atlasW = settings->atlasWidth;
+  const float atlasH = settings->atlasHeight;
+  const std::uint32_t firstCodepoint = settings->firstCodepoint;
+  const std::uint32_t charCount = settings->charCount;
+
   std::ifstream in(request.absolutePath, std::ios::binary);
   if (!in) {
     return ImportResult<ImportedAssetDataPtr>::Err(
@@ -51,27 +60,26 @@ ImportResult<ImportedAssetDataPtr> ImportFont(const ImportRequest &request) {
 
   int rawAscent = 0, rawDescent = 0, rawLineGap = 0;
   stbtt_GetFontVMetrics(&fontInfo, &rawAscent, &rawDescent, &rawLineGap);
-  const float pxPerUnit = stbtt_ScaleForPixelHeight(&fontInfo, kFontPixelSize);
+  const float pxPerUnit = stbtt_ScaleForPixelHeight(&fontInfo, pixelSize);
   const float ascent = static_cast<float>(rawAscent) * pxPerUnit;
   const float descent = static_cast<float>(rawDescent) * pxPerUnit; // negative
   const float lineGap = static_cast<float>(rawLineGap) * pxPerUnit;
 
   // Single-channel coverage
-  std::vector<std::uint8_t> atlasPixels(kAtlasWidth * kAtlasHeight, 0);
+  std::vector<std::uint8_t> atlasPixels(atlasW * atlasH, 0);
 
   stbtt_pack_context ctx{};
-  if (!stbtt_PackBegin(&ctx, atlasPixels.data(), static_cast<int>(kAtlasWidth),
-                       static_cast<int>(kAtlasHeight), 0, 1, nullptr)) {
+  if (!stbtt_PackBegin(&ctx, atlasPixels.data(), static_cast<int>(atlasW),
+                       static_cast<int>(atlasH), 0, 1, nullptr)) {
     return ImportResult<ImportedAssetDataPtr>::Err(
         ImportError::Make(ImportError::Code::Internal, "stbtt_PackBegin failed")
             .WithPath(request.absolutePath));
   }
 
-  stbtt_packedchar packedChars[kCharCount] = {};
-  const int packResult =
-      stbtt_PackFontRange(&ctx, fontDataBuf.data(), 0, kFontPixelSize,
-                          static_cast<int>(kFirstCodepoint),
-                          static_cast<int>(kCharCount), packedChars);
+  std::vector<stbtt_packedchar> packedChars(charCount);
+  const int packResult = stbtt_PackFontRange(
+      &ctx, fontDataBuf.data(), 0, pixelSize, static_cast<int>(firstCodepoint),
+      static_cast<int>(charCount), packedChars.data());
 
   stbtt_PackEnd(&ctx);
 
@@ -84,20 +92,17 @@ ImportResult<ImportedAssetDataPtr> ImportFont(const ImportRequest &request) {
   }
 
   auto result = std::make_unique<FontImportResult>();
-  result->atlasWidth = kAtlasWidth;
-  result->atlasHeight = kAtlasHeight;
+  result->atlasWidth = atlasW;
+  result->atlasHeight = atlasH;
   result->atlasPixels = std::move(atlasPixels);
-  result->firstCodepoint = kFirstCodepoint;
-  result->textHeight = static_cast<std::uint32_t>(kFontPixelSize);
+  result->firstCodepoint = firstCodepoint;
+  result->textHeight = static_cast<std::uint32_t>(pixelSize);
   result->ascent = ascent;
   result->descent = descent;
   result->lineGap = lineGap;
-  result->glyphs.resize(kCharCount);
+  result->glyphs.resize(charCount);
 
-  const float atlasW = static_cast<float>(kAtlasWidth);
-  const float atlasH = static_cast<float>(kAtlasHeight);
-
-  for (std::uint32_t i = 0; i < kCharCount; ++i) {
+  for (std::uint32_t i = 0; i < charCount; ++i) {
     const stbtt_packedchar &pc = packedChars[i];
     GlyphCpu &g = result->glyphs[i];
 
