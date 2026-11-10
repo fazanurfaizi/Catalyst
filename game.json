@@ -1,0 +1,27 @@
+{
+  "version": 1,
+  "projectName": "Kingdom Rush Frontiers",
+  "root": "assets",
+  "assets": [
+    {
+      "type": "Font",
+      "path": "fonts/Roboto-Regular.ttf",
+      "name": "main_font"
+    },
+    {
+      "type": "Sound",
+      "path": "audio/bg_theme.mp3",
+      "name": "main_bgm"
+    },
+    {
+      "type": "Texture2D",
+      "path": "textures/tower.png",
+      "name": "main_tower"
+    },
+    {
+      "type": "TextureAtlas",
+      "path": "atlas/atlas.atlas",
+      "name": "main_atlas"
+    }
+  ]
+}

@@ -3,7 +3,6 @@
 #include "engine/core/Game.hpp"
 #include "engine/core/GameState.hpp"
 #include "engine/platform/Window.hpp"
-#include "engine/utils/Logger.hpp"
 
 #include "game/states/MenuState.hpp"
 
@@ -23,10 +22,5 @@ public:
         }()) {}
 
 protected:
-  void OnStart() override {
-    if (!GetAudio().Init()) {
-      engine::Logger::Error("Audio failed to initialize");
-    }
-    SetState(std::make_unique<MenuState>());
-  }
+  void OnStart() override { SetState(std::make_unique<MenuState>()); }
 };

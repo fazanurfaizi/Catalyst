@@ -1,0 +1,6 @@
+{
+  "sources": [
+    { "type": "directory", "path": "sprites" },
+    { "type": "solid", "name": "solidWhite", "color": "FFFFFFFF", "size": 16 }
+  ]
+}

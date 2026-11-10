@@ -9,6 +9,31 @@
 
 namespace engine::graphics {
 
+namespace {
+
+struct GLFormat {
+  GLint internalFormat;
+  GLenum pixelFormat;
+  std::uint32_t channels;
+};
+
+GLFormat ToGLFormat(ImageFormat f) {
+  switch (f) {
+  case ImageFormat::R8:
+    return {GL_R8, GL_RED, 1};
+  case ImageFormat::RGB8:
+    return {GL_RGB8, GL_RGB, 3};
+  case ImageFormat::RGBA8:
+    return {GL_RGBA8, GL_RGBA, 4};
+  case ImageFormat::RGBA32F:
+    return {GL_RGBA32F, GL_RGBA, 4};
+  case ImageFormat::None:
+  default:
+    return {GL_RGBA8, GL_RGBA, 4};
+  }
+}
+} // namespace
+
 Texture::~Texture() { Release(); }
 
 Texture::Texture(Texture &&other) noexcept
@@ -52,7 +77,7 @@ bool Texture::LoadFromFile(const std::string &path) {
     return false;
   }
 
-  Upload(w, h, data, /*generateMipmaps=*/true);
+  Upload(w, h, ImageFormat::RGBA8, data, /*generateMipmaps=*/true);
   stbi_image_free(data);
   return true;
 }
@@ -64,7 +89,7 @@ void Texture::CreateSolid(std::uint32_t rgba) {
       static_cast<std::uint8_t>((rgba >> 8) & 0xFF),
       static_cast<std::uint8_t>((rgba >> 0) & 0xFF),
   };
-  Upload(1, 1, px, /*generateMipmaps=*/false);
+  Upload(1, 1, ImageFormat::RGBA8, px, /*generateMipmaps=*/false);
 }
 
 void Texture::CreateCheckerboard(int cells, std::uint32_t colorA,
@@ -98,13 +123,16 @@ void Texture::CreateCheckerboard(int cells, std::uint32_t colorA,
       pixels[idx + 3] = src[3];
     }
   }
-  Upload(size, size, pixels.data(), /*generateMipmaps=*/true);
+  Upload(size, size, ImageFormat::RGBA8, pixels.data(),
+         /*generateMipmaps=*/true);
 }
 
-void Texture::Upload(int width, int height, const std::uint8_t *pixels,
-                     bool generateMipmaps) {
+void Texture::Upload(int width, int height, ImageFormat format,
+                     const std::uint8_t *pixels, bool generateMipmaps) {
   if (width <= 0 || height <= 0 || !pixels)
     return;
+
+  const GLFormat gl = ToGLFormat(format);
 
   if (m_Id) {
     glBindTexture(GL_TEXTURE_2D, m_Id);
@@ -113,18 +141,21 @@ void Texture::Upload(int width, int height, const std::uint8_t *pixels,
     glBindTexture(GL_TEXTURE_2D, m_Id);
   }
 
+  glPixelStorei(GL_UNPACK_ALIGNMENT, (format == ImageFormat::R8) ? 1 : 4);
+
   glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, GL_RGBA,
                GL_UNSIGNED_BYTE, pixels);
 
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
   if (generateMipmaps) {
     glGenerateMipmap(GL_TEXTURE_2D);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER,
                     GL_LINEAR_MIPMAP_LINEAR);
+  } else {
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
   }
 
   glBindTexture(GL_TEXTURE_2D, 0);

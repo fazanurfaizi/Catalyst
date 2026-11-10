@@ -32,9 +32,8 @@ inline void ParticleSystem(ecs::Registry &reg, float dt) {
       pt.position = t.position;
 
       components::Sprite ps;
-      ps.texture = emitter.texture;
-      ps.uvMin = emitter.uvMin;
-      ps.uvMax = emitter.uvMax;
+      ps.atlas = emitter.atlas;
+      ps.regionName = emitter.regionName;
       ps.layer = emitter.layer;
 
       components::Particle pc;

@@ -1,0 +1,18 @@
+{
+  "sources": [
+    { "type": "directory", "path": "sprites" },
+    { "type": "solid", "name": "solidWhite",
+      "color": "FFFFFFFF", "size": 16 },
+    { "type": "checkerboard", "name": "checkerRed",
+      "cells": 8, "colorA": "CC3333FF", "colorB": "661111FF",
+      "ifMissing": true },
+    { "type": "checkerboard", "name": "checkerBlue",
+      "cells": 8, "colorA": "3366CCFF", "colorB": "112244FF",
+      "ifMissing": true },
+    { "type": "solid", "name": "tower",
+      "color": "E65555FF", "size": 16, "ifMissing": true },
+    { "type": "checkerboard", "name": "enemy",
+      "cells": 8, "colorA": "3366CCFF", "colorB": "112244FF",
+      "ifMissing": true }
+  ]
+}

@@ -1,10 +1,19 @@
 #pragma once
 
-#include "engine/assets/AssetManager.hpp"
+#include "engine/asset/AssetManager.hpp"
+#include "engine/asset/importer/ImporterRegistry.hpp"
+#include "engine/asset/manager/IAssetManager.hpp"
 #include "engine/audio/AudioEngine.hpp"
 #include "engine/core/Clock.hpp"
+#include "engine/core/GameConfig.hpp"
 #include "engine/core/GameStateManager.hpp"
 #include "engine/platform/Window.hpp"
+
+#ifdef CATALYST_EDITOR
+#include "engine/asset/watcher/AssetWatcher.hpp"
+#endif // CATALYST_EDITOR
+
+#include <filesystem>
 #include <memory>
 
 #include <glm/glm.hpp>
@@ -25,7 +34,8 @@ struct DebugConfig {
 class Game {
 public:
   explicit Game(const platform::WindowConfig &config,
-                const DebugConfig &debug = {});
+                const DebugConfig &debug = {},
+                std::filesystem::path gameConfigPath = "game.json");
   virtual ~Game();
 
   Game(const Game &) = delete;
@@ -77,10 +87,19 @@ public:
   graphics::Renderer &GetRenderer() { return *m_renderer; }
   const graphics::Renderer &GetRenderer() const { return *m_renderer; }
 
-  assets::AssetManager &Resources() { return m_resources; }
-  const assets::AssetManager &Resources() const { return m_resources; }
+  asset::IAssetManager *Assets() { return m_assets.get(); }
+  const asset::IAssetManager *Assets() const { return m_assets.get(); }
 
-  audio::AudioEngine &GetAudio() { return m_audio; }
+  audio::AudioEngine &GetAudio() { return audio::AudioEngine::Get(); }
+  const audio::AudioEngine &GetAudio() const {
+    return audio::AudioEngine::Get();
+  }
+
+  const GameConfig &GetGameConfig() const { return m_gameConfig; }
+
+#ifdef CATALYST_EDITOR
+  asset::AssetWatcher *GetWatcher() { return m_watcher.get(); }
+#endif // CATALYST_EDITOR
 
 protected:
   virtual void OnStart() {}
@@ -89,13 +108,22 @@ protected:
 private:
   platform::WindowConfig m_config{};
   DebugConfig m_debug{};
+  std::filesystem::path m_gameConfigPath;
 
   std::unique_ptr<platform::Window> m_window;
 
   GameStateManager m_stateManager;
-  audio::AudioEngine m_audio;
+
+  asset::ImporterRegistry m_importerRegistry;
+  std::unique_ptr<asset::IAssetManager> m_assets;
+
+  GameConfig m_gameConfig{};
+
   std::unique_ptr<graphics::Renderer> m_renderer;
-  assets::AssetManager m_resources;
+
+#ifdef CATALYST_EDITOR
+  std::unique_ptr<asset::AssetWatcher> m_watcher;
+#endif // CATALYST_EDITOR
 
   Clock m_clock;
 

@@ -1,69 +1,42 @@
 #pragma once
 
-#include "AnimationClip.hpp"
+#include "engine/asset/core/AssetHandle.hpp"
+#include <string>
+#include <string_view>
 
 namespace engine::components {
 
 struct Animator {
-  const AnimationClip *clip = nullptr;
+  asset::AssetHandle atlas{};
+  std::string clipName;
+
   int currentFrame = 0;
   float elapsedSec = 0.0f;
   float currentFrameDuration = 0.0f;
   bool playing = true;
   bool finished = false;
 
-  [[nodiscard]] bool IsActive() const noexcept {
-    return clip != nullptr && clip->IsValid() && playing;
-  }
-
-  void Play(const AnimationClip *c) {
-    clip = c;
-    currentFrame = 0;
-    elapsedSec = 0.0f;
-    playing = (c != nullptr && c->IsValid());
-    finished = false;
-    currentFrameDuration = playing ? c->frames[0].durationSec : 0.0f;
-  }
-
-  void Stop() {
-    clip = nullptr;
-    playing = false;
-    finished = false;
-    elapsedSec = 0.0f;
-    currentFrame = 0;
-    currentFrameDuration = 0.0f;
-  }
-
-  void Advance(float deltaTime) {
-    if (!IsActive())
-      return;
-
-    elapsedSec += deltaTime;
-
-    if (elapsedSec < currentFrameDuration)
-      return;
-
-    const int n = clip->FrameCount();
-
-    while (elapsedSec >= currentFrameDuration) {
-      elapsedSec -= currentFrameDuration;
-      ++currentFrame;
-
-      if (currentFrame >= n) {
-        if (clip->loop) {
-          currentFrame = 0;
-        } else {
-          currentFrame = n - 1;
-          playing = false;
-          finished = true;
-          elapsedSec = 0.0f;
-          currentFrameDuration = clip->frames[currentFrame].durationSec;
-          return;
-        }
-      }
-      currentFrameDuration = clip->frames[currentFrame].durationSec;
-    }
-  }
+  [[nodiscard]] bool HasClip() const noexcept { return !clipName.empty(); }
 };
+
+inline void PlayAnimation(Animator &a, asset::AssetHandle atlas,
+                          std::string_view clipName) {
+  a.atlas = atlas;
+  a.clipName = std::string(clipName);
+  a.currentFrame = 0;
+  a.elapsedSec = 0.0f;
+  a.playing = true;
+  a.finished = false;
+  a.currentFrameDuration = 0.0f;
+}
+
+inline void StopAnimation(Animator &a) {
+  a.clipName.clear();
+  a.playing = false;
+  a.finished = false;
+  a.elapsedSec = 0.0f;
+  a.currentFrame = 0;
+  a.currentFrameDuration = 0.0f;
+}
 
 } // namespace engine::components

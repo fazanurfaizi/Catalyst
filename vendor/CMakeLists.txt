@@ -38,9 +38,21 @@ FetchContent_Declare(
 FetchContent_GetProperties(stb)
 if(NOT stb_POPULATED)
   FetchContent_Populate(stb)
+
+  # Create a local staging directory with an 'stb' subfolder
+  set(STB_STAGED_INCLUDE_DIR ${CMAKE_BINARY_DIR}/stb_staging)
+  file(MAKE_DIRECTORY ${STB_STAGED_INCLUDE_DIR}/stb)
+
+  # Copy headers into the staged stb/ subdirectory
+  file(GLOB STB_HEADERS "${stb_SOURCE_DIR}/*.h")
+  foreach(HEADER ${STB_HEADERS})
+    get_filename_component(HEADER_NAME ${HEADER} NAME)
+    configure_file(${HEADER} ${STB_STAGED_INCLUDE_DIR}/stb/${HEADER_NAME} COPYONLY)
+  endforeach()
 endif()
+
 add_library(stb_image INTERFACE)
-target_include_directories(stb_image INTERFACE ${stb_SOURCE_DIR})
+target_include_directories(stb_image INTERFACE ${STB_STAGED_INCLUDE_DIR})
 
 # GLAD - OpenGL loader (glad2 + CMake helper)
 FetchContent_Declare(

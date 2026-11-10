@@ -1,6 +1,7 @@
 #include "engine/graphics/TextRenderer.hpp"
 
-#include "engine/assets/AssetPath.hpp"
+#include "engine/asset/AssetPath.hpp"
+#include "engine/graphics/assets/FontAsset.hpp"
 #include "engine/graphics/text/TextLayout.hpp"
 #include "engine/utils/Logger.hpp"
 #include "glad/gl.h"
@@ -85,6 +86,18 @@ void TextRenderer::Draw(const Font &font, const std::string &text,
   glBindVertexArray(0);
   glBindTexture(GL_TEXTURE_2D, 0);
   m_shader.Unbind();
+}
+
+void TextRenderer::Draw(const FontAsset &fontAsset, const std::string &text,
+                        const glm::vec2 &position, float scale,
+                        const glm::vec4 &color, const glm::mat4 &projection,
+                        float maxWidth, TextAlignment alignment) {
+  if (!fontAsset.font) {
+    return;
+  }
+
+  Draw(*fontAsset.font, text, position, scale, color, projection, maxWidth,
+       alignment);
 }
 
 } // namespace engine::graphics

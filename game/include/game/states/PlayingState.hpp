@@ -5,9 +5,10 @@
 #include "engine/core/GameState.hpp"
 #include "engine/ecs/Entity.hpp"
 #include "engine/graphics/TextRenderer.hpp"
-#include "engine/graphics/texture/TextureAtlas.hpp"
+#include "engine/graphics/assets/TextureAtlasAsset.hpp"
 #include "engine/input/InputCodes.hpp"
 #include "engine/scene/World.hpp"
+#include "engine/asset/core/AssetHandle.hpp"
 #include <string_view>
 
 class PlayingState final : public engine::core::GameState {
@@ -34,8 +35,13 @@ private:
   engine::scene::World m_world;
   engine::animation::AnimationLibrary m_animations;
 
-  engine::graphics::TextureAtlas m_atlas;
   engine::graphics::TextRenderer m_textRenderer;
+
+  std::shared_ptr<engine::graphics::FontAsset> m_font;
+  std::shared_ptr<engine::graphics::TextureAtlasAsset> m_atlas;
+  std::shared_ptr<engine::audio::SoundAsset> m_bgm;
+
+  engine::asset::AssetHandle m_atlasHandle;
 
   engine::ecs::Entity m_camera{};
   engine::ecs::Entity m_coin{};
@@ -43,6 +49,9 @@ private:
   engine::ecs::Entity m_hero{};
   engine::ecs::Entity m_enemy{};
   engine::ecs::Entity m_torch{};
+
+  std::uint64_t m_lastReloadGen = 0;
+  void ReloadAssets(engine::core::Game &game);
 
   void BuildDemoScene(engine::core::Game &game);
   void ApplyRegion(engine::ecs::Entity e, std::string_view region);

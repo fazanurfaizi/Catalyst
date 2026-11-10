@@ -1,6 +1,9 @@
 #include "engine/core/Game.hpp"
 
+#include "engine/asset/AssetManager.hpp"
+#include "engine/asset/manager/AssetManagerRuntime.hpp"
 #include "engine/core/Clock.hpp"
+#include "engine/core/GameConfigSerializer.hpp"
 #include "engine/graphics/Renderer.hpp"
 #include "engine/utils/Logger.hpp"
 #include "imgui.h"
@@ -13,6 +16,7 @@
 
 #include <cstdio>
 #include <memory>
+#include <utility>
 
 namespace engine::core {
 
@@ -22,8 +26,10 @@ void GlfwErrorCallback(int code, const char *desc) {
 }
 } // namespace
 
-Game::Game(const platform::WindowConfig &config, const DebugConfig &debug)
-    : m_config(config), m_debug(debug) {
+Game::Game(const platform::WindowConfig &config, const DebugConfig &debug,
+           std::filesystem::path gameConfigPath)
+    : m_config(config), m_debug(debug),
+      m_gameConfigPath(std::move(gameConfigPath)) {
   m_window = platform::Window::Create(m_config);
   if (!m_window) {
     Logger::Error("glfwInit failed");
@@ -37,7 +43,6 @@ Game::Game(const platform::WindowConfig &config, const DebugConfig &debug)
   }
 
   m_renderer = std::make_unique<graphics::Renderer>();
-
   const auto fb = m_window->GetDisplay().FramebufferSize();
   m_renderer->Init(fb.x, fb.y);
 
@@ -78,13 +83,22 @@ Game::Game(const platform::WindowConfig &config, const DebugConfig &debug)
 }
 
 Game::~Game() {
+#ifdef CATALYST_EDITOR
+  if (m_watcher) {
+    m_watcher->Stop();
+  }
+#endif // CATALYST_EDITOR
+
+  m_stateManager.Clear(*this);
+
+  audio::AudioEngine::Get().Shutdown();
+  m_assets.reset();
+
   if (m_imguiInited) {
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplGlfw_Shutdown();
     ImGui::DestroyContext();
   }
-
-  m_stateManager.Clear(*this);
 }
 
 double Game::ElapsedTime() const { return m_clock.ElapsedTime(); }
@@ -107,6 +121,56 @@ bool Game::Run() {
     Logger::Error("Game::Run called without a valid window");
     return false;
   }
+  if (!m_renderer) {
+    Logger::Error("Game::Run called without a renderer");
+    return false;
+  }
+
+  if (!audio::AudioEngine::Get().Init()) {
+    Logger::Error("Audio failed to initialiez; continuing without audio");
+  }
+
+  asset::AssetManager::RegisterDefaultImporters(m_importerRegistry);
+
+  auto configOpt = GameConfigSerializer::Load(m_gameConfigPath);
+  if (!configOpt) {
+    Logger::Error("Game::Run: could not load '%s'; running with no assets",
+                  m_gameConfigPath.c_str());
+    m_gameConfig = GameConfig{};
+    m_gameConfig.root = std::filesystem::current_path();
+  } else {
+    m_gameConfig = std::move(*configOpt);
+    Logger::Info("Loaded game config: '%s' (%zu assets, root '%s')",
+                 m_gameConfig.projectName.c_str(), m_gameConfig.assets.size(),
+                 m_gameConfig.root.c_str());
+  }
+
+  m_assets = std::make_unique<asset::AssetManagerRuntime>(m_importerRegistry,
+                                                          m_gameConfig.root);
+
+  for (auto &record : m_gameConfig.assets) {
+    m_assets->AddRecord(std::move(record));
+  }
+
+#ifdef CATALYST_EDITOR
+  m_watcher =
+      std::make_unique<asset::AssetWatcher>(std::chrono::milliseconds(500));
+
+  for (const auto &record : m_gameConfig.assets) {
+    if (record.state != asset::AssetRecordState::Valid)
+      continue;
+
+    const std::filesystem::path abs = m_gameConfig.root / record.path;
+    const std::filesystem::path parent = abs.parent_path();
+
+    m_watcher->WatchDirectory(record.handle, parent);
+
+    Logger::Info("[Game] watching '%s' for handle '%s'", parent.c_str(),
+                 record.name.empty() ? record.path.c_str()
+                                     : record.name.c_str());
+  }
+  m_watcher->Start();
+#endif
 
   OnStart();
 
@@ -120,12 +184,18 @@ bool Game::Run() {
   }
 
   m_running = true;
-
-  // Fixed 60 Hz logic clock; rebased so OnStart/asset loading does not count
-  // as the first frame delta.
   m_clock.Reset();
 
   while (m_running && !CloseRequested()) {
+#ifdef CATALYST_EDITOR
+    if (m_watcher) {
+      for (const auto &ev : m_watcher->Poll()) {
+        Logger::Info("[hot-reload] %s", ev.path.c_str());
+        m_assets->Reimport(ev.handle);
+      }
+    }
+#endif // CATALYST_EDITOR
+
     m_window->Input().BeginFrame();
     m_window->PollEvents();
 

@@ -1,9 +1,11 @@
 #include "engine/graphics/Renderer.hpp"
 
-#include "engine/assets/AssetPath.hpp"
+#include "engine/asset/AssetPath.hpp"
+#include "engine/asset/core/AssetHandle.hpp"
 #include "engine/components/Light.hpp"
 #include "engine/components/Sprite.hpp"
 #include "engine/components/Transform.hpp"
+#include "engine/graphics/assets/TextureAtlasAsset.hpp"
 #include "engine/graphics/sprite/SpriteBatch.hpp"
 #include "engine/graphics/sprite/SpriteDrawList.hpp"
 #include "engine/math/Rect.hpp"
@@ -164,7 +166,8 @@ void Renderer::Draw(const glm::vec2 &position, const glm::vec2 &scale,
   m_hasSprites = true;
 }
 
-void Renderer::RenderSprites(scene::World &world) {
+void Renderer::RenderSprites(scene::World &world,
+                             asset::IAssetManager *assets) {
   auto &reg = world.Registry();
 
   struct Cmd {
@@ -203,9 +206,40 @@ void Renderer::RenderSprites(scene::World &world) {
     return a.yKey < b.yKey;
   });
 
+  std::unordered_map<asset::AssetHandle, std::shared_ptr<TextureAtlasAsset>>
+      atlasCache;
+
+  auto resolveAtlas =
+      [&](asset::AssetHandle h) -> std::shared_ptr<TextureAtlasAsset> {
+    if (h.IsNull())
+      return nullptr;
+    auto it = atlasCache.find(h);
+    if (it != atlasCache.end())
+      return it->second;
+    auto a = assets ? assets->Acquire<TextureAtlasAsset>(h) : nullptr;
+    atlasCache[h] = a;
+    return a;
+  };
+
   for (const auto &c : cmds) {
-    Draw(c.t->position, c.t->scale, c.t->rotation, c.s->color, c.s->texture,
-         c.s->uvMin, c.s->uvMax, static_cast<int>(c.s->layer));
+    const components::Sprite &s = *c.s;
+    if (s.atlas.IsNull() || s.regionName.empty()) {
+      Draw(c.t->position, c.t->scale, c.t->rotation, s.color, nullptr,
+           {0.0f, 0.0f}, {0.0f, 0.0f}, static_cast<int>(s.layer));
+      continue;
+    }
+
+    auto atlas = resolveAtlas(s.atlas);
+    if (!atlas)
+      continue;
+
+    const auto *region = atlas->GetRegion(s.regionName);
+    if (!region)
+      continue;
+
+    Draw(c.t->position, c.t->scale, c.t->rotation, c.s->color,
+         &atlas->GetTexture(), region->uvMin, region->uvMax,
+         static_cast<int>(c.s->layer));
   }
 }
 
