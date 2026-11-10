@@ -1,21 +1,21 @@
 #include "engine/audio/AudioEngine.hpp"
 #include "engine/utils/Logger.hpp"
+#include <mutex>
+#include <vector>
 
 #define MINIAUDIO_IMPLEMENTATION
 #include <miniaudio.h>
 
 namespace engine::audio {
 
-namespace {
-void OnSoundFinished([[maybe_unused]] void *data, ma_sound *sound) {
-  ma_sound_uninit(sound);
-  delete sound;
-}
-} // namespace
+namespace {} // namespace
 
 struct AudioEngine::Impl {
   ma_engine engine{};
   bool engineInited = false;
+
+  std::mutex finishedMutex;
+  std::vector<ma_sound *> finishedSounds;
 };
 
 AudioEngine &AudioEngine::Get() {
@@ -41,9 +41,26 @@ bool AudioEngine::Init() {
   return true;
 }
 
+void AudioEngine::Update() {
+  if (!m_impl->engineInited)
+    return;
+
+  std::vector<ma_sound *> toFree;
+  {
+    std::lock_guard<std::mutex> lock(m_impl->finishedMutex);
+    toFree.swap(m_impl->finishedSounds);
+  }
+
+  for (auto *sound : toFree) {
+    ma_sound_uninit(sound);
+    delete sound;
+  }
+}
+
 void AudioEngine::Shutdown() {
   if (!m_impl->engineInited)
     return;
+  Update();
   ma_engine_uninit(&m_impl->engine);
   m_impl->engineInited = false;
 }
@@ -53,8 +70,11 @@ bool AudioEngine::IsInitialized() const { return m_impl->engineInited; }
 void AudioEngine::PlayOneShot(const SoundAsset &sound, float volume) {
   if (!m_impl->engineInited) {
     Logger::Warn("[AudioEngine] PlayOneShot before Init, ignoring");
+    std::abort();
     return;
   }
+
+  Update();
 
   auto *instance = new ma_sound();
   if (ma_sound_init_from_file(
@@ -67,7 +87,7 @@ void AudioEngine::PlayOneShot(const SoundAsset &sound, float volume) {
   }
 
   ma_sound_set_volume(instance, volume);
-  ma_sound_set_end_callback(instance, OnSoundFinished, nullptr);
+  ma_sound_set_end_callback(instance, OnSoundFinished, m_impl);
   ma_sound_start(instance);
 }
 
@@ -96,6 +116,12 @@ void AudioEngine::SetMasterVolume(float volume) {
 
 ma_engine *AudioEngine::GetHandle() const {
   return m_impl->engineInited ? &m_impl->engine : nullptr;
+}
+
+void AudioEngine::OnSoundFinished(void *data, ma_sound *sound) {
+  auto *impl = static_cast<AudioEngine::Impl *>(data);
+  std::lock_guard<std::mutex> lock(impl->finishedMutex);
+  impl->finishedSounds.push_back(sound);
 }
 
 } // namespace engine::audio

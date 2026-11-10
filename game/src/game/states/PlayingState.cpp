@@ -2,6 +2,7 @@
 
 #include "engine/asset/manager/AssetManagerEditor.hpp"
 #include "engine/audio/MusicPlayer.hpp"
+#include "engine/components/AudioSource.hpp"
 #include "engine/components/Light.hpp"
 #include "engine/components/TextComponent.hpp"
 #include "engine/core/Game.hpp"
@@ -10,6 +11,7 @@
 #include "engine/graphics/assets/TextureAtlasAsset.hpp"
 #include "engine/math/Color.hpp"
 #include "engine/scene/SceneSerializer.hpp"
+#include "engine/systems/AudioSystem.hpp"
 #include "engine/systems/TextRenderSystem.hpp"
 #include "engine/utils/Logger.hpp"
 
@@ -177,6 +179,8 @@ void PlayingState::OnUpdate(engine::core::Game &game, double dt) {
     camera.RotateBy(+0.5f * static_cast<float>(dt));
   if (in.IsKeyDown(engine::input::Key::E))
     camera.RotateBy(-0.5f * static_cast<float>(dt));
+
+  engine::systems::AudioSystem(m_world.Registry(), *game.Assets());
 }
 
 void PlayingState::OnFixedUpdate(engine::core::Game &game, double dt) {
@@ -302,6 +306,7 @@ void PlayingState::OnMouseButton(engine::core::Game &game,
     if (animation.clipName == "hero_idle") {
       engine::components::PlayAnimation(
           animation, game.Assets()->FindByName("main_atlas"), "hero_attack");
+      engine::systems::PlayAudioNow(reg, *game.Assets(), m_hero);
     }
   }
 
@@ -327,95 +332,112 @@ void PlayingState::BuildDemoScene(engine::core::Game &game) {
   auto &cam = reg.Get<engine::components::Camera2D>(m_camera);
 
   // Tower
-  m_tower = m_world.CreateEntity("Tower");
-  reg.Emplace<engine::components::Transform>(m_tower,
-                                             engine::components::Transform{
-                                                 .position = {-4.0f, -2.0f},
-                                                 .scale = {1.5f, 1.5f},
-                                             });
-  reg.Emplace<engine::components::Sprite>(
-      m_tower, engine::components::Sprite{
-                   .layer = engine::components::RenderLayer::Entities});
-  ApplyRegion(m_tower, "tower");
+  {
+    m_tower = m_world.CreateEntity("Tower");
+    reg.Emplace<engine::components::Transform>(m_tower,
+                                               engine::components::Transform{
+                                                   .position = {-4.0f, -2.0f},
+                                                   .scale = {1.5f, 1.5f},
+                                               });
+    reg.Emplace<engine::components::Sprite>(
+        m_tower, engine::components::Sprite{
+                     .layer = engine::components::RenderLayer::Entities});
+    ApplyRegion(m_tower, "tower");
+  }
 
   // Hero
-  m_hero = m_world.CreateEntity("Hero");
-  reg.Emplace<engine::components::Transform>(
-      m_hero, engine::components::Transform{.position = {4.0f, -2.0f},
-                                            .scale = {1.2f, 1.7f}});
-  reg.Emplace<engine::components::Sprite>(
-      m_hero, engine::components::Sprite{
-                  .layer = engine::components::RenderLayer::Entities});
-  reg.Emplace<engine::components::Velocity>(m_hero,
-                                            engine::components::Velocity{
-                                                .targetPosition = {4.0f, -2.0f},
-                                                .speed = 5.0f,
-                                            });
-  reg.Emplace<engine::components::Animator>(m_hero);
-  ApplyRegion(m_hero, "hero_idle_0");
-  cam.followTarget = m_hero;
-  auto &hero_light = reg.Emplace<engine::components::PointLight>(m_hero);
-  hero_light.ambient = {0.15f, 0.08f, 0.02f};
-  hero_light.diffuse = {1.00f, 0.65f, 0.25f}; // warm fire orange
-  hero_light.specular = {0.00f, 0.00f, 0.00f};
-  hero_light.constant = 1.0f;
-  hero_light.linear = 1.5f;
-  hero_light.quadratic = 1.2f;
+  {
+    m_hero = m_world.CreateEntity("Hero");
+    reg.Emplace<engine::components::Transform>(
+        m_hero, engine::components::Transform{.position = {4.0f, -2.0f},
+                                              .scale = {1.2f, 1.7f}});
+    reg.Emplace<engine::components::Sprite>(
+        m_hero, engine::components::Sprite{
+                    .layer = engine::components::RenderLayer::Entities});
+    reg.Emplace<engine::components::Velocity>(
+        m_hero, engine::components::Velocity{
+                    .targetPosition = {4.0f, -2.0f},
+                    .speed = 5.0f,
+                });
+    reg.Emplace<engine::components::Animator>(m_hero);
+    ApplyRegion(m_hero, "hero_idle_0");
+    cam.followTarget = m_hero;
+    auto &hero_light = reg.Emplace<engine::components::PointLight>(m_hero);
+    hero_light.ambient = {0.15f, 0.08f, 0.02f};
+    hero_light.diffuse = {1.00f, 0.65f, 0.25f}; // warm fire orange
+    hero_light.specular = {0.00f, 0.00f, 0.00f};
+    hero_light.constant = 1.0f;
+    hero_light.linear = 1.5f;
+    hero_light.quadratic = 1.2f;
+
+    auto &sfx = reg.Emplace<engine::components::AudioSource>(m_hero);
+    sfx.clip = game.Assets()->FindByName("hero_attack_sfx");
+    sfx.volume = 0.8;
+
+    if (reg.IsAlive(m_hero)) {
+      auto &a = reg.Get<engine::components::Animator>(m_hero);
+      if (a.finished && a.clipName == "hero_idle") {
+        engine::components::PlayAnimation(a, m_atlasHandle, "hero_idle");
+      }
+    }
+  }
 
   // Enemy
-  m_enemy = m_world.CreateEntity("Enemy");
-  reg.Emplace<engine::components::Transform>(
-      m_enemy, engine::components::Transform{.scale = {0.9f, 1.0f}});
-  reg.Emplace<engine::components::Sprite>(
-      m_enemy, engine::components::Sprite{
-                   .layer = engine::components::RenderLayer::Entities});
-  ApplyRegion(m_enemy, "enemy");
+  {
+    m_enemy = m_world.CreateEntity("Enemy");
+    reg.Emplace<engine::components::Transform>(
+        m_enemy, engine::components::Transform{.scale = {0.9f, 1.0f}});
+    reg.Emplace<engine::components::Sprite>(
+        m_enemy, engine::components::Sprite{
+                     .layer = engine::components::RenderLayer::Entities});
+    ApplyRegion(m_enemy, "enemy");
+  }
 
   // Coin
-  m_coin = m_world.CreateEntity("Coin");
-  reg.Emplace<engine::components::Transform>(
-      m_coin, engine::components::Transform{.position = {3.0f, 3.0f},
-                                            .scale = {0.8f, 0.8f}});
-  reg.Emplace<engine::components::Sprite>(
-      m_coin, engine::components::Sprite{
-                  .color = engine::math::kColorWhite,
-                  .layer = engine::components::RenderLayer::Ground});
-  reg.Emplace<engine::components::Animator>(m_coin);
-  ApplyRegion(m_coin, "coin_0");
+  {
+    m_coin = m_world.CreateEntity("Coin");
+    reg.Emplace<engine::components::Transform>(
+        m_coin, engine::components::Transform{.position = {3.0f, 3.0f},
+                                              .scale = {0.8f, 0.8f}});
+    reg.Emplace<engine::components::Sprite>(
+        m_coin, engine::components::Sprite{
+                    .color = engine::math::kColorWhite,
+                    .layer = engine::components::RenderLayer::Ground});
+    reg.Emplace<engine::components::Animator>(m_coin);
+    ApplyRegion(m_coin, "coin_0");
 
-  if (reg.IsAlive(m_hero)) {
-    auto &a = reg.Get<engine::components::Animator>(m_hero);
-    if (a.finished && a.clipName == "hero_idle") {
-      engine::components::PlayAnimation(a, m_atlasHandle, "hero_idle");
-    }
-  }
-  if (reg.IsAlive(m_coin)) {
-    auto &a = reg.Get<engine::components::Animator>(m_coin);
-    if (a.finished && a.clipName == "coin_spin") {
-      engine::components::PlayAnimation(a, m_atlasHandle, "coin_spin");
+    if (reg.IsAlive(m_coin)) {
+      auto &a = reg.Get<engine::components::Animator>(m_coin);
+      if (a.finished && a.clipName == "coin_spin") {
+        engine::components::PlayAnimation(a, m_atlasHandle, "coin_spin");
+      }
     }
   }
 
-  m_torch = m_world.CreateEntity("Torch");
-  reg.Emplace<engine::components::Transform>(m_torch,
-                                             engine::components::Transform{
-                                                 .position = {0.0f, 3.0f},
-                                                 .scale = {0.6f, 0.6f},
-                                             });
-  reg.Emplace<engine::components::Sprite>(
-      m_torch, engine::components::Sprite{
-                   .color = engine::math::kColorWhite,
-                   .layer = engine::components::RenderLayer::Entities,
-               });
-  ApplyRegion(m_torch, "tower"); // reuse an orange-red solid as the torch body
+  // Torch
+  {
+    m_torch = m_world.CreateEntity("Torch");
+    reg.Emplace<engine::components::Transform>(m_torch,
+                                               engine::components::Transform{
+                                                   .position = {0.0f, 3.0f},
+                                                   .scale = {0.6f, 0.6f},
+                                               });
+    reg.Emplace<engine::components::Sprite>(
+        m_torch, engine::components::Sprite{
+                     .color = engine::math::kColorWhite,
+                     .layer = engine::components::RenderLayer::Entities,
+                 });
+    ApplyRegion(m_torch,
+                "tower"); // reuse an orange-red solid as the torch body
 
-  auto &torch = reg.Emplace<engine::components::PointLight>(m_torch);
-  torch.ambient = {0.15f, 0.08f, 0.02f};
-  torch.diffuse = {1.00f, 0.65f, 0.25f}; // warm fire orange
-  torch.specular = {0.00f, 0.00f, 0.00f};
-  torch.constant = 1.0f;
-  torch.linear = 2.0f;
-  torch.quadratic = 3.5f;
+    auto &torch = reg.Emplace<engine::components::PointLight>(m_torch);
+    torch.ambient = {0.15f, 0.08f, 0.02f};
+    torch.diffuse = {1.00f, 0.65f, 0.25f}; // warm fire orange
+    torch.specular = {0.00f, 0.00f, 0.00f};
+    torch.constant = 1.0f;
+    torch.linear = 2.0f;
+    torch.quadratic = 3.5f;
+  }
 }
 
 void PlayingState::ApplyRegion(engine::ecs::Entity e, std::string_view region) {

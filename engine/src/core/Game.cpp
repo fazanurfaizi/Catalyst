@@ -1,6 +1,7 @@
 #include "engine/core/Game.hpp"
 
 #include "engine/asset/manager/AssetManagerRuntime.hpp"
+#include "engine/audio/AudioEngine.hpp"
 #include "engine/core/Clock.hpp"
 #include "engine/core/GameConfigSerializer.hpp"
 #include "engine/graphics/Renderer.hpp"
@@ -186,6 +187,8 @@ bool Game::Run() {
   m_clock.Reset();
 
   while (m_running && !CloseRequested()) {
+    audio::AudioEngine::Get().Update();
+
 #ifdef CATALYST_EDITOR
     if (m_watcher) {
       for (const auto &ev : m_watcher->Poll()) {

@@ -22,6 +22,16 @@
       "type": "TextureAtlas",
       "path": "atlas/atlas.atlas",
       "name": "main_atlas"
+    },
+    {
+      "type": "Sound",
+      "path": "audio/hero_attack.mp3",
+      "name": "hero_attack_sfx"
+    },
+    {
+      "type": "Sound",
+      "path": "audio/hero_footstep.mp3",
+      "name": "hero_step_sfx"
     }
   ]
 }

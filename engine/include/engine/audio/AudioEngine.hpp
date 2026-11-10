@@ -4,6 +4,7 @@
 #include <string>
 
 struct ma_engine;
+struct ma_sound;
 
 namespace engine::audio {
 
@@ -15,6 +16,7 @@ public:
   AudioEngine &operator=(const AudioEngine &) = delete;
 
   bool Init();
+  void Update();
   void Shutdown();
   bool IsInitialized() const;
 
@@ -27,12 +29,14 @@ public:
 
   ma_engine *GetHandle() const;
 
-private:
-  AudioEngine();
-  ~AudioEngine();
+  static void OnSoundFinished(void *data, ma_sound *sound);
 
   struct Impl;
   Impl *m_impl = nullptr;
+
+protected:
+  AudioEngine();
+  ~AudioEngine();
 };
 
 } // namespace engine::audio
