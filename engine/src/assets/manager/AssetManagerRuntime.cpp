@@ -18,6 +18,7 @@ void AssetManagerRuntime::AddRecord(AssetRecord record) {
   if (!inserted) {
     Logger::Error("[AssetManagerRuntime] duplicate handle %s ignored",
                   handle.ToString().c_str());
+    return;
   }
 
   if (!name.empty()) {
@@ -97,6 +98,12 @@ std::shared_ptr<Asset> AssetManagerRuntime::AcquireRaw(AssetHandle handle) {
   std::uint64_t settingHash = 0;
   auto settings = LoadSidecarSettings(absPath, importer, &settingHash);
 
+  if (record->settingsHash != 0 && record->settingsHash != settingHash) {
+    m_cache.Clear(handle);
+    Logger::Info("[Asset] settings changed for %s, invalidating cache",
+                 handle.ToString().c_str());
+  }
+
   // Import CPU
   m_cache.MarkLoading(handle);
   ImportRequest request{absPath, settings.get()};
@@ -131,8 +138,20 @@ void AssetManagerRuntime::Release(AssetHandle handle) { m_cache.Clear(handle); }
 
 void AssetManagerRuntime::Reimport(AssetHandle handle) {
   m_cache.Clear(handle);
-  (void)AcquireRaw(handle);
-  ++m_reloadGeneration;
+  auto result = AcquireRaw(handle);
+  if (result) {
+    ++m_reloadGeneration;
+  } else {
+    Logger::Warn("[Asset] reimport failed for %s, generation not bumped",
+                 handle.ToString().c_str());
+  }
 }
+
+void AssetManagerRuntime::PreloadCpu(AssetHandle handle) {
+  // auto imported = importer->Import(request);
+  // m_cpuk
+}
+
+std::shared_ptr<Asset> EnsureGpu(AssetHandle handle) { return nullptr; }
 
 } // namespace engine::asset

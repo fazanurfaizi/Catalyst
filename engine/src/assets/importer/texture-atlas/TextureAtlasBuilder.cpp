@@ -1,5 +1,4 @@
 #include "engine/asset/importer/texture-atlas/TextureAtlasBuilder.hpp"
-#include "engine/graphics/assets/TextureAtlasAsset.hpp"
 #include "engine/utils/Logger.hpp"
 
 #include <glm/glm.hpp>
@@ -311,7 +310,7 @@ bool TextureAtlasBuilder::Pack(Packed &out, int maxSize) const {
       }
     }
 
-    graphics::AtlasRegion region;
+    resources::AtlasRegion region;
     region.uvMin = {static_cast<float>(px) / bestSize,
                     static_cast<float>(py) / bestSize};
     region.uvMax = {static_cast<float>(px + s.width) / bestSize,

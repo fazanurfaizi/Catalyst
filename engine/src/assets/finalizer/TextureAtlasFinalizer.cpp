@@ -14,7 +14,7 @@ TextureAtlasFinalizer::Finalize(AssetHandle handle,
     return nullptr;
   }
 
-  auto asset = std::make_shared<graphics::TextureAtlasAsset>(handle);
+  auto asset = std::make_shared<resources::TextureAtlasAsset>(handle);
 
   GLint glMax = 0;
   glGetIntegerv(GL_MAX_TEXTURE_SIZE, &glMax);
@@ -34,7 +34,7 @@ TextureAtlasFinalizer::Finalize(AssetHandle handle,
   // Reuse the same Texture::Upload path that Texture2DAsset uses.
   graphics::Texture texture;
   texture.Upload(static_cast<int>(data.width), static_cast<int>(data.height),
-                 graphics::ImageFormat::RGBA8, data.rgba8.data(),
+                 resources::ImageFormat::RGBA8, data.rgba8.data(),
                  /*generateMipmaps=*/false);
   if (!texture.IsValid()) {
     Logger::Error("[TextureAtlasFinalizer] GL upload failed");

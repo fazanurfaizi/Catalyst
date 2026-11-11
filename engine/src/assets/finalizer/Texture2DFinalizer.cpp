@@ -1,6 +1,6 @@
 #include "engine/asset/finalizer/Texture2DFinalizer.hpp"
 #include "engine/asset/importer/texture2d/Texture2DImportResult.hpp"
-#include "engine/graphics/assets/Texture2DAsset.hpp"
+#include "engine/resources/Texture2DAsset.hpp"
 #include "engine/utils/Buffer.hpp"
 #include "engine/utils/Logger.hpp"
 #include <memory>
@@ -8,14 +8,14 @@
 namespace engine::asset {
 
 namespace {
-graphics::ImageFormat ToImageFormat(TextureFormat format) {
+resources::ImageFormat ToImageFormat(TextureFormat format) {
   switch (format) {
   case TextureFormat::RGB8:
-    return graphics::ImageFormat::RGB8;
+    return resources::ImageFormat::RGB8;
   case TextureFormat::RGBA8:
-    return graphics::ImageFormat::RGBA8;
+    return resources::ImageFormat::RGBA8;
   }
-  return graphics::ImageFormat::RGBA8;
+  return resources::ImageFormat::RGBA8;
 }
 } // namespace
 
@@ -27,7 +27,7 @@ Texture2DFinalizer::Finalize(AssetHandle handle,
     return nullptr;
   }
 
-  graphics::TextureSpecification spec;
+  resources::TextureSpecification spec;
   spec.width = static_cast<int>(data.width);
   spec.height = static_cast<int>(data.height);
   spec.format = ToImageFormat(data.format);
@@ -38,7 +38,7 @@ Texture2DFinalizer::Finalize(AssetHandle handle,
   buffer.size = data.pixelBytes.size();
 
   std::shared_ptr<Asset> texture =
-      graphics::Texture2DAsset::Create(handle, spec, buffer);
+      resources::Texture2DAsset::Create(handle, spec, buffer);
 
   return texture;
 }

@@ -8,9 +8,9 @@
 #include "engine/core/Game.hpp"
 #include "engine/ecs/Entity.hpp"
 #include "engine/graphics/Renderer.hpp"
-#include "engine/graphics/assets/FontAsset.hpp"
-#include "engine/graphics/assets/TextureAtlasAsset.hpp"
 #include "engine/math/Color.hpp"
+#include "engine/resources/FontAsset.hpp"
+#include "engine/resources/TextureAtlasAsset.hpp"
 #include "engine/scene/SceneSerializer.hpp"
 #include "engine/systems/AudioSystem.hpp"
 #include "engine/systems/TextRenderSystem.hpp"
@@ -37,7 +37,7 @@
 namespace {
 void DrawWorldGrid(engine::graphics::Renderer &renderer,
                    const engine::math::Rect &bounds,
-                   const engine::graphics::TextureAtlasAsset &atlas) {
+                   const engine::resources::TextureAtlasAsset &atlas) {
   auto *region = atlas.GetRegion("solidWhite");
   if (!region)
     return;
@@ -86,11 +86,12 @@ void PlayingState::OnEnter(engine::core::Game &game) {
   m_atlasHandle = game.Assets()->FindByName("main_atlas");
 
   m_font =
-      game.Assets()->AcquireByName<engine::graphics::FontAsset>("main_font");
+      game.Assets()->AcquireByName<engine::resources::FontAsset>("main_font");
 
-  m_bgm = game.Assets()->AcquireByName<engine::audio::SoundAsset>("main_bgm");
+  m_bgm =
+      game.Assets()->AcquireByName<engine::resources::SoundAsset>("main_bgm");
 
-  m_atlas = game.Assets()->AcquireByName<engine::graphics::TextureAtlasAsset>(
+  m_atlas = game.Assets()->AcquireByName<engine::resources::TextureAtlasAsset>(
       "main_atlas");
 
   if (m_bgm) {
@@ -98,15 +99,15 @@ void PlayingState::OnEnter(engine::core::Game &game) {
     m_music->SetLooping(true);
     m_music->SetVolume(0.4f);
 
-    if (m_music->Load(m_bgm->sourcePath.string())) {
-      m_music->Play();
-      engine::Logger::Info("[PlayingState] BGM playing: '%s'",
-                           m_bgm->sourcePath.string().c_str());
-    } else {
-      engine::Logger::Warn("[PlayingState] failed to load BGM '%s'",
-                           m_bgm->sourcePath.string().c_str());
-      m_music.reset();
-    }
+    // if (m_music->Load(m_bgm->sourcePath.string())) {
+    //   m_music->Play();
+    //   engine::Logger::Info("[PlayingState] BGM playing: '%s'",
+    //                        m_bgm->sourcePath.string().c_str());
+    // } else {
+    //   engine::Logger::Warn("[PlayingState] failed to load BGM '%s'",
+    //                        m_bgm->sourcePath.string().c_str());
+    //   m_music.reset();
+    // }
   } else {
     engine::Logger::Warn("[PlayingState] 'main_bgm' missing; audio disabled");
   }
@@ -481,12 +482,12 @@ void PlayingState::DrawSceneDebug(engine::core::Game &game) {
 
 void PlayingState::ReloadAssets(engine::core::Game &game) {
   auto newFont =
-      game.Assets()->AcquireByName<engine::graphics::FontAsset>("main_font");
+      game.Assets()->AcquireByName<engine::resources::FontAsset>("main_font");
   auto newAtlas =
-      game.Assets()->AcquireByName<engine::graphics::TextureAtlasAsset>(
+      game.Assets()->AcquireByName<engine::resources::TextureAtlasAsset>(
           "main_atlas");
   auto newBgm =
-      game.Assets()->AcquireByName<engine::audio::SoundAsset>("main_bgm");
+      game.Assets()->AcquireByName<engine::resources::SoundAsset>("main_bgm");
 
   if (!newAtlas) {
     engine::Logger::Warn(
@@ -497,17 +498,17 @@ void PlayingState::ReloadAssets(engine::core::Game &game) {
   m_font = std::move(newFont);
   m_atlas = std::move(newAtlas);
 
-  if (m_music && newBgm) {
-    m_bgm = std::move(newBgm);
-    if (m_music->Load(m_bgm->sourcePath.string())) {
-      m_music->Play();
-      engine::Logger::Info("[PlayingState] BGM reloaded");
-    } else {
-      engine::Logger::Warn(
-          "[PlayingState] BGM reload failed; continuing without audio");
-      m_music.reset();
-    }
-  }
+  // if (m_music && newBgm) {
+  //   m_bgm = std::move(newBgm);
+  //   if (m_music->Load(m_bgm->sourcePath.string())) {
+  //     m_music->Play();
+  //     engine::Logger::Info("[PlayingState] BGM reloaded");
+  //   } else {
+  //     engine::Logger::Warn(
+  //         "[PlayingState] BGM reload failed; continuing without audio");
+  //     m_music.reset();
+  //   }
+  // }
 
   m_animations = engine::animation::AnimationLibrary{};
   m_animations.AddStrip("hero_idle", *m_atlas, "hero_idle", 10, 0.15f, true);

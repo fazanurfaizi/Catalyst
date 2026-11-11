@@ -1,11 +1,11 @@
 #pragma once
 
 #include "engine/asset/core/Asset.hpp"
-#include "engine/graphics/assets/TextureFormat.hpp"
 #include "engine/graphics/texture/Texture.hpp"
+#include "engine/resources/TextureFormat.hpp"
 #include "engine/utils/Buffer.hpp"
 
-namespace engine::graphics {
+namespace engine::resources {
 
 class TextureAsset : public asset::Asset {
 public:
@@ -33,7 +33,7 @@ protected:
 
   TextureSpecification m_spec;
 
-  Texture m_texture;
+  graphics::Texture m_texture;
 };
 
-} // namespace engine::graphics
+} // namespace engine::resources

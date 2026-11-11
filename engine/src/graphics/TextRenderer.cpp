@@ -1,8 +1,8 @@
 #include "engine/graphics/TextRenderer.hpp"
 
 #include "engine/asset/AssetPath.hpp"
-#include "engine/graphics/assets/FontAsset.hpp"
 #include "engine/graphics/text/TextLayout.hpp"
+#include "engine/resources/FontAsset.hpp"
 #include "engine/utils/Logger.hpp"
 #include "glad/gl.h"
 
@@ -88,10 +88,11 @@ void TextRenderer::Draw(const Font &font, const std::string &text,
   m_shader.Unbind();
 }
 
-void TextRenderer::Draw(const FontAsset &fontAsset, const std::string &text,
-                        const glm::vec2 &position, float scale,
-                        const glm::vec4 &color, const glm::mat4 &projection,
-                        float maxWidth, TextAlignment alignment) {
+void TextRenderer::Draw(const resources::FontAsset &fontAsset,
+                        const std::string &text, const glm::vec2 &position,
+                        float scale, const glm::vec4 &color,
+                        const glm::mat4 &projection, float maxWidth,
+                        TextAlignment alignment) {
   if (!fontAsset.font) {
     return;
   }

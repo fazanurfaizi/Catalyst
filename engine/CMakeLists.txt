@@ -38,14 +38,13 @@ add_library(engine STATIC
 
   src/audio/AudioEngine.cpp
   src/audio/MusicPlayer.cpp
-  src/audio/assets/Sound.cpp
 
   src/core/Game.cpp
   src/core/GameStateManager.cpp
   src/core/GameConfigSerializer.cpp
 
-  src/graphics/assets/AnimationAsset.cpp
-  src/graphics/assets/Texture2DAsset.cpp
+  src/resources/AnimationAsset.cpp
+  src/resources/Texture2DAsset.cpp
 
   src/graphics/Renderer.cpp
   src/graphics/TextRenderer.cpp

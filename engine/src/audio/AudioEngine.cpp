@@ -1,4 +1,5 @@
 #include "engine/audio/AudioEngine.hpp"
+#include "engine/resources/SoundAsset.hpp"
 #include "engine/utils/Logger.hpp"
 #include <mutex>
 #include <vector>
@@ -67,7 +68,8 @@ void AudioEngine::Shutdown() {
 
 bool AudioEngine::IsInitialized() const { return m_impl->engineInited; }
 
-void AudioEngine::PlayOneShot(const SoundAsset &sound, float volume) {
+void AudioEngine::PlayOneShot(const resources::SoundAsset &sound,
+                              float volume) {
   if (!m_impl->engineInited) {
     Logger::Warn("[AudioEngine] PlayOneShot before Init, ignoring");
     std::abort();
@@ -77,14 +79,14 @@ void AudioEngine::PlayOneShot(const SoundAsset &sound, float volume) {
   Update();
 
   auto *instance = new ma_sound();
-  if (ma_sound_init_from_file(
-          &m_impl->engine, sound.sourcePath.string().c_str(),
-          MA_SOUND_FLAG_DECODE, nullptr, nullptr, instance) != MA_SUCCESS) {
-    Logger::Error("[AudioEngine] Failed to init sound from '%s'",
-                  sound.sourcePath.string().c_str());
-    delete instance;
-    return;
-  }
+  // if (ma_sound_init_from_file(
+  //         &m_impl->engine, sound.sourcePath.string().c_str(),
+  //         MA_SOUND_FLAG_DECODE, nullptr, nullptr, instance) != MA_SUCCESS) {
+  //   Logger::Error("[AudioEngine] Failed to init sound from '%s'",
+  //                 sound.sourcePath.string().c_str());
+  //   delete instance;
+  //   return;
+  // }
 
   ma_sound_set_volume(instance, volume);
   ma_sound_set_end_callback(instance, OnSoundFinished, m_impl);

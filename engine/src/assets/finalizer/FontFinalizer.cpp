@@ -1,8 +1,8 @@
 #include "engine/asset/finalizer/FontFinalizer.hpp"
 #include "engine/asset/core/Asset.hpp"
 #include "engine/asset/importer/font/FontImportResult.hpp"
-#include "engine/graphics/assets/FontAsset.hpp"
 #include "engine/graphics/text/Font.hpp"
+#include "engine/resources/FontAsset.hpp"
 #include "engine/utils/Logger.hpp"
 #include <memory>
 
@@ -49,7 +49,7 @@ std::shared_ptr<Asset> FontFinalizer::Finalize(AssetHandle handle,
 
   font->SetMetrics(data.ascent, data.descent, data.lineGap);
 
-  auto fontAsset = std::make_shared<graphics::FontAsset>(handle);
+  auto fontAsset = std::make_shared<resources::FontAsset>(handle);
   fontAsset->font = std::move(font);
   fontAsset->textHeight = data.textHeight;
   return std::static_pointer_cast<Asset>(std::move(fontAsset));

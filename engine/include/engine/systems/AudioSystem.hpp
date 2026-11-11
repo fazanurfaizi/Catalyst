@@ -2,9 +2,9 @@
 
 #include "engine/asset/manager/IAssetManager.hpp"
 #include "engine/audio/AudioEngine.hpp"
-#include "engine/audio/assets/Sound.hpp"
 #include "engine/components/AudioSource.hpp"
 #include "engine/ecs/Registry.hpp"
+#include "engine/resources/SoundAsset.hpp"
 
 namespace engine::systems {
 
@@ -22,7 +22,7 @@ inline void AudioSystem(ecs::Registry &reg, asset::IAssetManager &assets) {
     if (src.clip.IsNull())
       continue;
 
-    auto sound = assets.Acquire<audio::SoundAsset>(src.clip);
+    auto sound = assets.Acquire<resources::SoundAsset>(src.clip);
     if (!sound)
       continue;
 
@@ -36,7 +36,7 @@ inline void PlayAudioNow(ecs::Registry &reg, asset::IAssetManager &assets,
   if (!src || src->clip.IsNull())
     return;
 
-  auto sound = assets.Acquire<audio::SoundAsset>(src->clip);
+  auto sound = assets.Acquire<resources::SoundAsset>(src->clip);
   if (!sound)
     return;
 

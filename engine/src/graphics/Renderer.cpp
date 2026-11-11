@@ -5,10 +5,10 @@
 #include "engine/components/Light.hpp"
 #include "engine/components/Sprite.hpp"
 #include "engine/components/Transform.hpp"
-#include "engine/graphics/assets/TextureAtlasAsset.hpp"
 #include "engine/graphics/sprite/SpriteBatch.hpp"
 #include "engine/graphics/sprite/SpriteDrawList.hpp"
 #include "engine/math/Rect.hpp"
+#include "engine/resources/TextureAtlasAsset.hpp"
 #include "engine/utils/Logger.hpp"
 #include "glad/gl.h"
 #include <algorithm>
@@ -206,17 +206,19 @@ void Renderer::RenderSprites(scene::Scene &scene,
     return a.yKey < b.yKey;
   });
 
-  std::unordered_map<asset::AssetHandle, std::shared_ptr<TextureAtlasAsset>>
+  std::unordered_map<asset::AssetHandle,
+                     std::shared_ptr<resources::TextureAtlasAsset>>
       atlasCache;
 
-  auto resolveAtlas =
-      [&](asset::AssetHandle h) -> std::shared_ptr<TextureAtlasAsset> {
+  auto resolveAtlas = [&](asset::AssetHandle h)
+      -> std::shared_ptr<resources::TextureAtlasAsset> {
     if (h.IsNull())
       return nullptr;
     auto it = atlasCache.find(h);
     if (it != atlasCache.end())
       return it->second;
-    auto a = assets ? assets->Acquire<TextureAtlasAsset>(h) : nullptr;
+    auto a =
+        assets ? assets->Acquire<resources::TextureAtlasAsset>(h) : nullptr;
     atlasCache[h] = a;
     return a;
   };

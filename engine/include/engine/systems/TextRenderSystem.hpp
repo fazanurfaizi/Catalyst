@@ -5,7 +5,7 @@
 #include "engine/components/Transform.hpp"
 #include "engine/ecs/Registry.hpp"
 #include "engine/graphics/TextRenderer.hpp"
-#include "engine/graphics/assets/FontAsset.hpp"
+#include "engine/resources/FontAsset.hpp"
 
 #include <glm/glm.hpp>
 
@@ -20,7 +20,7 @@ inline void TextRenderSystem(ecs::Registry &reg, asset::IAssetManager &assets,
       continue;
     }
 
-    auto fontAsset = assets.Acquire<graphics::FontAsset>(text.font);
+    auto fontAsset = assets.Acquire<resources::FontAsset>(text.font);
     if (!fontAsset || !fontAsset->font) {
       continue;
     }

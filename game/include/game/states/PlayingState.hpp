@@ -7,8 +7,8 @@
 #include "engine/core/GameState.hpp"
 #include "engine/ecs/Entity.hpp"
 #include "engine/graphics/TextRenderer.hpp"
-#include "engine/graphics/assets/TextureAtlasAsset.hpp"
 #include "engine/input/InputCodes.hpp"
+#include "engine/resources/TextureAtlasAsset.hpp"
 #include "engine/scene/Scene.hpp"
 #include <string_view>
 
@@ -38,9 +38,10 @@ private:
 
   engine::graphics::TextRenderer m_textRenderer;
 
-  std::shared_ptr<engine::graphics::FontAsset> m_font;
-  std::shared_ptr<engine::graphics::TextureAtlasAsset> m_atlas;
-  std::shared_ptr<engine::audio::SoundAsset> m_bgm;
+  std::shared_ptr<engine::resources::FontAsset> m_font;
+  std::shared_ptr<engine::resources::TextureAtlasAsset> m_atlas;
+  std::shared_ptr<engine::resources::SoundAsset> m_bgm;
+
   std::unique_ptr<engine::audio::MusicPlayer> m_music;
 
   engine::asset::AssetHandle m_fontHandle{};

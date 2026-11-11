@@ -1,7 +1,7 @@
-#include "engine/graphics/assets/Texture2DAsset.hpp"
+#include "engine/resources/Texture2DAsset.hpp"
 #include "engine/utils/Logger.hpp"
 
-namespace engine::graphics {
+namespace engine::resources {
 
 Texture2DAsset::Texture2DAsset(asset::AssetHandle handle)
     : TextureAsset(handle) {}
@@ -40,4 +40,4 @@ void Texture2DAsset::SetData(Buffer data) {
                    /*generateMipmaps=*/true);
 }
 
-} // namespace engine::graphics
+} // namespace engine::resources

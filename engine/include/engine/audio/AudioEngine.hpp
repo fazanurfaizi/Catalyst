@@ -1,6 +1,6 @@
 #pragma once
 
-#include "engine/audio/assets/Sound.hpp"
+#include "engine/resources/SoundAsset.hpp"
 #include <string>
 
 struct ma_engine;
@@ -20,7 +20,7 @@ public:
   void Shutdown();
   bool IsInitialized() const;
 
-  void PlayOneShot(const SoundAsset &sound, float volume = 1.0f);
+  void PlayOneShot(const resources::SoundAsset &sound, float volume = 1.0f);
 
   /** Path-based convenience, resolved against ASSETS_PATH. */
   void PlaySoundPath(const std::string &path, float volume = 1.0f);

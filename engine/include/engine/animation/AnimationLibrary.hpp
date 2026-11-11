@@ -1,7 +1,7 @@
 #pragma once
 
 #include "engine/components/AnimationClip.hpp"
-#include "engine/graphics/assets/TextureAtlasAsset.hpp"
+#include "engine/resources/TextureAtlasAsset.hpp"
 #include "engine/utils/StringHash.hpp"
 
 #include <functional>
@@ -22,7 +22,7 @@ public:
   void Add(components::AnimationClip clip);
 
   bool AddStrip(const std::string &clipName,
-                const graphics::TextureAtlasAsset &atlas,
+                const resources::TextureAtlasAsset &atlas,
                 const std::string &regionPrefix, int frameCount,
                 float frameDurationSec, bool loop = true);
 

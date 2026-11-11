@@ -19,6 +19,10 @@ public:
    */
   AssetHandle Handle() const noexcept { return m_handle; }
 
+  virtual bool EnsureGpu() const { return true; }
+  virtual bool IsGpuReady() const { return true; }
+  virtual void ReleaseGpu() const {}
+
 protected:
   explicit Asset(AssetHandle handle) noexcept : m_handle(handle) {}
 

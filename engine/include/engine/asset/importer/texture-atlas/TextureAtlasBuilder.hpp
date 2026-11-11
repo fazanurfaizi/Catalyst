@@ -1,6 +1,6 @@
 #pragma once
 
-#include "engine/graphics/assets/TextureAtlasAsset.hpp"
+#include "engine/resources/TextureAtlasAsset.hpp"
 #include "engine/utils/StringHash.hpp"
 #include <cstdint>
 #include <functional>
@@ -19,7 +19,7 @@ public:
     int width = 0;
     int height = 0;
     std::vector<std::uint8_t> rgba8;
-    std::vector<std::pair<std::string, graphics::AtlasRegion>> regions;
+    std::vector<std::pair<std::string, resources::AtlasRegion>> regions;
   };
 
   int AddFromDirectory(const std::string &directory, int maxDimension = 0);

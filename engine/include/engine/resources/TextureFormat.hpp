@@ -2,7 +2,7 @@
 
 #include <cstdint>
 
-namespace engine::graphics {
+namespace engine::resources {
 
 enum class ImageFormat {
   None = 0,
@@ -19,4 +19,4 @@ struct TextureSpecification {
   bool magFilterLinear = false;
 };
 
-} // namespace engine::graphics
+} // namespace engine::resources

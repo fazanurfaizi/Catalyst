@@ -1,12 +1,13 @@
 #pragma once
 
-#include "engine/graphics/assets/TextureAsset.hpp"
+#include "engine/graphics/texture/Texture.hpp"
+#include "engine/resources/TextureAsset.hpp"
 #include "engine/utils/StringHash.hpp"
 #include <glm/glm.hpp>
 #include <string>
 #include <unordered_map>
 
-namespace engine::graphics {
+namespace engine::resources {
 
 struct AtlasRegion {
   glm::vec2 uvMin{0.0f, 0.0f};
@@ -50,7 +51,7 @@ public:
 
   std::size_t RegionCount() const { return m_regionsById.size(); }
 
-  const Texture &GetTexture() const { return m_texture; }
+  const graphics::Texture &GetTexture() const { return m_texture; }
 
   const TextureSpecification &GetSpecification() const override {
     return m_spec;
@@ -65,7 +66,7 @@ public:
     m_nameToId.emplace(std::move(name), id);
   }
 
-  void AssignTexture(Texture texture) {
+  void AssignTexture(graphics::Texture texture) {
     m_texture = std::move(texture);
     m_spec.width = m_texture.Width();
     m_spec.height = m_texture.Height();
@@ -80,4 +81,4 @@ private:
       m_nameToId;
 };
 
-} // namespace engine::graphics
+} // namespace engine::resources

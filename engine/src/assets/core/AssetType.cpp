@@ -18,7 +18,6 @@ const char *AssetTypeToString(AssetType type) noexcept {
     return "Sound";
   case AssetType::Animation:
     return "Animation";
-
   case AssetType::Prefab:
     return "Prefab";
   case AssetType::Scene:

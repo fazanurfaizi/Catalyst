@@ -7,7 +7,7 @@
 #include <cstdint>
 #include <memory>
 
-namespace engine::graphics {
+namespace engine::resources {
 
 class FontAsset : public asset::Asset {
 public:
@@ -20,4 +20,4 @@ public:
   std::uint32_t textHeight = 0;
 };
 
-} // namespace engine::graphics
+} // namespace engine::resources

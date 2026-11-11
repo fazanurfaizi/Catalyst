@@ -1,8 +1,8 @@
 #pragma once
 
-#include "engine/graphics/assets/FontAsset.hpp"
 #include "engine/graphics/gl/Shader.hpp"
 #include "engine/graphics/text/TextLayout.hpp"
+#include "engine/resources/FontAsset.hpp"
 
 #include <glm/glm.hpp>
 #include <string>
@@ -20,7 +20,7 @@ public:
             const glm::mat4 &projection, float maxWidth = 0.0f,
             TextAlignment alignment = TextAlignment::Left);
 
-  void Draw(const FontAsset &asset, const std::string &text,
+  void Draw(const resources::FontAsset &asset, const std::string &text,
             const glm::vec2 &position, float scale, const glm::vec4 &color,
             const glm::mat4 &projection, float maxWidth = 0.0f,
             TextAlignment alignment = TextAlignment::Left);

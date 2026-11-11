@@ -2,12 +2,12 @@
 
 #include "engine/asset/core/AssetHandle.hpp"
 #include "engine/asset/core/AssetType.hpp"
-#include "engine/graphics/assets/TextureAsset.hpp"
 #include "engine/graphics/texture/Texture.hpp"
+#include "engine/resources/TextureAsset.hpp"
 #include "engine/utils/Buffer.hpp"
 #include <memory>
 
-namespace engine::graphics {
+namespace engine::resources {
 
 class Texture2DAsset : public TextureAsset {
 public:
@@ -43,4 +43,4 @@ public:
   }
 };
 
-} // namespace engine::graphics
+} // namespace engine::resources

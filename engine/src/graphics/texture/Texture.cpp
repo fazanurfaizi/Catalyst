@@ -1,5 +1,6 @@
 #include "engine/graphics/texture/Texture.hpp"
 
+#include "engine/resources/TextureFormat.hpp"
 #include "engine/utils/Logger.hpp"
 
 #include <glad/gl.h>
@@ -17,17 +18,17 @@ struct GLFormat {
   std::uint32_t channels;
 };
 
-GLFormat ToGLFormat(ImageFormat f) {
+GLFormat ToGLFormat(resources::ImageFormat f) {
   switch (f) {
-  case ImageFormat::R8:
+  case resources::ImageFormat::R8:
     return {GL_R8, GL_RED, 1};
-  case ImageFormat::RGB8:
+  case resources::ImageFormat::RGB8:
     return {GL_RGB8, GL_RGB, 3};
-  case ImageFormat::RGBA8:
+  case resources::ImageFormat::RGBA8:
     return {GL_RGBA8, GL_RGBA, 4};
-  case ImageFormat::RGBA32F:
+  case resources::ImageFormat::RGBA32F:
     return {GL_RGBA32F, GL_RGBA, 4};
-  case ImageFormat::None:
+  case resources::ImageFormat::None:
   default:
     return {GL_RGBA8, GL_RGBA, 4};
   }
@@ -77,7 +78,7 @@ bool Texture::LoadFromFile(const std::string &path) {
     return false;
   }
 
-  Upload(w, h, ImageFormat::RGBA8, data, /*generateMipmaps=*/true);
+  Upload(w, h, resources::ImageFormat::RGBA8, data, /*generateMipmaps=*/true);
   stbi_image_free(data);
   return true;
 }
@@ -89,7 +90,7 @@ void Texture::CreateSolid(std::uint32_t rgba) {
       static_cast<std::uint8_t>((rgba >> 8) & 0xFF),
       static_cast<std::uint8_t>((rgba >> 0) & 0xFF),
   };
-  Upload(1, 1, ImageFormat::RGBA8, px, /*generateMipmaps=*/false);
+  Upload(1, 1, resources::ImageFormat::RGBA8, px, /*generateMipmaps=*/false);
 }
 
 void Texture::CreateCheckerboard(int cells, std::uint32_t colorA,
@@ -123,11 +124,11 @@ void Texture::CreateCheckerboard(int cells, std::uint32_t colorA,
       pixels[idx + 3] = src[3];
     }
   }
-  Upload(size, size, ImageFormat::RGBA8, pixels.data(),
+  Upload(size, size, resources::ImageFormat::RGBA8, pixels.data(),
          /*generateMipmaps=*/true);
 }
 
-void Texture::Upload(int width, int height, ImageFormat format,
+void Texture::Upload(int width, int height, resources::ImageFormat format,
                      const std::uint8_t *pixels, bool generateMipmaps) {
   if (width <= 0 || height <= 0 || !pixels)
     return;
@@ -141,7 +142,8 @@ void Texture::Upload(int width, int height, ImageFormat format,
     glBindTexture(GL_TEXTURE_2D, m_Id);
   }
 
-  glPixelStorei(GL_UNPACK_ALIGNMENT, (format == ImageFormat::R8) ? 1 : 4);
+  glPixelStorei(GL_UNPACK_ALIGNMENT,
+                (format == resources::ImageFormat::R8) ? 1 : 4);
 
   glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, GL_RGBA,
                GL_UNSIGNED_BYTE, pixels);
