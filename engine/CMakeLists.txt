@@ -76,7 +76,8 @@ add_library(engine STATIC
   src/platform/Display.cpp
   src/platform/Window.cpp
 
-  src/scene/World.cpp
+  src/scene/Scene.cpp
+  src/scene/SceneSerializer.cpp
 
   src/utils/Logger.cpp
 )
@@ -114,6 +115,7 @@ target_link_libraries(engine PRIVATE
   imgui
   stb_image
   miniaudio
+  field_reflection::field_reflection
 )
 
 target_compile_definitions(engine PUBLIC

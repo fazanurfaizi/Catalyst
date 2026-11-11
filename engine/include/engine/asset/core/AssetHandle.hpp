@@ -5,6 +5,8 @@
 #include <functional>
 #include <string_view>
 
+#include <nlohmann/json.hpp>
+
 namespace engine::asset {
 
 class AssetHandle {
@@ -49,6 +51,22 @@ private:
 
   ValueType m_value = 0;
 };
+
+inline void to_json(nlohmann::json &j, const AssetHandle &handle) {
+  if (handle.IsNull()) {
+    j = nullptr;
+  } else {
+    j = handle.ToString();
+  }
+}
+
+inline void from_json(const nlohmann::json &j, AssetHandle &handle) {
+  if (j.is_null() || !j.is_string()) {
+    handle = AssetHandle::Null();
+  } else {
+    handle = AssetHandle::FromString(j.get<std::string>());
+  }
+}
 
 } // namespace engine::asset
 

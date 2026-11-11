@@ -9,7 +9,7 @@
 #include "engine/graphics/TextRenderer.hpp"
 #include "engine/graphics/assets/TextureAtlasAsset.hpp"
 #include "engine/input/InputCodes.hpp"
-#include "engine/scene/World.hpp"
+#include "engine/scene/Scene.hpp"
 #include <string_view>
 
 class PlayingState final : public engine::core::GameState {
@@ -33,7 +33,7 @@ public:
   void OnResize(engine::core::Game &game, int width, int height) override;
 
 private:
-  engine::scene::World m_world;
+  engine::scene::Scene m_scene;
   engine::animation::AnimationLibrary m_animations;
 
   engine::graphics::TextRenderer m_textRenderer;
@@ -46,21 +46,8 @@ private:
   engine::asset::AssetHandle m_fontHandle{};
   engine::asset::AssetHandle m_atlasHandle;
 
-  engine::ecs::Entity m_camera{};
-  engine::ecs::Entity m_coin{};
-  engine::ecs::Entity m_tower{};
-  engine::ecs::Entity m_hero{};
-  engine::ecs::Entity m_enemy{};
-  engine::ecs::Entity m_torch{};
-
-  engine::ecs::Entity m_goldText{};
-  engine::ecs::Entity m_waveText{};
-  engine::ecs::Entity m_livesText{};
-
   std::uint64_t m_lastReloadGen = 0;
 
-  void BuildUI(engine::core::Game &game);
-  void BuildDemoScene(engine::core::Game &game);
   void ApplyRegion(engine::ecs::Entity e, std::string_view region);
   void DrawSceneDebug(engine::core::Game &game);
   void ReloadAssets(engine::core::Game &game);

@@ -2,8 +2,21 @@
 
 #include "engine/asset/manager/AssetManagerRuntime.hpp"
 #include "engine/audio/AudioEngine.hpp"
+#include "engine/components/AnimationClip.hpp"
+#include "engine/components/Animator.hpp"
+#include "engine/components/AudioSource.hpp"
+#include "engine/components/Camera2D.hpp"
+#include "engine/components/Light.hpp"
+#include "engine/components/Name.hpp"
+#include "engine/components/Particle.hpp"
+#include "engine/components/ParticleEmitter.hpp"
+#include "engine/components/Sprite.hpp"
+#include "engine/components/TextComponent.hpp"
+#include "engine/components/Transform.hpp"
+#include "engine/components/Velocity.hpp"
 #include "engine/core/Clock.hpp"
 #include "engine/core/GameConfigSerializer.hpp"
+#include "engine/ecs/ComponentSerializer.hpp"
 #include "engine/graphics/Renderer.hpp"
 #include "engine/utils/Logger.hpp"
 #include "imgui.h"
@@ -24,12 +37,34 @@ namespace {
 void GlfwErrorCallback(int code, const char *desc) {
   std::fprintf(stderr, "GLFW error %d: %s\n", code, desc);
 }
+
+void InitializeComponentSerialization() {
+  auto &reg = ecs::ComponentRegistry::Instance();
+
+  reg.Register<components::AnimationFrame>();
+  reg.Register<components::AnimationClip>();
+  reg.Register<components::Animator>();
+  reg.Register<components::AudioSource>();
+  reg.Register<components::Camera2D>();
+  reg.Register<components::PointLight>();
+  reg.Register<components::DirectionalLight>();
+  reg.Register<components::SpotLight>();
+  reg.Register<components::Name>();
+  reg.Register<components::Particle>();
+  reg.Register<components::ParticleEmitter>();
+  reg.Register<components::Sprite>();
+  reg.Register<components::TextComponent>();
+  reg.Register<components::Transform>();
+  reg.Register<components::Velocity>();
+  reg.Register<components::LinearVelocity>();
+}
 } // namespace
 
 Game::Game(const platform::WindowConfig &config, const DebugConfig &debug,
            std::filesystem::path gameConfigPath)
     : m_config(config), m_debug(debug),
       m_gameConfigPath(std::move(gameConfigPath)) {
+
   m_window = platform::Window::Create(m_config);
   if (!m_window) {
     Logger::Error("glfwInit failed");
@@ -80,6 +115,8 @@ Game::Game(const platform::WindowConfig &config, const DebugConfig &debug,
 
   Logger::Info("GL: %s",
                reinterpret_cast<const char *>(glGetString(GL_VERSION)));
+
+  InitializeComponentSerialization();
 }
 
 Game::~Game() {

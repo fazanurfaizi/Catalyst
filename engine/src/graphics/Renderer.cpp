@@ -166,9 +166,9 @@ void Renderer::Draw(const glm::vec2 &position, const glm::vec2 &scale,
   m_hasSprites = true;
 }
 
-void Renderer::RenderSprites(scene::World &world,
+void Renderer::RenderSprites(scene::Scene &scene,
                              asset::IAssetManager *assets) {
-  auto &reg = world.Registry();
+  auto &reg = scene.Registry();
 
   struct Cmd {
     const components::Transform *t;
@@ -243,8 +243,8 @@ void Renderer::RenderSprites(scene::World &world,
   }
 }
 
-void Renderer::RenderLights(scene::World &world) {
-  auto &reg = world.Registry();
+void Renderer::RenderLights(scene::Scene &scene) {
+  auto &reg = scene.Registry();
 
   m_lightBuffer.pointCount = 0;
   m_lightBuffer.directionalCount = 0;
@@ -420,14 +420,14 @@ void Renderer::UpdateTileGrid(const glm::mat4 &viewProjection) {
   const glm::vec2 hi = glm::max(glm::max(c0, c1), glm::max(c2, c3));
 
   // Guard against a degenerate/identity projection.
-  const float worldW = std::max(hi.x - lo.x, 1e-3f);
-  const float worldH = std::max(hi.y - lo.y, 1e-3f);
+  const float sceneW = std::max(hi.x - lo.x, 1e-3f);
+  const float sceneH = std::max(hi.y - lo.y, 1e-3f);
 
   const auto tilesX = m_tileCuller.TilesX();
   const auto tilesY = m_tileCuller.TilesY();
 
-  m_tileCuller.SetTileGrid(tilesX, tilesY, worldW / static_cast<float>(tilesX),
-                           worldH / static_cast<float>(tilesY), lo);
+  m_tileCuller.SetTileGrid(tilesX, tilesY, sceneW / static_cast<float>(tilesX),
+                           sceneH / static_cast<float>(tilesY), lo);
 }
 
 void Renderer::BuildTileGrid() {

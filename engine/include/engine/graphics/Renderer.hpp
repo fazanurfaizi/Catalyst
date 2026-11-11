@@ -13,7 +13,7 @@
 #include "engine/graphics/texture/Texture.hpp"
 #include "engine/math/Color.hpp"
 #include "engine/math/Rect.hpp"
-#include "engine/scene/World.hpp"
+#include "engine/scene/Scene.hpp"
 
 #include <cstdint>
 #include <memory>
@@ -42,9 +42,11 @@ public:
                   const math::Rect &visibleBounds);
   void EndFrame();
 
-  void RenderSprites(scene::World &world, asset::IAssetManager *assets);
-  // void RenderParticles(scene::World &world, asset::IAssetManager *assets);
-  void RenderLights(scene::World &world);
+  void RenderSprites(scene::Scene &scene, asset::IAssetManager *assets);
+  // void RenderParticles(scene::Scene &scene, asset::IAssetManager *assets);
+  void RenderLights(scene::Scene &scene);
+  // void RenderCollision();
+  // void RenderPhysics();
 
   void Draw(const glm::vec2 &position, const glm::vec2 &scale, float rotation,
             const math::Color color, const Texture *texture,

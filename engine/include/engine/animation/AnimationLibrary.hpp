@@ -2,6 +2,7 @@
 
 #include "engine/components/AnimationClip.hpp"
 #include "engine/graphics/assets/TextureAtlasAsset.hpp"
+#include "engine/utils/StringHash.hpp"
 
 #include <functional>
 #include <string>
@@ -29,8 +30,8 @@ public:
   int Count() const { return static_cast<int>(m_clips.size()); }
 
 private:
-  std::unordered_map<std::string, components::AnimationClip,
-                     graphics::StringHash, std::equal_to<>>
+  std::unordered_map<std::string, components::AnimationClip, StringHash,
+                     std::equal_to<>>
       m_clips;
 };
 

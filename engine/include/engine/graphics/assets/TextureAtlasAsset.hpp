@@ -1,6 +1,7 @@
 #pragma once
 
 #include "engine/graphics/assets/TextureAsset.hpp"
+#include "engine/utils/StringHash.hpp"
 #include <glm/glm.hpp>
 #include <string>
 #include <unordered_map>
@@ -10,19 +11,6 @@ namespace engine::graphics {
 struct AtlasRegion {
   glm::vec2 uvMin{0.0f, 0.0f};
   glm::vec2 uvMax{1.0f, 1.0f};
-};
-
-struct StringHash {
-  using is_transparent = void;
-  std::size_t operator()(std::string_view sv) const noexcept {
-    return std::hash<std::string_view>{}(sv);
-  }
-  std::size_t operator()(const std::string &s) const noexcept {
-    return std::hash<std::string_view>{}(s);
-  }
-  std::size_t operator()(const char *s) const noexcept {
-    return std::hash<std::string_view>{}(s);
-  }
 };
 
 class TextureAtlasAsset : public TextureAsset {

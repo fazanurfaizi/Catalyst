@@ -1,6 +1,7 @@
 #pragma once
 
 #include "engine/graphics/assets/TextureAtlasAsset.hpp"
+#include "engine/utils/StringHash.hpp"
 #include <cstdint>
 #include <functional>
 #include <string>
@@ -49,8 +50,7 @@ private:
   void AddSource(Source &&src);
 
   std::vector<Source> m_sources;
-  std::unordered_set<std::string, graphics::StringHash, std::equal_to<>>
-      m_sourceNames;
+  std::unordered_set<std::string, StringHash, std::equal_to<>> m_sourceNames;
 };
 
 } // namespace engine::asset

@@ -6,6 +6,7 @@
 #include "engine/components/Light.hpp"
 #include "engine/components/TextComponent.hpp"
 #include "engine/core/Game.hpp"
+#include "engine/ecs/Entity.hpp"
 #include "engine/graphics/Renderer.hpp"
 #include "engine/graphics/assets/FontAsset.hpp"
 #include "engine/graphics/assets/TextureAtlasAsset.hpp"
@@ -112,41 +113,94 @@ void PlayingState::OnEnter(engine::core::Game &game) {
 
   m_lastReloadGen = game.Assets()->GetReloadGeneration();
 
-  auto &reg = m_world.Registry();
-  m_camera = m_world.CreateEntity("MainCamera");
-
   game.GetWindow().ClearWindow();
-
-  auto &cam = reg.Emplace<engine::components::Camera2D>(m_camera);
-  cam.orthoSize = 10.0f;
-  cam.active = true;
-
-  auto framebufferSize = game.Display().FramebufferSize();
   game.GetRenderer().SetAmbientLight({0.03f, 0.04f, 0.25f});
+
+  const char *kScenePath = "scene.json";
+  if (!engine::scene::SceneSerializer::Load(m_scene, kScenePath)) {
+    engine::Logger::Error("[PlayingState] failed to load scene '%s'",
+                          kScenePath);
+    return;
+  }
+
+  auto &reg = m_scene.Registry();
+  for (auto name : {"MainCamera", "Hero", "Tower", "Enemy", "Coin", "Torch",
+                    "GoldText", "WaveText", "LivesText"}) {
+    if (!m_scene.FindEntity(name))
+      engine::Logger::Warn(
+          "[PlayingState] scene.json is missing entity '%s' "
+          "(or its Name component is empty — re-save the scene)",
+          name);
+  }
+
+  auto camera = m_scene.FindEntity("MainCamera");
+  auto hero = m_scene.FindEntity("Hero");
+  auto coin = m_scene.FindEntity("Coin");
+
+  // Reset animation
+  if (auto *a = reg.TryGet<engine::components::Animator>(*hero)) {
+    engine::components::PlayAnimation(*a, m_atlasHandle, "hero_idle");
+  }
+
+  if (auto *a = reg.TryGet<engine::components::Animator>(*coin)) {
+    engine::components::PlayAnimation(*a, m_atlasHandle, "coin_spin");
+  }
+
+  for (auto name : {"Hero", "Tower", "Enemy", "Coin", "Torch"}) {
+    auto e = m_scene.FindEntity(name);
+    if (!e)
+      continue;
+    if (auto *s = reg.TryGet<engine::components::Sprite>(*e);
+        s && !s->regionName.empty()) {
+      ApplyRegion(*e, s->regionName);
+    }
+  }
+
+  for (auto name : {"GoldText", "WaveText", "LivesText"}) {
+    auto e = m_scene.FindEntity(name);
+    if (!e)
+      continue;
+    if (auto *t = reg.TryGet<engine::components::TextComponent>(*e)) {
+      t->font = m_fontHandle;
+    }
+  }
+
+  if (auto *s = reg.TryGet<engine::components::AudioSource>(*hero)) {
+    s->clip = game.Assets()->FindByName("hero_attack_sfx");
+  }
+
+  if (auto *cam = reg.TryGet<engine::components::Camera2D>(*camera)) {
+    if (reg.IsAlive(*hero))
+      cam->followTarget = *hero;
+    cam->active = true;
+  }
 
   m_animations.AddStrip("hero_idle", *m_atlas, "hero_idle", 10, 0.15f, true);
   m_animations.AddStrip("hero_attack", *m_atlas, "hero_attack", 10, 0.08f,
                         false);
-  m_animations.AddStrip("hero_move", *m_atlas, "hero_move", 10, 0.1f, true);
+  m_animations.AddStrip("hero_move", *m_atlas, "hero_move", 10, 0.10f, true);
   m_animations.AddStrip("coin_spin", *m_atlas, "coin", 6, 0.08f, true);
-
-  BuildDemoScene(game);
-  BuildUI(game);
 }
 
 void PlayingState::OnRender(engine::core::Game &game) {
   auto &renderer = game.GetRenderer();
-  auto &reg = m_world.Registry();
-  auto &camera = reg.Get<engine::components::Camera2D>(m_camera);
+  auto &reg = m_scene.Registry();
+
+  auto camE = m_scene.FindEntity("MainCamera");
+  if (!camE)
+    return;
+  auto *camera = reg.TryGet<engine::components::Camera2D>(*camE);
+  if (!camera)
+    return;
 
   const float aspect = renderer.AspectRatio();
-  const glm::mat4 vp = camera.ViewProjectionMatrix(aspect);
-  const engine::math::Rect bounds = camera.VisibleWorldBounds(aspect);
+  const glm::mat4 vp = camera->ViewProjectionMatrix(aspect);
+  const engine::math::Rect bounds = camera->VisibleWorldBounds(aspect);
 
   renderer.BeginFrame(vp, bounds);
   DrawWorldGrid(renderer, bounds, *m_atlas);
-  renderer.RenderSprites(m_world, game.Assets());
-  renderer.RenderLights(m_world);
+  renderer.RenderSprites(m_scene, game.Assets());
+  renderer.RenderLights(m_scene);
   renderer.EndFrame();
 
   const glm::mat4 uiProjection =
@@ -161,8 +215,9 @@ void PlayingState::OnUpdate(engine::core::Game &game, double dt) {
     ReloadAssets(game);
   }
 
-  auto &reg = m_world.Registry();
-  auto &camera = reg.Get<engine::components::Camera2D>(m_camera);
+  auto &reg = m_scene.Registry();
+  auto camE = m_scene.FindEntity("MainCamera");
+  auto &camera = reg.Get<engine::components::Camera2D>(*camE);
   auto &in = game.Input();
 
   const float speed = 5.0f * static_cast<float>(dt);
@@ -180,62 +235,60 @@ void PlayingState::OnUpdate(engine::core::Game &game, double dt) {
   if (in.IsKeyDown(engine::input::Key::E))
     camera.RotateBy(-0.5f * static_cast<float>(dt));
 
-  engine::systems::AudioSystem(m_world.Registry(), *game.Assets());
+  engine::systems::AudioSystem(m_scene.Registry(), *game.Assets());
 }
 
 void PlayingState::OnFixedUpdate(engine::core::Game &game, double dt) {
-  auto &reg = m_world.Registry();
-
+  auto &reg = m_scene.Registry();
   const auto atlasHandle = game.Assets()->FindByName("main_atlas");
 
-  if (reg.IsAlive(m_hero)) {
-    auto &a = reg.Get<engine::components::Animator>(m_hero);
-    auto &t = reg.Get<engine::components::Transform>(m_hero);
-    auto &v = reg.Get<engine::components::Velocity>(m_hero);
+  if (auto hero = m_scene.FindEntity("Hero"); hero && reg.IsAlive(*hero)) {
+    auto *a = reg.TryGet<engine::components::Animator>(*hero);
+    auto *t = reg.TryGet<engine::components::Transform>(*hero);
+    auto *v = reg.TryGet<engine::components::Velocity>(*hero);
+    if (a && t && v) {
+      if (a->finished && a->clipName == "hero_attack")
+        engine::components::PlayAnimation(*a, atlasHandle, "hero_idle");
 
-    // Transition: attack finished -> idle.
-    if (a.finished && a.clipName == "hero_attack") {
-      engine::components::PlayAnimation(a, atlasHandle, "hero_idle");
-    }
-
-    if (!v.ArrivedAtTarget(t.position)) {
-      if (a.clipName != "hero_attack" && a.clipName != "hero_move") {
-        engine::components::PlayAnimation(a, atlasHandle, "hero_move");
+      if (!v->ArrivedAtTarget(t->position)) {
+        if (a->clipName != "hero_attack" && a->clipName != "hero_move")
+          engine::components::PlayAnimation(*a, atlasHandle, "hero_move");
+      } else {
+        t->position = v->targetPosition;
+        if (a->clipName != "hero_attack" && a->clipName != "hero_idle")
+          engine::components::PlayAnimation(*a, atlasHandle, "hero_idle");
       }
+    }
+  }
+
+  if (auto enemy = m_scene.FindEntity("Enemy"); enemy && reg.IsAlive(*enemy)) {
+    if (auto *t = reg.TryGet<engine::components::Transform>(*enemy)) {
+      const float angle = static_cast<float>(game.ElapsedTime());
+      t->position = {std::cos(angle) * 6.0f, std::sin(angle) * 4.0f};
+      t->rotation = angle;
+    }
+  }
+
+  if (auto torch = m_scene.FindEntity("Torch"); torch && reg.IsAlive(*torch)) {
+    if (auto *light = reg.TryGet<engine::components::PointLight>(*torch)) {
+      const float t = static_cast<float>(game.ElapsedTime());
+      const float flicker =
+          0.80f + 0.15f * std::sin(t * 12.7f) + 0.05f * std::sin(t * 31.3f);
+      light->diffuse = glm::vec3{1.00f, 0.65f, 0.25f} * flicker;
     } else {
-      t.position = v.targetPosition;
-      if (a.clipName != "hero_attack" && a.clipName != "hero_idle") {
-        engine::components::PlayAnimation(a, atlasHandle, "hero_idle");
-      }
+      engine::Logger::Warn(
+          "[PlayingState] 'Torch' has no PointLight — scene.json is stale");
     }
-  }
-
-  // Enemy orbits origin.
-  if (reg.IsAlive(m_enemy)) {
-    const float angle = static_cast<float>(game.ElapsedTime());
-    auto &t = reg.Get<engine::components::Transform>(m_enemy);
-    t.position = {std::cos(angle) * 6.0f, std::sin(angle) * 4.0f};
-    t.rotation = angle;
-  }
-
-  if (reg.IsAlive(m_torch)) {
-    auto &light = reg.Get<engine::components::PointLight>(m_torch);
-    const float t = static_cast<float>(game.ElapsedTime());
-    // Cheap two-sine flicker — looks random enough, no state needed.
-    const float flicker =
-        0.80f + 0.15f * std::sin(t * 12.7f) + 0.05f * std::sin(t * 31.3f);
-    light.diffuse = glm::vec3{1.00f, 0.65f, 0.25f} * flicker;
   }
 
   engine::systems::AnimationSystem(reg, m_animations, static_cast<float>(dt));
-  engine::systems::ParticleSystem(reg, dt);
-  engine::systems::MoveTowardTargetSystem(reg, dt);
-
+  engine::systems::ParticleSystem(reg, static_cast<float>(dt));
+  engine::systems::MoveTowardTargetSystem(reg, static_cast<float>(dt));
   reg.FlushDeferred();
 }
 
 void PlayingState::OnLateUpdate(engine::core::Game &game, double dt) {
-  auto &reg = m_world.Registry();
+  auto &reg = m_scene.Registry();
 
   engine::systems::CameraFollowSystem(reg, dt);
 }
@@ -268,8 +321,9 @@ void PlayingState::OnKey(engine::core::Game &game, engine::input::Key key,
 void PlayingState::OnScroll(engine::core::Game &game, double dx, double dy) {
   (void)dx;
   // Zoom around the cursor for natural feel.
-  auto &reg = m_world.Registry();
-  auto &camera = reg.Get<engine::components::Camera2D>(m_camera);
+  auto &reg = m_scene.Registry();
+  auto &camera =
+      reg.Get<engine::components::Camera2D>(*m_scene.FindEntity("MainCamera"));
 
   const auto fbSize = game.Display().FramebufferSize();
 
@@ -291,8 +345,9 @@ void PlayingState::OnMouseButton(engine::core::Game &game,
   if (action != engine::input::KeyAction::Press)
     return;
 
-  auto &reg = m_world.Registry();
-  auto &camera = reg.Get<engine::components::Camera2D>(m_camera);
+  auto &reg = m_scene.Registry();
+  auto &camera =
+      reg.Get<engine::components::Camera2D>(*m_scene.FindEntity("MainCamera"));
   auto &in = game.Input();
 
   const auto fbSize = game.Display().FramebufferSize();
@@ -301,17 +356,18 @@ void PlayingState::OnMouseButton(engine::core::Game &game,
       {static_cast<float>(cursor.x), static_cast<float>(cursor.y)});
   glm::vec2 worldPos = camera.ScreenToWorld(cursorFb, fbSize);
 
+  auto hero = m_scene.FindEntity("Hero");
   if (button == engine::input::MouseButton::Left) {
-    auto &animation = reg.Get<engine::components::Animator>(m_hero);
+    auto &animation = reg.Get<engine::components::Animator>(*hero);
     if (animation.clipName == "hero_idle") {
       engine::components::PlayAnimation(
           animation, game.Assets()->FindByName("main_atlas"), "hero_attack");
-      engine::systems::PlayAudioNow(reg, *game.Assets(), m_hero);
+      engine::systems::PlayAudioNow(reg, *game.Assets(), *hero);
     }
   }
 
   if (button == engine::input::MouseButton::Right) {
-    if (auto *val = reg.TryGet<engine::components::Velocity>(m_hero)) {
+    if (auto *val = reg.TryGet<engine::components::Velocity>(*hero)) {
       val->targetPosition = worldPos;
     }
   }
@@ -327,119 +383,6 @@ void PlayingState::OnResize(engine::core::Game &game, int w, int h) {
   game.GetRenderer().Resize(fb.x, fb.y);
 }
 
-void PlayingState::BuildDemoScene(engine::core::Game &game) {
-  auto &reg = m_world.Registry();
-  auto &cam = reg.Get<engine::components::Camera2D>(m_camera);
-
-  // Tower
-  {
-    m_tower = m_world.CreateEntity("Tower");
-    reg.Emplace<engine::components::Transform>(m_tower,
-                                               engine::components::Transform{
-                                                   .position = {-4.0f, -2.0f},
-                                                   .scale = {1.5f, 1.5f},
-                                               });
-    reg.Emplace<engine::components::Sprite>(
-        m_tower, engine::components::Sprite{
-                     .layer = engine::components::RenderLayer::Entities});
-    ApplyRegion(m_tower, "tower");
-  }
-
-  // Hero
-  {
-    m_hero = m_world.CreateEntity("Hero");
-    reg.Emplace<engine::components::Transform>(
-        m_hero, engine::components::Transform{.position = {4.0f, -2.0f},
-                                              .scale = {1.2f, 1.7f}});
-    reg.Emplace<engine::components::Sprite>(
-        m_hero, engine::components::Sprite{
-                    .layer = engine::components::RenderLayer::Entities});
-    reg.Emplace<engine::components::Velocity>(
-        m_hero, engine::components::Velocity{
-                    .targetPosition = {4.0f, -2.0f},
-                    .speed = 5.0f,
-                });
-    reg.Emplace<engine::components::Animator>(m_hero);
-    ApplyRegion(m_hero, "hero_idle_0");
-    cam.followTarget = m_hero;
-    auto &hero_light = reg.Emplace<engine::components::PointLight>(m_hero);
-    hero_light.ambient = {0.15f, 0.08f, 0.02f};
-    hero_light.diffuse = {1.00f, 0.65f, 0.25f}; // warm fire orange
-    hero_light.specular = {0.00f, 0.00f, 0.00f};
-    hero_light.constant = 1.0f;
-    hero_light.linear = 1.5f;
-    hero_light.quadratic = 1.2f;
-
-    auto &sfx = reg.Emplace<engine::components::AudioSource>(m_hero);
-    sfx.clip = game.Assets()->FindByName("hero_attack_sfx");
-    sfx.volume = 0.8;
-
-    if (reg.IsAlive(m_hero)) {
-      auto &a = reg.Get<engine::components::Animator>(m_hero);
-      if (a.finished && a.clipName == "hero_idle") {
-        engine::components::PlayAnimation(a, m_atlasHandle, "hero_idle");
-      }
-    }
-  }
-
-  // Enemy
-  {
-    m_enemy = m_world.CreateEntity("Enemy");
-    reg.Emplace<engine::components::Transform>(
-        m_enemy, engine::components::Transform{.scale = {0.9f, 1.0f}});
-    reg.Emplace<engine::components::Sprite>(
-        m_enemy, engine::components::Sprite{
-                     .layer = engine::components::RenderLayer::Entities});
-    ApplyRegion(m_enemy, "enemy");
-  }
-
-  // Coin
-  {
-    m_coin = m_world.CreateEntity("Coin");
-    reg.Emplace<engine::components::Transform>(
-        m_coin, engine::components::Transform{.position = {3.0f, 3.0f},
-                                              .scale = {0.8f, 0.8f}});
-    reg.Emplace<engine::components::Sprite>(
-        m_coin, engine::components::Sprite{
-                    .color = engine::math::kColorWhite,
-                    .layer = engine::components::RenderLayer::Ground});
-    reg.Emplace<engine::components::Animator>(m_coin);
-    ApplyRegion(m_coin, "coin_0");
-
-    if (reg.IsAlive(m_coin)) {
-      auto &a = reg.Get<engine::components::Animator>(m_coin);
-      if (a.finished && a.clipName == "coin_spin") {
-        engine::components::PlayAnimation(a, m_atlasHandle, "coin_spin");
-      }
-    }
-  }
-
-  // Torch
-  {
-    m_torch = m_world.CreateEntity("Torch");
-    reg.Emplace<engine::components::Transform>(m_torch,
-                                               engine::components::Transform{
-                                                   .position = {0.0f, 3.0f},
-                                                   .scale = {0.6f, 0.6f},
-                                               });
-    reg.Emplace<engine::components::Sprite>(
-        m_torch, engine::components::Sprite{
-                     .color = engine::math::kColorWhite,
-                     .layer = engine::components::RenderLayer::Entities,
-                 });
-    ApplyRegion(m_torch,
-                "tower"); // reuse an orange-red solid as the torch body
-
-    auto &torch = reg.Emplace<engine::components::PointLight>(m_torch);
-    torch.ambient = {0.15f, 0.08f, 0.02f};
-    torch.diffuse = {1.00f, 0.65f, 0.25f}; // warm fire orange
-    torch.specular = {0.00f, 0.00f, 0.00f};
-    torch.constant = 1.0f;
-    torch.linear = 2.0f;
-    torch.quadratic = 3.5f;
-  }
-}
-
 void PlayingState::ApplyRegion(engine::ecs::Entity e, std::string_view region) {
   if (!m_atlas)
     return;
@@ -448,13 +391,13 @@ void PlayingState::ApplyRegion(engine::ecs::Entity e, std::string_view region) {
                          std::string(region).c_str());
     return;
   }
-  auto &s = m_world.Registry().Get<engine::components::Sprite>(e);
+  auto &s = m_scene.Registry().Get<engine::components::Sprite>(e);
   s.atlas = m_atlasHandle;
   s.regionName = std::string(region);
 }
 
 void PlayingState::DrawSceneDebug(engine::core::Game &game) {
-  auto &reg = m_world.Registry();
+  auto &reg = m_scene.Registry();
 
   ImGui::Begin("Renderer");
   ImGui::Text("Draw calls: %u", game.GetRenderer().DrawCalls());
@@ -486,7 +429,14 @@ void PlayingState::DrawSceneDebug(engine::core::Game &game) {
 
   ImGui::Separator();
 
-  auto &camera = reg.Get<engine::components::Camera2D>(m_camera);
+  if (ImGui::Button("Save Scene")) {
+    engine::scene::SceneSerializer::Save(m_scene, "scene.json");
+  }
+
+  ImGui::Separator();
+
+  auto &camera =
+      reg.Get<engine::components::Camera2D>(*m_scene.FindEntity("MainCamera"));
   auto p = camera.position;
   ImGui::Text("Cam pos: (%.2f, %.2f)", p.x, p.y);
   ImGui::Text("Cam zoom: %.2f", camera.zoom);
@@ -500,7 +450,7 @@ void PlayingState::DrawSceneDebug(engine::core::Game &game) {
   ImGui::Separator();
 
   if (ImGui::Button("Spawn Particle Emitter")) {
-    auto e = m_world.CreateEntity("Emitter");
+    auto e = m_scene.CreateEntity("Emitter");
     reg.Emplace<engine::components::Transform>(
         e,
         engine::components::Transform{
@@ -566,49 +516,15 @@ void PlayingState::ReloadAssets(engine::core::Game &game) {
   m_animations.AddStrip("hero_move", *m_atlas, "hero_move", 10, 0.10f, true);
   m_animations.AddStrip("coin_spin", *m_atlas, "coin", 6, 0.08f, true);
 
-  ApplyRegion(m_hero, "hero_idle_0");
-  ApplyRegion(m_tower, "tower");
-  ApplyRegion(m_enemy, "enemy");
-  ApplyRegion(m_coin, "coin_0");
-  ApplyRegion(m_torch, "tower");
+  auto applyRegion = [&](std::string_view entityName, std::string_view region) {
+    if (auto e = m_scene.FindEntity(entityName); e)
+      ApplyRegion(*e, region);
+  };
+  applyRegion("Hero", "hero_idle_0");
+  applyRegion("Tower", "tower");
+  applyRegion("Enemy", "enemy");
+  applyRegion("Coin", "coin_0");
+  applyRegion("Torch", "tower");
 
   engine::Logger::Info("[PlayingState] assets reloaded");
-}
-
-void PlayingState::BuildUI(engine::core::Game &game) {
-  auto &reg = m_world.Registry();
-
-  m_goldText = m_world.CreateEntity("GoldText");
-  reg.Emplace<engine::components::Transform>(
-      m_goldText, engine::components::Transform{.position = {20.0f, 30.0f}});
-  {
-    auto &t = reg.Emplace<engine::components::TextComponent>(m_goldText);
-    t.text = "Gold: 100";
-    t.font = m_fontHandle;
-    t.color = {1.0f, 0.85f, 0.2f, 1.0f};
-    t.scale = 2.0f;
-    t.alignment = engine::graphics::TextAlignment::Left;
-  }
-
-  m_waveText = m_world.CreateEntity("WaveText");
-  reg.Emplace<engine::components::Transform>(
-      m_waveText, engine::components::Transform{.position = {400.0f, 30.0f}});
-  {
-    auto &t = reg.Emplace<engine::components::TextComponent>(m_waveText);
-    t.text = "Wave 1 / 10";
-    t.font = m_fontHandle;
-    t.color = {1.0f, 1.0f, 1.0f, 1.0f};
-    t.scale = 1.5f;
-  }
-
-  m_livesText = m_world.CreateEntity("LivesText");
-  reg.Emplace<engine::components::Transform>(
-      m_livesText, engine::components::Transform{.position = {400.0f, 70.0f}});
-  {
-    auto &t = reg.Emplace<engine::components::TextComponent>(m_livesText);
-    t.text = "Lives: 20";
-    t.font = m_fontHandle;
-    t.color = {1.0f, 0.4f, 0.4f, 1.0f};
-    t.scale = 1.5f;
-  }
 }
