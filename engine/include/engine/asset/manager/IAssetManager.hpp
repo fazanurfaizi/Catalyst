@@ -82,6 +82,12 @@ public:
 
   /** Increments on every successful or attempted Reimport. */
   virtual std::uint64_t GetReloadGeneration() const = 0;
+
+  /** Import CPU-only. Safe for background threads. */
+  virtual std::shared_ptr<Asset> PreloadCpu(AssetHandle handle) = 0;
+
+  /** Ensure GPU resource is ready. Must run on main thread with GL context */
+  virtual std::shared_ptr<Asset> EnsureGpu(AssetHandle handle) = 0;
 };
 
 } // namespace engine::asset

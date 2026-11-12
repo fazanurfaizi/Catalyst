@@ -16,7 +16,7 @@ namespace engine::asset {
 using nlohmann::json;
 
 namespace {
-const std::uint32_t ParseHex(std::string_view hexStr) {
+std::optional<std::uint32_t> ParseHex(std::string_view hexStr) {
   if (!hexStr.empty() && hexStr[0] == '#') {
     hexStr.remove_prefix(1);
   } else if (hexStr.size() >= 2 && hexStr[0] == '0' &&
@@ -24,12 +24,15 @@ const std::uint32_t ParseHex(std::string_view hexStr) {
     hexStr.remove_prefix(2);
   }
 
+  if (hexStr.empty())
+    return std::nullopt;
+
   std::uint32_t result = 0;
   auto [ptr, ec] =
       std::from_chars(hexStr.data(), hexStr.data() + hexStr.size(), result, 16);
 
-  if (ec != std::errc()) {
-    throw std::runtime_error("Failed to parse hex color string.");
+  if (ec != std::errc() || ptr != hexStr.data() + hexStr.size()) {
+    return std::nullopt;
   }
 
   return result;
@@ -88,16 +91,28 @@ ImportTextureAtlas(const ImportRequest &request) {
       const std::string name = entry.value("name", "");
       if (entry.value("ifMissing", false) && builder.HasSource(name))
         continue;
-      const std::uint32_t color = ParseHex(entry.value("color", "FFFFFFFF"));
-      builder.AddSolid(name, color, entry.value("size", 16));
+      const auto color = ParseHex(entry.value("color", "FFFFFFFF"));
+      if (!color) {
+        return ImportResult<ImportedAssetDataPtr>::Err(
+            ImportError::Make(ImportError::Code::MalformedContent,
+                              "Invalid hex color in 'color'")
+                .WithPath(request.absolutePath));
+      }
+      builder.AddSolid(name, *color, entry.value("size", 16));
     } else if (type == "checkerboard") {
       const std::string name = entry.value("name", "");
       const int cells = entry.value("cells", 1);
       if (entry.value("ifMissing", false) && builder.HasSource(name))
         continue;
-      const std::uint32_t colorA = ParseHex(entry.value("colorA", "FFFFFFFF"));
-      const std::uint32_t colorB = ParseHex(entry.value("colorB", "FFFFFFFF"));
-      builder.AddCheckerboard(name, cells, colorA, colorB);
+      const auto colorA = ParseHex(entry.value("colorA", "FFFFFFFF"));
+      const auto colorB = ParseHex(entry.value("colorB", "FFFFFFFF"));
+      if (!colorA || !colorB) {
+        return ImportResult<ImportedAssetDataPtr>::Err(
+            ImportError::Make(ImportError::Code::MalformedContent,
+                              "Invalid hex color in 'colorA' or 'colorB'")
+                .WithPath(request.absolutePath));
+      }
+      builder.AddCheckerboard(name, cells, *colorA, *colorB);
     }
   }
 

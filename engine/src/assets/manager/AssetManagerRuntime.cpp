@@ -2,6 +2,7 @@
 #include "engine/asset/finalizer/AssetFinalizer.hpp"
 #include "engine/asset/persistence/SidecarSerializer.hpp"
 #include "engine/utils/Logger.hpp"
+#include <filesystem>
 #include <utility>
 
 namespace engine::asset {
@@ -61,70 +62,7 @@ const ImportError *AssetManagerRuntime::LastError(AssetHandle handle) const {
 }
 
 std::shared_ptr<Asset> AssetManagerRuntime::AcquireRaw(AssetHandle handle) {
-  if (auto loaded = m_cache.FindLoaded(handle)) {
-    return loaded;
-  }
-
-  const AssetRecord *record = Record(handle);
-  if (!record) {
-    Logger::Error("[AssetManagerRuntime] unknown handle %s",
-                  handle.ToString().c_str());
-    m_cache.MarkFailed(
-        handle, ImportError::Make(ImportError::Code::Internal,
-                                  "No record registered for this handle"));
-    return nullptr;
-  }
-
-  if (record->state != AssetRecordState::Valid) {
-    m_cache.MarkFailed(
-        handle,
-        ImportError::Make(ImportError::Code::FileNotFound,
-                          "Asset record is not Valid (Missing or Broken)")
-            .WithPath(record->path));
-    return nullptr;
-  }
-
-  // Find importer by extension
-  const std::filesystem::path absPath = m_projectRoot / record->path;
-  IAssetImporter *importer =
-      m_registry.FindForExtension(record->path.extension().string());
-  if (!importer) {
-    m_cache.MarkFailed(
-        handle, ImportError::Make(ImportError::Code::UnsupportedFormat,
-                                  "No importer registered for extension"));
-    return nullptr;
-  }
-
-  std::uint64_t settingHash = 0;
-  auto settings = LoadSidecarSettings(absPath, importer, &settingHash);
-
-  if (record->settingsHash != 0 && record->settingsHash != settingHash) {
-    m_cache.Clear(handle);
-    Logger::Info("[Asset] settings changed for %s, invalidating cache",
-                 handle.ToString().c_str());
-  }
-
-  // Import CPU
-  m_cache.MarkLoading(handle);
-  ImportRequest request{absPath, settings.get()};
-  auto imported = importer->Import(request);
-  if (imported.IsError()) {
-    m_cache.MarkFailed(handle, imported.Error());
-    return nullptr;
-  }
-
-  // Finalize GPU
-  auto asset = AssetFinalizer::Finalize(handle, std::move(imported.Value()));
-  if (!asset) {
-    m_cache.MarkFailed(
-        handle, ImportError::Make(ImportError::Code::Internal,
-                                  "Finalize failed (see log for details)")
-                    .WithPath(record->path));
-    return nullptr;
-  }
-
-  m_cache.Insert(handle, asset);
-  return asset;
+  return EnsureGpu(handle);
 }
 
 void AssetManagerRuntime::Retry(AssetHandle handle) {
@@ -147,11 +85,88 @@ void AssetManagerRuntime::Reimport(AssetHandle handle) {
   }
 }
 
-void AssetManagerRuntime::PreloadCpu(AssetHandle handle) {
-  // auto imported = importer->Import(request);
-  // m_cpuk
+std::shared_ptr<Asset> AssetManagerRuntime::PreloadCpu(AssetHandle handle) {
+  if (auto cached = m_cache.FindAny(handle)) {
+    return cached;
+  }
+
+  const AssetRecord *record = Record(handle);
+  if (!record) {
+    Logger::Error("[AssetManagerRuntime] PreloadCpu unknown handle %s",
+                  handle.ToString().c_str());
+    m_cache.MarkFailed(handle, ImportError::Make(ImportError::Code::Internal,
+                                                 "No record registered"));
+    return nullptr;
+  }
+
+  if (record->state != AssetRecordState::Valid) {
+    m_cache.MarkFailed(handle,
+                       ImportError::Make(ImportError::Code::FileNotFound,
+                                         "Asset record not Valid")
+                           .WithPath(record->path));
+    return nullptr;
+  }
+
+  // Importer lookup
+  const std::filesystem::path absPath = m_projectRoot / record->path;
+  IAssetImporter *importer =
+      m_registry.FindForExtension(record->path.extension().string());
+  if (!importer) {
+    m_cache.MarkFailed(handle,
+                       ImportError::Make(ImportError::Code::UnsupportedFormat,
+                                         "No importer for extension"));
+    return nullptr;
+  }
+
+  m_cache.MarkLoading(handle);
+
+  std::uint64_t settingsHash = 0;
+  auto settings = LoadSidecarSettings(absPath, importer, &settingsHash);
+
+  if (record->settingsHash != 0 && record->settingsHash != settingsHash) {
+    m_cache.Clear(handle);
+    Logger::Info("[Asset] settings changed for %s, invalidating cache",
+                 handle.ToString().c_str());
+  }
+
+  // Import CPU
+  ImportRequest request{absPath, settings.get()};
+  auto imported = importer->Import(request);
+  if (imported.IsError()) {
+    m_cache.MarkFailed(handle, imported.Error());
+    return nullptr;
+  }
+
+  // Create CPU-only asset
+  auto asset = AssetFinalizer::Finalize(handle, std::move(imported.Value()),
+                                        /*eagerGpu=*/false);
+  if (!asset) {
+    m_cache.MarkFailed(handle, ImportError::Make(ImportError::Code::Internal,
+                                                 "CreateCpu failed (see log)")
+                                   .WithPath(record->path));
+    return nullptr;
+  }
+
+  m_cache.Insert(handle, asset, AssetLoadState::Loaded);
+  return asset;
 }
 
-std::shared_ptr<Asset> EnsureGpu(AssetHandle handle) { return nullptr; }
+std::shared_ptr<Asset> AssetManagerRuntime::EnsureGpu(AssetHandle handle) {
+  auto asset = PreloadCpu(handle);
+  if (!asset)
+    return nullptr;
+
+  if (asset->IsGpuReady())
+    return asset;
+
+  if (!asset->EnsureGpu()) {
+    m_cache.MarkFailed(handle, ImportError::Make(ImportError::Code::Internal,
+                                                 "EnsureGpu failed (see log)"));
+    return nullptr;
+  }
+
+  m_cache.MarkUploaded(handle);
+  return asset;
+}
 
 } // namespace engine::asset

@@ -16,7 +16,7 @@ public:
   }
 
   std::unique_ptr<ImportSettings> GetDefaultSettings() const override {
-    return std::unique_ptr<TextureAtlasImportSettings>();
+    return std::make_unique<TextureAtlasImportSettings>();
   }
 
   ImportResult<ImportedAssetDataPtr>

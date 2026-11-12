@@ -8,9 +8,8 @@
 
 namespace engine::asset {
 
-std::shared_ptr<Asset>
-TextureAtlasFinalizer::Finalize(AssetHandle handle,
-                                const TextureAtlasImportResult &data) {
+std::shared_ptr<Asset> TextureAtlasFinalizer::Finalize(
+    AssetHandle handle, const TextureAtlasImportResult &data, bool eagerGpu) {
   if (data.rgba8.empty() || data.width == 0 || data.height == 0) {
     Logger::Error("[TextureAtlasFinalizer] empty atlas");
     return nullptr;
@@ -44,9 +43,11 @@ TextureAtlasFinalizer::Finalize(AssetHandle handle,
     asset->AssignRegion(name, region);
   }
 
-  if (!asset->EnsureGpu()) {
-    Logger::Error("[TextureAtlasFinalizer] GPU upload failed");
-    return nullptr;
+  if (eagerGpu) {
+    if (!asset->EnsureGpu()) {
+      Logger::Error("[TextureAtlasFinalizer] GPU upload failed");
+      return nullptr;
+    }
   }
 
   return std::static_pointer_cast<Asset>(std::move(asset));

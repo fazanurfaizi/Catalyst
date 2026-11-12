@@ -10,7 +10,8 @@ class ShaderImportResult;
 class ShaderFinalizer {
 public:
   static std::shared_ptr<Asset> Finalize(AssetHandle handle,
-                                         const ShaderImportResult &data);
+                                         const ShaderImportResult &data,
+                                         bool eagerGpu = true);
 };
 
 } // namespace engine::asset

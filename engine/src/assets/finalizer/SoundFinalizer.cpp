@@ -6,8 +6,9 @@
 
 namespace engine::asset {
 
-std::shared_ptr<Asset> SoundFinalizer::Finalize(AssetHandle handle,
-                                                const SoundImportResult &data) {
+std::shared_ptr<Asset>
+SoundFinalizer::Finalize(AssetHandle handle, const SoundImportResult &data,
+                         [[maybe_unused]] bool eagerGpu) {
   auto sound = std::make_shared<resources::SoundAsset>(handle);
   // sound->sourcePath = data.absolutePath;
   sound->sampleRate = data.sampleRate;

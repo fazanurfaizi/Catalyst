@@ -8,8 +8,8 @@ namespace engine::asset {
 
 class AssetFinalizer {
 public:
-  static std::shared_ptr<Asset> Finalize(AssetHandle handle,
-                                         ImportedAssetDataPtr data);
+  static std::shared_ptr<Asset>
+  Finalize(AssetHandle handle, ImportedAssetDataPtr data, bool eagerGpu = true);
 };
 
 } // namespace engine::asset

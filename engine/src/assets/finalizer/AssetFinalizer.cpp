@@ -19,7 +19,8 @@
 namespace engine::asset {
 
 std::shared_ptr<Asset> AssetFinalizer::Finalize(AssetHandle handle,
-                                                ImportedAssetDataPtr data) {
+                                                ImportedAssetDataPtr data,
+                                                bool eagerGpu) {
   if (!data) {
     Logger::Error("[AssetFinalizer] null import data for handle %s",
                   handle.ToString().c_str());
@@ -29,22 +30,22 @@ std::shared_ptr<Asset> AssetFinalizer::Finalize(AssetHandle handle,
   switch (data->GetAssetType()) {
   case AssetType::Texture2D:
     return Texture2DFinalizer::Finalize(
-        handle, static_cast<const Texture2DImportResult &>(*data));
+        handle, static_cast<const Texture2DImportResult &>(*data), eagerGpu);
   case AssetType::TextureAtlas:
     return TextureAtlasFinalizer::Finalize(
-        handle, static_cast<const TextureAtlasImportResult &>(*data));
+        handle, static_cast<const TextureAtlasImportResult &>(*data), eagerGpu);
   case AssetType::Font:
     return FontFinalizer::Finalize(
-        handle, static_cast<const FontImportResult &>(*data));
+        handle, static_cast<const FontImportResult &>(*data), eagerGpu);
   case AssetType::Sound:
     return SoundFinalizer::Finalize(
-        handle, static_cast<const SoundImportResult &>(*data));
+        handle, static_cast<const SoundImportResult &>(*data), eagerGpu);
   case AssetType::Animation:
     return AnimationFinalizer::Finalize(
-        handle, static_cast<const AnimationImportResult &>(*data));
+        handle, static_cast<const AnimationImportResult &>(*data), eagerGpu);
   case AssetType::Shader:
     return ShaderFinalizer::Finalize(
-        handle, static_cast<const ShaderImportResult &>(*data));
+        handle, static_cast<const ShaderImportResult &>(*data), eagerGpu);
   case AssetType::Scene:
   case AssetType::Prefab:
   case AssetType::None:

@@ -22,7 +22,8 @@ resources::Keyframe MakeKeyframe(const ParsedKeyframe &src) {
 
 std::shared_ptr<Asset>
 AnimationFinalizer::Finalize(AssetHandle handle,
-                             const AnimationImportResult &data) {
+                             const AnimationImportResult &data,
+                             [[maybe_unused]] bool eagerGpu) {
   std::shared_ptr<resources::AnimationAsset> animation =
       std::make_shared<resources::AnimationAsset>(handle);
   animation->name = data.name;

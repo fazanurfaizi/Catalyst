@@ -2,20 +2,45 @@
 
 namespace engine::asset {
 
-std::shared_ptr<Asset> AssetCache::FindLoaded(AssetHandle handle) {
+std::shared_ptr<Asset> AssetCache::FindAny(AssetHandle handle) {
   auto it = m_entries.find(handle);
   if (it == m_entries.end())
     return nullptr;
 
-  if (it->second.state == AssetLoadState::Loaded) {
-    if (auto locked = it->second.asset.lock()) {
-      return locked;
-    }
-    // Weak expired
-    it->second.state = AssetLoadState::Unloaded;
-    it->second.asset.reset();
+  const auto st = it->second.state;
+  if (st != AssetLoadState::Loaded && st != AssetLoadState::Uploaded) {
+    return nullptr;
   }
-  return nullptr;
+
+  // if (auto sp = it->second.asset.lock()) {
+  //   return sp;
+  // }
+
+  return it->second.asset;
+  // Weak expired
+  // it->second.state = AssetLoadState::Unloaded;
+  // it->second.asset.reset();
+  //
+  // return nullptr;
+}
+
+std::shared_ptr<Asset> AssetCache::FindUploaded(AssetHandle handle) {
+  auto it = m_entries.find(handle);
+  if (it == m_entries.end())
+    return nullptr;
+  if (it->second.state != AssetLoadState::Uploaded)
+    return nullptr;
+
+  return it->second.asset;
+  // if (auto sp = it->second.asset.lock()) {
+  //   return sp;
+  // }
+  //
+  // // Weak expired
+  // it->second.state = AssetLoadState::Unloaded;
+  // it->second.asset.reset();
+  //
+  // return nullptr;
 }
 
 AssetLoadState AssetCache::State(AssetHandle handle) const {
@@ -23,10 +48,10 @@ AssetLoadState AssetCache::State(AssetHandle handle) const {
   if (it == m_entries.end())
     return AssetLoadState::Unloaded;
 
-  if (it->second.state == AssetLoadState::Loaded &&
-      it->second.asset.expired()) {
-    return AssetLoadState::Unloaded;
-  }
+  // if (it->second.state == AssetLoadState::Loaded &&
+  //     it->second.asset.expired()) {
+  //   return AssetLoadState::Unloaded;
+  // }
   return it->second.state;
 }
 
@@ -46,11 +71,23 @@ void AssetCache::MarkLoading(AssetHandle handle) {
   entry.asset.reset();
 }
 
-void AssetCache::Insert(AssetHandle handle, std::shared_ptr<Asset> asset) {
+void AssetCache::Insert(AssetHandle handle, std::shared_ptr<Asset> asset,
+                        AssetLoadState state) {
   auto &entry = m_entries[handle];
   entry.asset = asset;
-  entry.state = AssetLoadState::Loaded;
+  entry.state = state;
   entry.lastError = {};
+}
+
+void AssetCache::MarkUploaded(AssetHandle handle) {
+  auto it = m_entries.find(handle);
+  if (it == m_entries.end())
+    return;
+
+  if (it->second.state == AssetLoadState::Loaded ||
+      it->second.state == AssetLoadState::Uploaded) {
+    it->second.state = AssetLoadState::Uploaded;
+  }
 }
 
 void AssetCache::MarkFailed(AssetHandle handle, ImportError error) {
@@ -65,7 +102,8 @@ void AssetCache::Clear(AssetHandle handle) { m_entries.erase(handle); }
 std::size_t AssetCache::GetLoadedCount() const {
   std::size_t count = 0;
   for (const auto &[handle, entry] : m_entries) {
-    if (entry.state == AssetLoadState::Loaded && !entry.asset.expired()) {
+    if (entry.state == AssetLoadState::Loaded ||
+        entry.state == AssetLoadState::Uploaded) {
       ++count;
     }
   }

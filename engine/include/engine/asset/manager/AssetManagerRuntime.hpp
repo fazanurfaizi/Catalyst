@@ -46,6 +46,10 @@ public:
     return m_reloadGeneration;
   }
 
+  std::shared_ptr<Asset> PreloadCpu(AssetHandle handle) override;
+
+  std::shared_ptr<Asset> EnsureGpu(AssetHandle handle) override;
+
 protected:
   ImporterRegistry &m_registry;
   std::filesystem::path m_projectRoot;
@@ -56,11 +60,6 @@ protected:
   std::unordered_map<std::string, AssetHandle> m_nameToHandle;
 
   std::uint64_t m_reloadGeneration = 0;
-
-private:
-  void PreloadCpu(AssetHandle handle);
-
-  std::shared_ptr<Asset> EnsureGpu(AssetHandle handle);
 };
 
 } // namespace engine::asset

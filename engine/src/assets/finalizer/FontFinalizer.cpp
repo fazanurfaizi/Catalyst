@@ -8,7 +8,8 @@
 namespace engine::asset {
 
 std::shared_ptr<Asset> FontFinalizer::Finalize(AssetHandle handle,
-                                               const FontImportResult &data) {
+                                               const FontImportResult &data,
+                                               bool eagerGpu) {
   const std::size_t expected = static_cast<std::size_t>(data.atlasWidth) *
                                static_cast<std::size_t>(data.atlasHeight);
 
@@ -20,10 +21,12 @@ std::shared_ptr<Asset> FontFinalizer::Finalize(AssetHandle handle,
   auto asset = std::make_shared<resources::FontAsset>(handle);
   asset->cpu = std::make_shared<const FontImportResult>(data);
 
-  if (!asset->EnsureGpu()) {
-    Logger::Error("[FontFinalizer] GPU upload failed for handle %s",
-                  handle.ToString().c_str());
-    return nullptr;
+  if (eagerGpu) {
+    if (!asset->EnsureGpu()) {
+      Logger::Error("[FontFinalizer] GPU upload failed for handle %s",
+                    handle.ToString().c_str());
+      return nullptr;
+    }
   }
 
   return std::static_pointer_cast<Asset>(std::move(asset));

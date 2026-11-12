@@ -1,0 +1,8 @@
+{
+  "importer": "catalyst.texture_atlas",
+  "version": 1,
+  "settings": {
+    "maxAtlasDimension": 4096,
+    "maxSpriteDimension": 512
+  }
+}

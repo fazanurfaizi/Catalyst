@@ -86,7 +86,7 @@ int TextureAtlasBuilder::AddFromDirectory(const std::string &directory,
       name += (part.has_extension() ? part.stem().string() : part.string());
     }
 
-    if (AddFromFile(name, path.string()), maxDimension) {
+    if (AddFromFile(name, path.string(), maxDimension)) {
       ++added;
     }
   }
@@ -124,11 +124,24 @@ bool TextureAtlasBuilder::AddFromFile(const std::string &name,
   if (maxDimension > 0 && (w > maxDimension || h > maxDimension)) {
     const int newW = (w >= h) ? maxDimension : (w * maxDimension / h);
     const int newH = (h >= w) ? maxDimension : (h * maxDimension / w);
+
+    if (newW <= 0 || newH <= 0) {
+      stbi_image_free(data);
+      Logger::Error("[TextureAtlas] invalid resize target for: %s",
+                    path.c_str());
+      return false;
+    }
+
     src.width = newW;
     src.height = newH;
     src.rgba8.resize(static_cast<std::size_t>(newW) * newH * 4);
-    stbir_resize_uint8(data, w, h, 0, src.rgba8.data(), newW, newH, 0,
-                       STBI_rgb_alpha);
+
+    if (!stbir_resize_uint8(data, w, h, 0, src.rgba8.data(), newW, newH, 0,
+                            STBI_rgb_alpha)) {
+      stbi_image_free(data);
+      Logger::Error("[TextureAtlas] resize failed for: %s", path.c_str());
+      return false;
+    }
   } else {
     src.width = w;
     src.height = h;

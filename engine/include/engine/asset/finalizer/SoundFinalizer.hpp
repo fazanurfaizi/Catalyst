@@ -11,7 +11,8 @@ class SoundImportResult;
 class SoundFinalizer {
 public:
   static std::shared_ptr<Asset> Finalize(AssetHandle handle,
-                                         const SoundImportResult &data);
+                                         const SoundImportResult &data,
+                                         [[maybe_unused]] bool eagerGpu = true);
 };
 
 } // namespace engine::asset

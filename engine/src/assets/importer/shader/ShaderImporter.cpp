@@ -6,7 +6,6 @@
 #include <ios>
 #include <stb/stb_truetype.h>
 #include <string>
-#include <vector>
 
 namespace engine::asset {
 

@@ -21,7 +21,7 @@ resources::ImageFormat ToImageFormat(TextureFormat format) {
 
 std::shared_ptr<Asset>
 Texture2DFinalizer::Finalize(AssetHandle handle,
-                             const Texture2DImportResult &data) {
+                             const Texture2DImportResult &data, bool eagerGpu) {
   if (data.pixelBytes.empty() || data.width == 0 || data.height == 0) {
     Logger::Error("[Texture2DFinalizer] empty pixel data");
     return nullptr;
@@ -38,7 +38,7 @@ Texture2DFinalizer::Finalize(AssetHandle handle,
   buffer.size = data.pixelBytes.size();
 
   std::shared_ptr<Asset> asset = resources::Texture2DAsset::Create(
-      handle, spec, buffer, /*uploadImmediately=*/true);
+      handle, spec, buffer, /*uploadImmediately=*/eagerGpu);
 
   return std::static_pointer_cast<Asset>(std::move(asset));
 }

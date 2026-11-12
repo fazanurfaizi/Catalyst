@@ -10,6 +10,9 @@
 #include "engine/input/InputCodes.hpp"
 #include "engine/resources/TextureAtlasAsset.hpp"
 #include "engine/scene/Scene.hpp"
+
+#include <cstdint>
+#include <memory>
 #include <string_view>
 
 class PlayingState final : public engine::core::GameState {
@@ -35,20 +38,20 @@ public:
 private:
   engine::scene::Scene m_scene;
   engine::animation::AnimationLibrary m_animations;
-
   engine::graphics::TextRenderer m_textRenderer;
-
-  std::shared_ptr<engine::resources::FontAsset> m_font;
-  std::shared_ptr<engine::resources::TextureAtlasAsset> m_atlas;
-  std::shared_ptr<engine::resources::SoundAsset> m_bgm;
-
   std::unique_ptr<engine::audio::MusicPlayer> m_music;
 
   engine::asset::AssetHandle m_fontHandle{};
-  engine::asset::AssetHandle m_atlasHandle;
+  engine::asset::AssetHandle m_atlasHandle{};
+  engine::asset::AssetHandle m_bgmHandle{};
+  engine::asset::AssetHandle m_heroAttackSfxHandle{};
+
+  std::shared_ptr<engine::resources::TextureAtlasAsset> m_atlasCache;
 
   std::uint64_t m_lastReloadGen = 0;
 
+  void ResolveHandles(engine::core::Game &game);
+  void BuildAnimations();
   void ApplyRegion(engine::ecs::Entity e, std::string_view region);
   void DrawSceneDebug(engine::core::Game &game);
   void ReloadAssets(engine::core::Game &game);
