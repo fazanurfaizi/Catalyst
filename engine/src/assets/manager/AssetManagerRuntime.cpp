@@ -142,7 +142,7 @@ AssetManagerRuntime::PreloadCpuLocked(AssetHandle handle) {
     return cached;
   }
 
-  const AssetRecord *record = MutableRecordLocked(handle);
+  AssetRecord *record = MutableRecordLocked(handle);
   if (!record) {
     Logger::Error("[AssetManagerRuntime] PreloadCpu unknown handle %s",
                   handle.ToString().c_str());
@@ -180,6 +180,7 @@ AssetManagerRuntime::PreloadCpuLocked(AssetHandle handle) {
     Logger::Info("[Asset] settings changed for %s, invalidating cache",
                  handle.ToString().c_str());
   }
+  record->settingsHash = settingsHash;
 
   // Import CPU
   ImportRequest request{absPath, settings.get()};

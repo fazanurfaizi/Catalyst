@@ -32,6 +32,7 @@
 #include <glad/gl.h>
 #include <glm/glm.hpp>
 #include <imgui.h>
+#include <string>
 
 namespace {
 void DrawWorldGrid(engine::graphics::Renderer &renderer,
@@ -126,6 +127,7 @@ void PlayingState::OnEnter(engine::core::Game &game) {
 
   m_atlasCache =
       assets->Acquire<engine::resources::TextureAtlasAsset>(m_atlasHandle);
+
   if (!m_atlasCache) {
     engine::Logger::Error(
         "[PlayingState] atlas GPU not ready — scene render will fail");
@@ -136,8 +138,10 @@ void PlayingState::OnEnter(engine::core::Game &game) {
     if (auto bgm =
             assets->Acquire<engine::resources::SoundAsset>(m_bgmHandle)) {
       m_music = std::make_unique<engine::audio::MusicPlayer>();
+      m_music->Load(bgm->sourcePath);
       m_music->SetLooping(true);
       m_music->SetVolume(0.4f);
+      m_music->Play();
     }
   }
 
@@ -533,7 +537,7 @@ void PlayingState::DrawSceneDebug(engine::core::Game &game) {
   ImGui::Separator();
 
   if (ImGui::Button("Spawn Particle Emitter") && m_atlasCache) {
-    auto e = m_scene.CreateEntity("Emitter");
+    auto e = m_scene.CreateEntity("Emitter" + std::to_string(rand()));
     reg.Emplace<engine::components::Transform>(
         e,
         engine::components::Transform{
