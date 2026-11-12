@@ -49,6 +49,10 @@ public:
 
   std::shared_ptr<Asset> EnsureGpu(AssetHandle handle) override;
 
+  std::optional<AssetRecord> RecordCopy(AssetHandle handle) const override;
+
+  bool RefreshSettingsHash(AssetHandle handle) override;
+
 protected:
   ImporterRegistry &m_registry;
   std::filesystem::path m_projectRoot;

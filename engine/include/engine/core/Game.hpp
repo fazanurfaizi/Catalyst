@@ -95,6 +95,7 @@ public:
     return audio::AudioEngine::Get();
   }
 
+  void SyncConfigFromAssets();
   const GameConfig &GetGameConfig() const { return m_gameConfig; }
 
 #ifdef CATALYST_EDITOR

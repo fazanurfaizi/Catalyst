@@ -1,37 +1,55 @@
 {
-  "version": 1,
-  "projectName": "Kingdom Rush Frontiers",
-  "root": "assets",
   "assets": [
     {
-      "type": "Font",
+      "dependencies": [],
+      "handle": "eb3f88131e45d21c",
+      "name": "main_font",
       "path": "fonts/Roboto-Regular.ttf",
-      "name": "main_font"
+      "settingsHash": 8396310794483152859,
+      "type": "Font"
     },
     {
-      "type": "Sound",
+      "dependencies": [],
+      "handle": "c9991dd7ab017a59",
+      "name": "main_bgm",
       "path": "audio/bg_theme.mp3",
-      "name": "main_bgm"
+      "settingsHash": 0,
+      "type": "Sound"
     },
     {
-      "type": "Texture2D",
+      "dependencies": [],
+      "handle": "f26bb8b9ffe8b0bc",
+      "name": "main_tower",
       "path": "textures/tower.png",
-      "name": "main_tower"
+      "settingsHash": 0,
+      "type": "Texture2D"
     },
     {
-      "type": "TextureAtlas",
+      "dependencies": [],
+      "handle": "99446da81846da77",
+      "name": "main_atlas",
       "path": "atlas/atlas.atlas",
-      "name": "main_atlas"
+      "settingsHash": 12406333269532891412,
+      "type": "TextureAtlas"
     },
     {
-      "type": "Sound",
+      "dependencies": [],
+      "handle": "f3e1025d41286ddd",
+      "name": "hero_attack_sfx",
       "path": "audio/hero_attack.mp3",
-      "name": "hero_attack_sfx"
+      "settingsHash": 0,
+      "type": "Sound"
     },
     {
-      "type": "Sound",
+      "dependencies": [],
+      "handle": "b3c7210f74bab533",
+      "name": "hero_step_sfx",
       "path": "audio/hero_footstep.mp3",
-      "name": "hero_step_sfx"
+      "settingsHash": 0,
+      "type": "Sound"
     }
-  ]
+  ],
+  "projectName": "Kingdom Rush Frontiers",
+  "root": "assets",
+  "version": 1
 }

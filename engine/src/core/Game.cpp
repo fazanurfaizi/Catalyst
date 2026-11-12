@@ -186,7 +186,11 @@ bool Game::Run() {
                                                           m_gameConfig.root);
 
   for (auto &record : m_gameConfig.assets) {
-    m_assets->AddRecord(std::move(record));
+    m_assets->AddRecord(record);
+  }
+
+  for (const auto &record : m_gameConfig.assets) {
+    m_assets->RefreshSettingsHash(record.handle);
   }
 
 #ifdef CATALYST_EDITOR
@@ -290,6 +294,21 @@ bool Game::Run() {
   OnShutdown();
 
   return true;
+}
+
+void Game::SyncConfigFromAssets() {
+  if (!m_assets)
+    return;
+
+  for (auto &record : m_gameConfig.assets) {
+    const auto live = m_assets->RecordCopy(record.handle);
+    if (!live)
+      continue;
+
+    record.settingsHash = live->settingsHash;
+    record.state = live->state;
+    record.dependencies = live->dependencies;
+  }
 }
 
 } // namespace engine::core

@@ -4,7 +4,6 @@
 
 #include <fstream>
 #include <ios>
-#include <stb/stb_truetype.h>
 #include <string>
 
 namespace engine::asset {

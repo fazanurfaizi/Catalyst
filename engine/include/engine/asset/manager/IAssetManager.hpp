@@ -88,6 +88,10 @@ public:
 
   /** Ensure GPU resource is ready. Must run on main thread with GL context */
   virtual std::shared_ptr<Asset> EnsureGpu(AssetHandle handle) = 0;
+
+  virtual std::optional<AssetRecord> RecordCopy(AssetHandle handle) const = 0;
+
+  virtual bool RefreshSettingsHash(AssetHandle handle) = 0;
 };
 
 } // namespace engine::asset

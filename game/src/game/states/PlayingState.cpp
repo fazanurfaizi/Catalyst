@@ -5,6 +5,7 @@
 #include "engine/components/Light.hpp"
 #include "engine/components/TextComponent.hpp"
 #include "engine/core/Game.hpp"
+#include "engine/core/GameConfigSerializer.hpp"
 #include "engine/ecs/Entity.hpp"
 #include "engine/graphics/Renderer.hpp"
 #include "engine/math/Color.hpp"
@@ -515,6 +516,11 @@ void PlayingState::DrawSceneDebug(engine::core::Game &game) {
                                         : m_atlasHandle.ToString().c_str());
     if (ImGui::Button("Force Reimport Atlas"))
       assets->Reimport(m_atlasHandle);
+    if (ImGui::Button("Save Game Config")) {
+      game.SyncConfigFromAssets();
+      engine::core::GameConfigSerializer::Save(game.GetGameConfig(),
+                                               game.GetGameConfig().configPath);
+    }
     if (ImGui::Button("Save Scene"))
       engine::scene::SceneSerializer::Save(m_scene, "scene.json");
   }

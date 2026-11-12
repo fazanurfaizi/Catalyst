@@ -136,6 +136,35 @@ AssetRecord *AssetManagerRuntime::MutableRecordLocked(AssetHandle handle) {
   return it == m_records.end() ? nullptr : &it->second;
 }
 
+std::optional<AssetRecord>
+AssetManagerRuntime::RecordCopy(AssetHandle handle) const {
+  std::lock_guard<std::mutex> lock(m_mutex);
+
+  auto it = m_records.find(handle);
+  if (it == m_records.end())
+    return std::nullopt;
+
+  return it->second;
+}
+
+bool AssetManagerRuntime::RefreshSettingsHash(AssetHandle handle) {
+  std::lock_guard<std::mutex> lock(m_mutex);
+
+  AssetRecord *record = MutableRecordLocked(handle);
+  if (!record)
+    return false;
+
+  IAssetImporter *importer =
+      m_registry.FindForExtension(record->path.extension().string());
+  if (!importer)
+    return false;
+
+  std::uint64_t hash = 0;
+  (void)LoadSidecarSettings(m_projectRoot / record->path, importer, &hash);
+  record->settingsHash = hash;
+  return true;
+}
+
 std::shared_ptr<Asset>
 AssetManagerRuntime::PreloadCpuLocked(AssetHandle handle) {
   if (auto cached = m_cache.FindAny(handle)) {
