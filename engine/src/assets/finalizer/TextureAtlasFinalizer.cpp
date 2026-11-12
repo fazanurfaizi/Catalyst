@@ -1,5 +1,7 @@
 #include "engine/asset/finalizer/TextureAtlasFinalizer.hpp"
 #include "engine/asset/importer/texture-atlas/TextureAtlasImportResult.hpp"
+#include "engine/resources/TextureAtlasAsset.hpp"
+#include "engine/resources/TextureFormat.hpp"
 #include "engine/utils/Logger.hpp"
 #include "glad/gl.h"
 #include <memory>
@@ -13,8 +15,6 @@ TextureAtlasFinalizer::Finalize(AssetHandle handle,
     Logger::Error("[TextureAtlasFinalizer] empty atlas");
     return nullptr;
   }
-
-  auto asset = std::make_shared<resources::TextureAtlasAsset>(handle);
 
   GLint glMax = 0;
   glGetIntegerv(GL_MAX_TEXTURE_SIZE, &glMax);
@@ -31,20 +31,24 @@ TextureAtlasFinalizer::Finalize(AssetHandle handle,
     return nullptr;
   }
 
-  // Reuse the same Texture::Upload path that Texture2DAsset uses.
-  graphics::Texture texture;
-  texture.Upload(static_cast<int>(data.width), static_cast<int>(data.height),
-                 resources::ImageFormat::RGBA8, data.rgba8.data(),
-                 /*generateMipmaps=*/false);
-  if (!texture.IsValid()) {
-    Logger::Error("[TextureAtlasFinalizer] GL upload failed");
-    return nullptr;
-  }
+  resources::TextureSpecification spec;
+  spec.width = static_cast<std::uint32_t>(data.width);
+  spec.height = static_cast<std::uint32_t>(data.height);
+  spec.format = resources::ImageFormat::RGBA8;
+  spec.magFilterLinear = false;
 
-  asset->AssignTexture(std::move(texture));
+  auto asset = std::make_shared<resources::TextureAtlasAsset>(handle);
+  asset->AssignCpuPixels(spec, data.rgba8);
+
   for (const auto &[name, region] : data.regions) {
     asset->AssignRegion(name, region);
   }
+
+  if (!asset->EnsureGpu()) {
+    Logger::Error("[TextureAtlasFinalizer] GPU upload failed");
+    return nullptr;
+  }
+
   return std::static_pointer_cast<Asset>(std::move(asset));
 }
 

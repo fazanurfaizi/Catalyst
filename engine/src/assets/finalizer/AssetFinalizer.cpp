@@ -3,11 +3,13 @@
 #include "engine/asset/core/AssetType.hpp"
 #include "engine/asset/finalizer/AnimationFinalizer.hpp"
 #include "engine/asset/finalizer/FontFinalizer.hpp"
+#include "engine/asset/finalizer/ShaderFinalizer.hpp"
 #include "engine/asset/finalizer/SoundFinalizer.hpp"
 #include "engine/asset/finalizer/Texture2DFinalizer.hpp"
 #include "engine/asset/finalizer/TextureAtlasFinalizer.hpp"
 #include "engine/asset/importer/animation/AnimationImportResult.hpp"
 #include "engine/asset/importer/font/FontImportResult.hpp"
+#include "engine/asset/importer/shader/ShaderImportResult.hpp"
 #include "engine/asset/importer/sound/SoundImportResult.hpp"
 #include "engine/asset/importer/texture-atlas/TextureAtlasImportResult.hpp"
 #include "engine/asset/importer/texture2d/Texture2DImportResult.hpp"
@@ -41,6 +43,8 @@ std::shared_ptr<Asset> AssetFinalizer::Finalize(AssetHandle handle,
     return AnimationFinalizer::Finalize(
         handle, static_cast<const AnimationImportResult &>(*data));
   case AssetType::Shader:
+    return ShaderFinalizer::Finalize(
+        handle, static_cast<const ShaderImportResult &>(*data));
   case AssetType::Scene:
   case AssetType::Prefab:
   case AssetType::None:

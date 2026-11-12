@@ -13,19 +13,29 @@ add_library(engine STATIC
   src/assets/finalizer/AssetFinalizer.cpp
   src/assets/finalizer/FontFinalizer.cpp
   src/assets/finalizer/SoundFinalizer.cpp
+  src/assets/finalizer/ShaderFinalizer.cpp
   src/assets/finalizer/Texture2DFinalizer.cpp
   src/assets/finalizer/TextureAtlasFinalizer.cpp
 
+  src/assets/importer/ImporterRegistry.cpp
+
   src/assets/importer/animation/AnimationImporter.cpp
+
+  src/assets/importer/font/FontImportSettings.cpp
   src/assets/importer/font/FontImporter.cpp
+
   src/assets/importer/sound/SoundImporter.cpp
+
+  src/assets/importer/shader/ShaderImportSettings.cpp
+  src/assets/importer/shader/ShaderImporter.cpp
+
+  src/assets/importer/texture2d/Texture2DImportSettings.cpp
   src/assets/importer/texture2d/Texture2DImporter.cpp
+
   src/assets/importer/texture-atlas/TextureAtlasImporter.cpp
   src/assets/importer/texture-atlas/TextureAtlasBuilder.cpp
-  src/assets/importer/ImporterRegistry.cpp
-  src/assets/importer/font/FontImportSettings.cpp
-  src/assets/importer/texture2d/Texture2DImportSettings.cpp
   src/assets/importer/texture-atlas/TextureAtlasImportSettings.cpp
+
   src/assets/persistence/SidecarSerializer.cpp
 
   src/assets/manager/AssetManagerRuntime.cpp
@@ -44,7 +54,11 @@ add_library(engine STATIC
   src/core/GameConfigSerializer.cpp
 
   src/resources/AnimationAsset.cpp
+  src/resources/FontAsset.cpp
+  src/resources/ShaderAsset.cpp
+  src/resources/TextureAsset.cpp
   src/resources/Texture2DAsset.cpp
+  src/resources/TextureAtlasAsset.cpp
 
   src/graphics/Renderer.cpp
   src/graphics/TextRenderer.cpp

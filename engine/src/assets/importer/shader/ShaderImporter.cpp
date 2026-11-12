@@ -1,0 +1,65 @@
+#include "engine/asset/importer/shader/ShaderImporter.hpp"
+#include "engine/asset/core/ImportResult.hpp"
+#include "engine/asset/importer/shader/ShaderImportResult.hpp"
+
+#include <fstream>
+#include <ios>
+#include <stb/stb_truetype.h>
+#include <string>
+#include <vector>
+
+namespace engine::asset {
+
+namespace {
+
+bool ReadFile(const std::filesystem::path &path, std::string &out) {
+  std::ifstream in(path, std::ios::binary);
+  if (!in)
+    return false;
+  std::ostringstream ss;
+  ss << in.rdbuf();
+  out = ss.str();
+  return true;
+}
+
+ImportResult<ImportedAssetDataPtr> ImportShader(const ImportRequest &request) {
+  std::filesystem::path vertPath = request.absolutePath;
+  std::filesystem::path fragPath = request.absolutePath;
+
+  std::string stem = vertPath.stem().string();
+  if (stem.ends_with(".vert")) {
+    stem.resize(stem.size() - 5);
+    vertPath = vertPath.parent_path() / (stem + ".vert.glsl");
+    fragPath = vertPath.parent_path() / (stem + ".frag.glsl");
+  }
+
+  std::string vertSrc, fragSrc;
+  if (!ReadFile(vertPath, vertSrc)) {
+    return ImportResult<ImportedAssetDataPtr>::Err(
+        ImportError::Make(ImportError::Code::FileUnreadable,
+                          "Cannot read vertex shader")
+            .WithPath(vertPath));
+  }
+
+  if (!ReadFile(fragPath, fragSrc)) {
+    return ImportResult<ImportedAssetDataPtr>::Err(
+        ImportError::Make(ImportError::Code::FileUnreadable,
+                          "Cannot read fragment shader")
+            .WithPath(fragPath));
+  }
+
+  auto result = std::make_unique<ShaderImportResult>();
+  result->vertexSource = std::move(vertSrc);
+  result->fragmentSource = std::move(fragSrc);
+  result->debugName = stem;
+  return ImportResult<ImportedAssetDataPtr>::Ok(std::move(result));
+}
+
+} // namespace
+
+ImportResult<ImportedAssetDataPtr>
+ShaderImporter::Import(const ImportRequest &request) const {
+  return ImportShader(request);
+}
+
+} // namespace engine::asset

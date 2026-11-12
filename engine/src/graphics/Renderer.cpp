@@ -235,6 +235,15 @@ void Renderer::RenderSprites(scene::Scene &scene,
     if (!atlas)
       continue;
 
+    if (!atlas->EnsureGpu()) {
+      Logger::Warn("[Renderer] atlas GPU upload failed for handle %s",
+                   s.atlas.ToString().c_str());
+      continue;
+    }
+
+    if (!atlas->IsGpuReady())
+      continue;
+
     const auto *region = atlas->GetRegion(s.regionName);
     if (!region)
       continue;

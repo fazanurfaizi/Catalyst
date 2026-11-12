@@ -20,12 +20,12 @@ inline void TextRenderSystem(ecs::Registry &reg, asset::IAssetManager &assets,
       continue;
     }
 
-    auto fontAsset = assets.Acquire<resources::FontAsset>(text.font);
-    if (!fontAsset || !fontAsset->font) {
+    auto asset = assets.Acquire<resources::FontAsset>(text.font);
+    if (!asset || !asset->EnsureGpu()) {
       continue;
     }
 
-    renderer.Draw(*fontAsset, text.text, transform.position, text.scale,
+    renderer.Draw(*asset, text.text, transform.position, text.scale,
                   text.color.toVec4(), projection, text.maxWidth,
                   text.alignment);
   }

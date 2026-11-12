@@ -45,14 +45,33 @@ TextRenderer::~TextRenderer() {
   glDeleteBuffers(1, &m_vbo);
 }
 
-void TextRenderer::Draw(const Font &font, const std::string &text,
-                        const glm::vec2 &position, float scale,
-                        const glm::vec4 &color, const glm::mat4 &projection,
-                        float maxWidth, TextAlignment alignment) {
+// void TextRenderer::Draw(const Font &font, const std::string &text,
+//                         const glm::vec2 &position, float scale,
+//                         const glm::vec4 &color, const glm::mat4 &projection,
+//                         float maxWidth, TextAlignment alignment) {
+//
+// }
+
+void TextRenderer::Draw(const resources::FontAsset &font,
+                        const std::string &text, const glm::vec2 &position,
+                        float scale, const glm::vec4 &color,
+                        const glm::mat4 &projection, float maxWidth,
+                        TextAlignment alignment) {
+  if (!font.EnsureGpu()) {
+    Logger::Warn("[TextRenderer] font GPU not ready, skipping draw");
+    return;
+  }
+
   if (text.empty())
     return;
 
-  TextLayout::BuildTextBatch(font, text, maxWidth, scale, alignment, m_vertices,
+  const graphics::Font *gpu = font.GpuFont();
+  if (!gpu) {
+    Logger::Warn("[TextRenderer] font GPU null after EnsureGpu");
+    return;
+  }
+
+  TextLayout::BuildTextBatch(*gpu, text, maxWidth, scale, alignment, m_vertices,
                              position);
 
   if (m_vertices.empty())
@@ -70,7 +89,7 @@ void TextRenderer::Draw(const Font &font, const std::string &text,
   m_shader.SetInt("uText", 0);
 
   glActiveTexture(GL_TEXTURE0);
-  glBindTexture(GL_TEXTURE_2D, font.GetTextureId());
+  glBindTexture(GL_TEXTURE_2D, gpu->GetTextureId());
   glBindVertexArray(m_vao);
 
   glBindBuffer(GL_ARRAY_BUFFER, m_vbo);
@@ -86,19 +105,6 @@ void TextRenderer::Draw(const Font &font, const std::string &text,
   glBindVertexArray(0);
   glBindTexture(GL_TEXTURE_2D, 0);
   m_shader.Unbind();
-}
-
-void TextRenderer::Draw(const resources::FontAsset &fontAsset,
-                        const std::string &text, const glm::vec2 &position,
-                        float scale, const glm::vec4 &color,
-                        const glm::mat4 &projection, float maxWidth,
-                        TextAlignment alignment) {
-  if (!fontAsset.font) {
-    return;
-  }
-
-  Draw(*fontAsset.font, text, position, scale, color, projection, maxWidth,
-       alignment);
 }
 
 } // namespace engine::graphics

@@ -8,7 +8,8 @@ Texture2DAsset::Texture2DAsset(asset::AssetHandle handle)
 
 std::shared_ptr<Texture2DAsset>
 Texture2DAsset::Create(asset::AssetHandle handle,
-                       const TextureSpecification &spec, const Buffer &data) {
+                       const TextureSpecification &spec, const Buffer &data,
+                       bool uploadImmediately) {
   if (data.data == nullptr || data.size == 0) {
     Logger::Error("[Texture2DAsset] Create: empty buffer");
     return nullptr;
@@ -18,26 +19,41 @@ Texture2DAsset::Create(asset::AssetHandle handle,
     return nullptr;
   }
 
-  auto tex = std::make_shared<Texture2DAsset>(handle);
-  tex->m_spec = spec;
-  tex->m_texture.Upload(
-      static_cast<int>(spec.width), static_cast<int>(spec.height), spec.format,
-      static_cast<const std::uint8_t *>(data.data), /*generateMipmaps=*/true);
+  auto asset = std::make_shared<Texture2DAsset>(handle);
+  asset->m_spec = spec;
+  asset->m_cpuPixels.assign(data.data, data.data + data.size);
 
-  if (!tex->m_texture.IsValid()) {
-    Logger::Error("[Texture2DAsset] Create: GL upload failed");
-    return nullptr;
+  if (uploadImmediately) {
+    if (!asset->EnsureGpu()) {
+      Logger::Error("[Texture2DAsset] eager upload failed for handle %s",
+                    handle.ToString().c_str());
+      return nullptr;
+    }
   }
-  return tex;
+
+  return asset;
 }
 
 void Texture2DAsset::SetData(Buffer data) {
   if (!data.data || data.size == 0)
     return;
-  m_texture.Upload(static_cast<int>(m_spec.width),
-                   static_cast<int>(m_spec.height), m_spec.format,
-                   static_cast<const std::uint8_t *>(data.data),
-                   /*generateMipmaps=*/true);
+
+  ReleaseGpu();
+  m_cpuPixels.clear();
+  if (data.data && data.size > 0) {
+    m_cpuPixels.assign(data.data, data.data + data.size);
+  }
 }
 
+bool Texture2DAsset::HandleGpuUpload() const {
+  if (m_cpuPixels.empty()) {
+    Logger::Error("[Texture2DAsset] no CPU pixel data to upload");
+    return false;
+  }
+  m_texture.Upload(static_cast<int>(m_spec.width),
+                   static_cast<int>(m_spec.height), ImageFormat::RGBA8,
+                   (m_cpuPixels.data()));
+
+  return m_texture.IsValid();
+}
 } // namespace engine::resources

@@ -1,11 +1,12 @@
 #pragma once
 
-#include "engine/graphics/texture/Texture.hpp"
 #include "engine/resources/TextureAsset.hpp"
+#include "engine/resources/TextureFormat.hpp"
 #include "engine/utils/StringHash.hpp"
 #include <glm/glm.hpp>
 #include <string>
 #include <unordered_map>
+#include <utility>
 
 namespace engine::resources {
 
@@ -51,13 +52,7 @@ public:
 
   std::size_t RegionCount() const { return m_regionsById.size(); }
 
-  const graphics::Texture &GetTexture() const { return m_texture; }
-
-  const TextureSpecification &GetSpecification() const override {
-    return m_spec;
-  }
-
-  void Bind(uint32_t slot = 0) const override { m_texture.Bind(slot); }
+  const graphics::Texture &GetTexture() const noexcept { return m_texture; }
 
   void AssignRegion(std::string name, AtlasRegion region) {
     const RegionId id = static_cast<RegionId>(m_regionsById.size());
@@ -66,13 +61,15 @@ public:
     m_nameToId.emplace(std::move(name), id);
   }
 
-  void AssignTexture(graphics::Texture texture) {
-    m_texture = std::move(texture);
-    m_spec.width = m_texture.Width();
-    m_spec.height = m_texture.Height();
-    m_spec.format = ImageFormat::RGBA8;
-    m_spec.magFilterLinear = false;
+  void AssignCpuPixels(const TextureSpecification &spec,
+                       std::vector<std::uint8_t> pixels) {
+    ReleaseGpu();
+    m_spec = spec;
+    m_cpuPixels = std::move(pixels);
   }
+
+protected:
+  bool HandleGpuUpload() const override;
 
 private:
   std::vector<AtlasRegion> m_regionsById;

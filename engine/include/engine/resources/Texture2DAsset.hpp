@@ -2,7 +2,6 @@
 
 #include "engine/asset/core/AssetHandle.hpp"
 #include "engine/asset/core/AssetType.hpp"
-#include "engine/graphics/texture/Texture.hpp"
 #include "engine/resources/TextureAsset.hpp"
 #include "engine/utils/Buffer.hpp"
 #include <memory>
@@ -18,29 +17,12 @@ public:
 
   static std::shared_ptr<Texture2DAsset>
   Create(asset::AssetHandle handle, const TextureSpecification &spec,
-         const Buffer &data);
+         const Buffer &data, bool uploadImmediately = true);
 
-  const TextureSpecification &GetSpecification() const override {
-    return m_spec;
-  }
+  void SetData(Buffer data);
 
-  uint32_t GetWidth() const override { return m_texture.Width(); }
-
-  uint32_t GetHeight() const override { return m_texture.Height(); }
-
-  uint32_t GetRendererID() const override { return m_texture.Id(); }
-
-  void SetData(Buffer data) override;
-
-  void Bind(uint32_t slot = 0) const override { m_texture.Bind(slot); }
-
-  bool operator==(const TextureAsset &other) const override {
-    return GetRendererID() == other.GetRendererID();
-  }
-
-  bool equals(const TextureAsset &other) const override {
-    return GetRendererID() == other.GetRendererID();
-  }
+protected:
+  bool HandleGpuUpload() const override;
 };
 
 } // namespace engine::resources
