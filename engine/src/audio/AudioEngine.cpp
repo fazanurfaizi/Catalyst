@@ -9,8 +9,6 @@
 
 namespace engine::audio {
 
-namespace {} // namespace
-
 struct AudioEngine::Impl {
   ma_engine engine{};
   bool engineInited = false;
@@ -76,17 +74,22 @@ void AudioEngine::PlayOneShot(const resources::SoundAsset &sound,
     return;
   }
 
+  if (sound.sourcePath.empty()) {
+    Logger::Warn("[AudioEngine] PlayOneShot: sound has no source path");
+    return;
+  }
+
   Update();
 
   auto *instance = new ma_sound();
-  // if (ma_sound_init_from_file(
-  //         &m_impl->engine, sound.sourcePath.string().c_str(),
-  //         MA_SOUND_FLAG_DECODE, nullptr, nullptr, instance) != MA_SUCCESS) {
-  //   Logger::Error("[AudioEngine] Failed to init sound from '%s'",
-  //                 sound.sourcePath.string().c_str());
-  //   delete instance;
-  //   return;
-  // }
+  if (ma_sound_init_from_file(
+          &m_impl->engine, sound.sourcePath.string().c_str(),
+          MA_SOUND_FLAG_DECODE, nullptr, nullptr, instance) != MA_SUCCESS) {
+    Logger::Error("[AudioEngine] Failed to init sound from '%s'",
+                  sound.sourcePath.string().c_str());
+    delete instance;
+    return;
+  }
 
   ma_sound_set_volume(instance, volume);
   ma_sound_set_end_callback(instance, OnSoundFinished, m_impl);
@@ -106,7 +109,7 @@ void AudioEngine::PlaySoundPath(const std::string &filepath, float volume) {
   }
 
   ma_sound_set_volume(instance, volume);
-  ma_sound_set_end_callback(instance, OnSoundFinished, nullptr);
+  ma_sound_set_end_callback(instance, OnSoundFinished, m_impl);
   ma_sound_start(instance);
 }
 

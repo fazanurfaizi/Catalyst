@@ -3,7 +3,6 @@
 #include "engine/resources/TextureAtlasAsset.hpp"
 #include "engine/resources/TextureFormat.hpp"
 #include "engine/utils/Logger.hpp"
-#include "glad/gl.h"
 #include <memory>
 
 namespace engine::asset {
@@ -12,21 +11,6 @@ std::shared_ptr<Asset> TextureAtlasFinalizer::Finalize(
     AssetHandle handle, const TextureAtlasImportResult &data, bool eagerGpu) {
   if (data.rgba8.empty() || data.width == 0 || data.height == 0) {
     Logger::Error("[TextureAtlasFinalizer] empty atlas");
-    return nullptr;
-  }
-
-  GLint glMax = 0;
-  glGetIntegerv(GL_MAX_TEXTURE_SIZE, &glMax);
-  if (glMax <= 0) {
-    Logger::Error(
-        "[TextureAtlasFinalizer] no GL context (glGetIntegerv failed)");
-    return nullptr;
-  }
-  if (static_cast<GLint>(data.width) > glMax ||
-      static_cast<GLint>(data.height) > glMax) {
-    Logger::Error("[TextureAtlasFinalizer] packed atlas %ux%u exceeds "
-                  "GL_MAX_TEXTURE_SIZE %d on this device",
-                  data.width, data.height, glMax);
     return nullptr;
   }
 

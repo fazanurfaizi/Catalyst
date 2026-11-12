@@ -4,6 +4,7 @@
 #include "engine/asset/core/AssetHandle.hpp"
 #include "engine/asset/core/AssetType.hpp"
 #include <cstdint>
+#include <filesystem>
 #include <vector>
 
 namespace engine::resources {
@@ -19,9 +20,12 @@ public:
     return channels > 0 ? pcmSamples.size() / channels : 0;
   }
 
-  bool IsEmpty() const noexcept { return pcmSamples.empty(); }
+  bool IsEmpty() const noexcept {
+    return pcmSamples.empty() && sourcePath.empty();
+  }
 
 public:
+  std::filesystem::path sourcePath;
   std::vector<float> pcmSamples;
   std::uint32_t sampleRate = 0;
   std::uint32_t channels = 0;

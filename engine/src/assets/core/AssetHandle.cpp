@@ -1,6 +1,7 @@
 #include "engine/asset/core/AssetHandle.hpp"
 #include "engine/utils/Id.hpp"
 
+#include <charconv>
 #include <cstdio>
 
 namespace engine::asset {
@@ -14,11 +15,14 @@ AssetHandle AssetHandle::FromString(std::string_view str) {
   if (str.size() != 16) {
     return Null();
   }
+
   ValueType value = 0;
-  if (std::sscanf(std::string(str).c_str(), "%llx",
-                  reinterpret_cast<unsigned long long *>(&value)) != 1) {
+  const auto [ptr, ec] =
+      std::from_chars(str.data(), str.data() + str.size(), value, 16);
+
+  if (ec != std::errc() || ptr != str.data() + str.size())
     return Null();
-  }
+
   return AssetHandle(value);
 }
 

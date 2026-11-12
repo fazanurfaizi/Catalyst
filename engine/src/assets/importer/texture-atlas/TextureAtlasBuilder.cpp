@@ -98,6 +98,7 @@ int TextureAtlasBuilder::AddFromDirectory(const std::string &directory,
 
   return added;
 }
+
 bool TextureAtlasBuilder::AddFromFile(const std::string &name,
                                       const std::string &path,
                                       int maxDimension) {
@@ -106,12 +107,14 @@ bool TextureAtlasBuilder::AddFromFile(const std::string &name,
     return false;
   }
 
-  stbi_set_flip_vertically_on_load(true);
+  stbi_set_flip_vertically_on_load_thread(true);
   int w = 0;
   int h = 0;
   int channels = 0;
 
   stbi_uc *data = stbi_load(path.c_str(), &w, &h, &channels, STBI_rgb_alpha);
+  stbi_set_flip_vertically_on_load_thread(false);
+
   if (!data) {
     const char *dsc = stbi_failure_reason() ? stbi_failure_reason() : "?";
     Logger::Error("[TextureAtlas] failed to load: %s (%s)", path.c_str(), dsc);

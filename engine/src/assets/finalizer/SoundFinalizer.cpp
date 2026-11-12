@@ -10,10 +10,14 @@ std::shared_ptr<Asset>
 SoundFinalizer::Finalize(AssetHandle handle, const SoundImportResult &data,
                          [[maybe_unused]] bool eagerGpu) {
   auto sound = std::make_shared<resources::SoundAsset>(handle);
-  // sound->sourcePath = data.absolutePath;
+  sound->sourcePath = data.absolutePath;
   sound->sampleRate = data.sampleRate;
   sound->channels = data.channels;
-  // sound->frameCount = data.frameCount;
+
+  if (data.sampleRate > 0 && data.frameCount > 0) {
+    sound->durationSeconds = static_cast<float>(data.frameCount) /
+                             static_cast<float>(data.sampleRate);
+  }
 
   if (!sound) {
     Logger::Error("[SoundFinalizer] Audio::CreateSound failed for %s",

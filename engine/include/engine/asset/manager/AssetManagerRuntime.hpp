@@ -9,6 +9,7 @@
 #include <filesystem>
 #include <map>
 #include <memory>
+#include <mutex>
 #include <string_view>
 #include <unordered_map>
 
@@ -42,9 +43,7 @@ public:
 
   void Reimport(AssetHandle handle) override;
 
-  std::uint64_t GetReloadGeneration() const override {
-    return m_reloadGeneration;
-  }
+  std::uint64_t GetReloadGeneration() const override;
 
   std::shared_ptr<Asset> PreloadCpu(AssetHandle handle) override;
 
@@ -60,6 +59,15 @@ protected:
   std::unordered_map<std::string, AssetHandle> m_nameToHandle;
 
   std::uint64_t m_reloadGeneration = 0;
+
+private:
+  const AssetRecord *RecordLocked(AssetHandle handle) const;
+  AssetRecord *MutableRecordLocked(AssetHandle handle);
+
+  std::shared_ptr<Asset> PreloadCpuLocked(AssetHandle handle);
+  std::shared_ptr<Asset> EnsureGpuLocked(AssetHandle handle);
+
+  mutable std::mutex m_mutex;
 };
 
 } // namespace engine::asset

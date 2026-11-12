@@ -66,7 +66,7 @@ void Texture::Release() {
 }
 
 bool Texture::LoadFromFile(const std::string &path) {
-  stbi_set_flip_vertically_on_load(true);
+  stbi_set_flip_vertically_on_load_thread(true);
 
   int w = 0;
   int h = 0;
@@ -77,6 +77,7 @@ bool Texture::LoadFromFile(const std::string &path) {
     Logger::Error("[Texture] failed to load: %s (%s)", path.c_str(), dsc);
     return false;
   }
+  stbi_set_flip_vertically_on_load_thread(false);
 
   Upload(w, h, resources::ImageFormat::RGBA8, data, /*generateMipmaps=*/true);
   stbi_image_free(data);
