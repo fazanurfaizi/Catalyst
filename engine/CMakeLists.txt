@@ -41,6 +41,8 @@ add_library(engine STATIC
   src/assets/manager/AssetManagerRuntime.cpp
   src/assets/manager/AssetManagerEditor.cpp
 
+  src/assets/persistence/AtomicFileWriter.cpp
+
   src/assets/watcher/AssetWatcher.cpp
   src/assets/watcher/FileEvent.cpp
 

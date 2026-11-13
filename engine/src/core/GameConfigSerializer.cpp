@@ -2,6 +2,7 @@
 
 #include "engine/asset/core/AssetHandle.hpp"
 #include "engine/asset/core/AssetType.hpp"
+#include "engine/asset/persistence/AtomicFileWriter.hpp"
 #include "engine/utils/Logger.hpp"
 
 #include <filesystem>
@@ -218,31 +219,9 @@ bool GameConfigSerializer::Save(const GameConfig &config,
     doc["assets"].push_back(std::move(entry));
   }
 
-  const auto tmp = file.string() + ".tmp";
-
-  {
-    std::ofstream out(tmp, std::ios::binary | std::ios::trunc);
-    if (!out) {
-      Logger::Error("[GameConfigSerializer] cannot write '%s'", tmp.c_str());
-      return false;
-    }
-    out << doc.dump(2) << '\n';
-    out.flush();
-
-    if (!out.good()) {
-      Logger::Error("[GameConfigSerializer] write failed for '%s'",
-                    tmp.c_str());
-      std::filesystem::remove(tmp);
-      return false;
-    }
-  }
-
-  std::filesystem::rename(tmp, file, ec);
-
-  if (ec) {
+  if (!asset::AtomicFileWriter::Write(file, doc.dump(2) + "\n")) {
     Logger::Error("[GameConfigSerializer] rename failed: %s",
                   ec.message().c_str());
-    std::filesystem::remove(tmp);
     return false;
   }
 

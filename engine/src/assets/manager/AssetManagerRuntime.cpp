@@ -154,6 +154,9 @@ bool AssetManagerRuntime::RefreshSettingsHash(AssetHandle handle) {
   if (!record)
     return false;
 
+  if (record->settingsHash != 0)
+    return false;
+
   IAssetImporter *importer =
       m_registry.FindForExtension(record->path.extension().string());
   if (!importer)
