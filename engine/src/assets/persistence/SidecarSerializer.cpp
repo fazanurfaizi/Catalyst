@@ -1,10 +1,12 @@
 #include "engine/asset/persistence/SidecarSerializer.hpp"
 #include "engine/asset/importer/IAssetImporter.hpp"
+#include "engine/asset/persistence/AtomicFileWriter.hpp"
 #include "engine/utils/Logger.hpp"
 
 #include <filesystem>
 #include <fstream>
 #include <nlohmann/json.hpp>
+#include <system_error>
 #include <utility>
 
 namespace engine::asset {
@@ -98,6 +100,45 @@ LoadSidecarSettings(const std::filesystem::path &assetPath,
   }
 
   return finalize();
+}
+
+bool SaveSidecarSettings(const std::filesystem::path &assetPath,
+                         const IAssetImporter *importer,
+                         const ImportSettings &settings) {
+  if (!importer)
+    return false;
+
+  json doc;
+  doc["importer"] = std::string(importer->GetId());
+  doc["version"] = settings.GetSchemaVersion();
+  doc["settings"] = settings.ToJson();
+
+  const auto metaPath = MetaPathFor(assetPath);
+  return AtomicFileWriter::Write(metaPath, doc.dump(2) + "\n");
+}
+
+bool SaveSidecarSettings(const std::filesystem::path &assetPath,
+                         const IAssetImporter *importer) {
+  if (!importer)
+    return false;
+
+  auto settings = importer->GetDefaultSettings();
+  if (!settings)
+    return false;
+
+  return SaveSidecarSettings(assetPath, importer, *settings);
+}
+
+/** Writes default settings only when the sidecar does not exist yet. */
+bool EnsureSidecarSettings(const std::filesystem::path &assetPath,
+                           const IAssetImporter *importer) {
+  const auto metaPath = MetaPathFor(assetPath);
+
+  std::error_code ec;
+  if (std::filesystem::exists(metaPath, ec))
+    return true;
+
+  return SaveSidecarSettings(assetPath, importer);
 }
 
 } // namespace engine::asset

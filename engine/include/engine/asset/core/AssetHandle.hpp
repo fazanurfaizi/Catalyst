@@ -1,11 +1,11 @@
 #pragma once
 
+#include "nlohmann/json_fwd.hpp"
+
 #include <cstddef>
 #include <cstdint>
 #include <functional>
 #include <string_view>
-
-#include <nlohmann/json.hpp>
 
 namespace engine::asset {
 
@@ -52,21 +52,9 @@ private:
   ValueType m_value = 0;
 };
 
-inline void to_json(nlohmann::json &j, const AssetHandle &handle) {
-  if (handle.IsNull()) {
-    j = nullptr;
-  } else {
-    j = handle.ToString();
-  }
-}
+void to_json(nlohmann::json &j, const AssetHandle &handle);
 
-inline void from_json(const nlohmann::json &j, AssetHandle &handle) {
-  if (j.is_null() || !j.is_string()) {
-    handle = AssetHandle::Null();
-  } else {
-    handle = AssetHandle::FromString(j.get<std::string>());
-  }
-}
+void from_json(const nlohmann::json &j, AssetHandle &handle);
 
 } // namespace engine::asset
 

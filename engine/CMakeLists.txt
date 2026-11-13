@@ -36,12 +36,12 @@ add_library(engine STATIC
   src/assets/importer/texture-atlas/TextureAtlasBuilder.cpp
   src/assets/importer/texture-atlas/TextureAtlasImportSettings.cpp
 
+  src/assets/persistence/AtomicFileWriter.cpp
+  src/assets/persistence/RegistrySerializer.cpp
   src/assets/persistence/SidecarSerializer.cpp
 
   src/assets/manager/AssetManagerRuntime.cpp
   src/assets/manager/AssetManagerEditor.cpp
-
-  src/assets/persistence/AtomicFileWriter.cpp
 
   src/assets/watcher/AssetWatcher.cpp
   src/assets/watcher/FileEvent.cpp

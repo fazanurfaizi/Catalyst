@@ -5,10 +5,13 @@
 #include "engine/asset/core/AssetHandle.hpp"
 #include "engine/asset/core/AssetRecord.hpp"
 #include "engine/asset/core/ImportError.hpp"
+
 #include <memory>
+#include <optional>
 #include <string_view>
 #include <type_traits>
 #include <utility>
+#include <vector>
 
 namespace engine::asset {
 
@@ -92,6 +95,17 @@ public:
   virtual std::optional<AssetRecord> RecordCopy(AssetHandle handle) const = 0;
 
   virtual bool RefreshSettingsHash(AssetHandle handle) = 0;
+
+  /** Handle whose relative path matches, or Null() if not registered. */
+  virtual AssetHandle FindByPath(std::string_view relativePath) const = 0;
+
+  /** Copy of all records, ordered by handle. Safe for editor/save paths. */
+  virtual std::vector<AssetRecord> RecordsSnapshot() const = 0;
+
+  /** True when records changed since the last ClearDirty(). */
+  virtual bool IsDirty() const = 0;
+
+  virtual void ClearDirty() = 0;
 };
 
 } // namespace engine::asset

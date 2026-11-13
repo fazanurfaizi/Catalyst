@@ -1,5 +1,6 @@
 #include "game/states/PlayingState.hpp"
 
+#include "engine/asset/manager/AssetManagerEditor.hpp"
 #include "engine/audio/MusicPlayer.hpp"
 #include "engine/components/AudioSource.hpp"
 #include "engine/components/Light.hpp"
@@ -516,11 +517,33 @@ void PlayingState::DrawSceneDebug(engine::core::Game &game) {
                                         : m_atlasHandle.ToString().c_str());
     if (ImGui::Button("Force Reimport Atlas"))
       assets->Reimport(m_atlasHandle);
+
+    if (ImGui::Button("Import Asset")) {
+      if (auto *editor =
+              dynamic_cast<engine::asset::AssetManagerEditor *>(assets)) {
+        const auto h = editor->ImportAsset(m_importPath, "tower_texture");
+        if (h.IsNull()) {
+          engine::Logger::Warn("[Editor] Import failed");
+        }
+      }
+    }
+
     if (ImGui::Button("Save Game Config")) {
       game.SyncConfigFromAssets();
-      engine::core::GameConfigSerializer::Save(game.GetGameConfig(),
-                                               game.GetGameConfig().configPath);
+
+      if (engine::core::GameConfigSerializer::Save(
+              game.GetGameConfig(), game.GetGameConfig().configPath)) {
+        assets->ClearDirty();
+      } else {
+        engine::Logger::Error("[PlayingState] failed to save game config");
+      }
     }
+
+    if (assets->IsDirty()) {
+      ImGui::SameLine();
+      ImGui::TextColored(ImVec4(1.0f, 0.75f, 0.2f, 1.0f), "*unsaved");
+    }
+
     if (ImGui::Button("Save Scene"))
       engine::scene::SceneSerializer::Save(m_scene, "scene.json");
   }

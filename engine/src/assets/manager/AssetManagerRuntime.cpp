@@ -3,6 +3,7 @@
 #include "engine/asset/persistence/SidecarSerializer.hpp"
 #include "engine/utils/Logger.hpp"
 #include <filesystem>
+#include <mutex>
 #include <utility>
 
 namespace engine::asset {
@@ -23,6 +24,8 @@ void AssetManagerRuntime::AddRecord(AssetRecord record) {
                   handle.ToString().c_str());
     return;
   }
+
+  m_dirty = true;
 
   if (!name.empty()) {
     auto [nit, ninserted] = m_nameToHandle.emplace(name, handle);
@@ -166,6 +169,45 @@ bool AssetManagerRuntime::RefreshSettingsHash(AssetHandle handle) {
   (void)LoadSidecarSettings(m_projectRoot / record->path, importer, &hash);
   record->settingsHash = hash;
   return true;
+}
+
+AssetHandle
+AssetManagerRuntime::FindByPath(std::string_view relativePath) const {
+  std::lock_guard<std::mutex> lock(m_mutex);
+
+  const std::filesystem::path needle =
+      std::filesystem::path(relativePath).lexically_normal();
+
+  for (const auto &[handle, record] : m_records) {
+    if (record.path.lexically_normal() == needle) {
+      return handle;
+    }
+  }
+
+  return AssetHandle::Null();
+}
+
+std::vector<AssetRecord> AssetManagerRuntime::RecordsSnapshot() const {
+  std::lock_guard<std::mutex> lock(m_mutex);
+
+  std::vector<AssetRecord> out;
+  out.reserve(m_records.size());
+  for (const auto &[handle, record] : m_records) {
+    out.push_back(record);
+  }
+  return out;
+}
+
+bool AssetManagerRuntime::IsDirty() const {
+  std::lock_guard<std::mutex> lock(m_mutex);
+
+  return m_dirty;
+}
+
+void AssetManagerRuntime::ClearDirty() {
+  std::lock_guard<std::mutex> lock(m_mutex);
+
+  m_dirty = false;
 }
 
 std::shared_ptr<Asset>

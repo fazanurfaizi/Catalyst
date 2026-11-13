@@ -50,6 +50,10 @@ private:
 
   std::uint64_t m_lastReloadGen = 0;
 
+#ifndef DEBUG
+  char m_importPath[256] = "textures/tower.png";
+#endif // !DEBUG
+
   void ResolveHandles(engine::core::Game &game);
   void BuildAnimations();
   void ApplyRegion(engine::ecs::Entity e, std::string_view region);

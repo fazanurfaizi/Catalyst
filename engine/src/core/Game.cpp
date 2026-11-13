@@ -1,5 +1,6 @@
 #include "engine/core/Game.hpp"
 
+#include "engine/asset/core/AssetRecord.hpp"
 #include "engine/asset/manager/AssetManagerRuntime.hpp"
 #include "engine/audio/AudioEngine.hpp"
 #include "engine/components/AnimationClip.hpp"
@@ -25,6 +26,7 @@
 
 // @NOTE: glfwGetProcAddress for glad loader
 #include <GLFW/glfw3.h>
+#include <algorithm>
 #include <glad/gl.h>
 
 #include <cstdio>
@@ -193,6 +195,8 @@ bool Game::Run() {
     m_assets->RefreshSettingsHash(record.handle);
   }
 
+  m_assets->ClearDirty();
+
 #ifdef CATALYST_EDITOR
   m_watcher =
       std::make_unique<asset::AssetWatcher>(std::chrono::milliseconds(500));
@@ -300,14 +304,20 @@ void Game::SyncConfigFromAssets() {
   if (!m_assets)
     return;
 
-  for (auto &record : m_gameConfig.assets) {
-    const auto live = m_assets->RecordCopy(record.handle);
-    if (!live)
-      continue;
+  const auto live = m_assets->RecordsSnapshot();
 
-    record.settingsHash = live->settingsHash;
-    record.state = live->state;
-    record.dependencies = live->dependencies;
+  for (const auto &record : live) {
+    auto it =
+        std::find_if(m_gameConfig.assets.begin(), m_gameConfig.assets.end(),
+                     [&](const asset::AssetRecord &existing) {
+                       return existing.handle == record.handle;
+                     });
+
+    if (it == m_gameConfig.assets.end()) {
+      m_gameConfig.assets.push_back(record);
+    } else {
+      *it = record;
+    }
   }
 }
 

@@ -6,6 +6,7 @@
 #include "engine/asset/core/AssetRecord.hpp"
 #include "engine/asset/importer/ImporterRegistry.hpp"
 #include "engine/asset/manager/IAssetManager.hpp"
+
 #include <filesystem>
 #include <map>
 #include <memory>
@@ -53,6 +54,14 @@ public:
 
   bool RefreshSettingsHash(AssetHandle handle) override;
 
+  AssetHandle FindByPath(std::string_view relativePath) const override;
+
+  std::vector<AssetRecord> RecordsSnapshot() const override;
+
+  bool IsDirty() const override;
+
+  void ClearDirty() override;
+
 protected:
   ImporterRegistry &m_registry;
   std::filesystem::path m_projectRoot;
@@ -63,6 +72,8 @@ protected:
   std::unordered_map<std::string, AssetHandle> m_nameToHandle;
 
   std::uint64_t m_reloadGeneration = 0;
+
+  bool m_dirty = false;
 
 private:
   const AssetRecord *RecordLocked(AssetHandle handle) const;
