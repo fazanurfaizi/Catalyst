@@ -15,8 +15,9 @@ SoundFinalizer::Finalize(AssetHandle handle, const SoundImportResult &data,
   sound->channels = data.channels;
 
   if (data.sampleRate > 0 && data.frameCount > 0) {
-    sound->durationSeconds = static_cast<float>(data.frameCount) /
-                             static_cast<float>(data.sampleRate);
+    sound->durationSeconds =
+        static_cast<float>(static_cast<double>(data.frameCount) /
+                           static_cast<double>(data.sampleRate));
   }
 
   if (!sound) {

@@ -9,7 +9,8 @@ namespace engine::audio {
 MusicPlayer::MusicPlayer() : m_sound(new ma_sound()) {}
 
 MusicPlayer::MusicPlayer(MusicPlayer &&other) noexcept
-    : m_sound(other.m_sound), m_loaded(other.m_loaded) {
+    : m_sound(other.m_sound), m_loaded(other.m_loaded), m_loop(other.m_loop),
+      m_volume(other.m_volume) {
   other.m_sound = nullptr;
   other.m_loaded = false;
 }
@@ -24,6 +25,8 @@ MusicPlayer &MusicPlayer::operator=(MusicPlayer &&other) noexcept {
 
     m_sound = other.m_sound;
     m_loaded = other.m_loaded;
+    m_loop = other.m_loop;
+    m_volume = other.m_volume;
 
     other.m_sound = nullptr;
     other.m_loaded = false;
@@ -54,6 +57,7 @@ bool MusicPlayer::Load(const std::string &path) {
 
   if (ma_sound_init_from_file(engine, path.c_str(), MA_SOUND_FLAG_STREAM,
                               nullptr, nullptr, m_sound) != MA_SUCCESS) {
+    Logger::Error("[MusicPlayer] failed to open '%s'", path.c_str());
     return false;
   }
   m_loaded = true;

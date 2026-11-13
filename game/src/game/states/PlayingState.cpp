@@ -140,10 +140,18 @@ void PlayingState::OnEnter(engine::core::Game &game) {
     if (auto bgm =
             assets->Acquire<engine::resources::SoundAsset>(m_bgmHandle)) {
       m_music = std::make_unique<engine::audio::MusicPlayer>();
-      m_music->Load(bgm->sourcePath);
-      m_music->SetLooping(true);
-      m_music->SetVolume(0.4f);
-      m_music->Play();
+
+      if (!m_music->Load(bgm->sourcePath.string())) {
+        engine::Logger::Error("[PlayingState] failed to load BGM '%s'",
+                              bgm->sourcePath.c_str());
+        m_music.reset();
+      } else {
+        m_music->SetLooping(true);
+        m_music->SetVolume(0.4f);
+        m_music->Play();
+        engine::Logger::Info("[PlayingState] BGM started: '%s'",
+                             bgm->sourcePath.c_str());
+      }
     }
   }
 
@@ -203,9 +211,11 @@ void PlayingState::OnEnter(engine::core::Game &game) {
   }
 
   if (hero && reg.IsAlive(*hero)) {
-    if (auto *s = reg.TryGet<engine::components::AudioSource>(*hero)) {
-      s->clip = m_heroAttackSfxHandle;
-    }
+    auto &src = reg.GetOrEmplace<engine::components::AudioSource>(*hero);
+    src.clip = m_heroAttackSfxHandle;
+    src.volume = 0.8f;
+    src.playOnSpawn = false;
+    src.trigger = false;
   }
 
   if (camera && reg.IsAlive(*camera)) {

@@ -70,7 +70,6 @@ void AudioEngine::PlayOneShot(const resources::SoundAsset &sound,
                               float volume) {
   if (!m_impl->engineInited) {
     Logger::Warn("[AudioEngine] PlayOneShot before Init, ignoring");
-    std::abort();
     return;
   }
 
@@ -82,9 +81,10 @@ void AudioEngine::PlayOneShot(const resources::SoundAsset &sound,
   Update();
 
   auto *instance = new ma_sound();
-  if (ma_sound_init_from_file(
-          &m_impl->engine, sound.sourcePath.string().c_str(),
-          MA_SOUND_FLAG_DECODE, nullptr, nullptr, instance) != MA_SUCCESS) {
+  const ma_uint32 flags = MA_SOUND_FLAG_DECODE | MA_SOUND_FLAG_ASYNC;
+  if (ma_sound_init_from_file(&m_impl->engine,
+                              sound.sourcePath.string().c_str(), flags, nullptr,
+                              nullptr, instance) != MA_SUCCESS) {
     Logger::Error("[AudioEngine] Failed to init sound from '%s'",
                   sound.sourcePath.string().c_str());
     delete instance;

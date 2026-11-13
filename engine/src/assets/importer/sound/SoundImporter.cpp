@@ -38,7 +38,7 @@ ImportResult<ImportedAssetDataPtr> ImportSound(const ImportRequest &request) {
   result->absolutePath = request.absolutePath;
   result->sampleRate = decoder.outputSampleRate;
   result->channels = decoder.outputChannels;
-  result->frameCount = static_cast<std::uint32_t>(frameCount);
+  result->frameCount = frameCount;
 
   ma_decoder_uninit(&decoder);
   return ImportResult<ImportedAssetDataPtr>::Ok(std::move(result));
