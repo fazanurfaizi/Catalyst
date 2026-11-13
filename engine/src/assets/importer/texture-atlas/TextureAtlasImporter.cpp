@@ -4,12 +4,14 @@
 #include "engine/asset/importer/texture-atlas/TextureAtlasImportResult.hpp"
 #include "engine/asset/importer/texture-atlas/TextureAtlasImportSettings.hpp"
 
-#include <charconv>
 #include <nlohmann/json.hpp>
 #include <stb/stb_image.h>
 
+#include <charconv>
 #include <filesystem>
 #include <fstream>
+#include <optional>
+#include <system_error>
 
 namespace engine::asset {
 
@@ -36,6 +38,28 @@ std::optional<std::uint32_t> ParseHex(std::string_view hexStr) {
   }
 
   return result;
+}
+
+std::optional<std::filesystem::path>
+ResolveInside(const std::filesystem::path &base, const std::string &relative) {
+  std::error_code ec;
+  const auto canonicalBase = std::filesystem::weakly_canonical(base, ec);
+  if (ec)
+    return std::nullopt;
+
+  const auto candidate = std::filesystem::weakly_canonical(base / relative, ec);
+  if (ec)
+    return std::nullopt;
+
+  const auto rel = candidate.lexically_relative(canonicalBase);
+  if (rel.empty())
+    return std::nullopt;
+
+  auto it = rel.begin();
+  if (it != rel.end() && *it == "..")
+    return std::nullopt;
+
+  return candidate;
 }
 
 ImportResult<ImportedAssetDataPtr>
@@ -81,16 +105,56 @@ ImportTextureAtlas(const ImportRequest &request) {
             .WithPath(request.absolutePath));
   }
 
-  for (const json &entry : manifest["sources"]) {
+  for (std::size_t i = 0; i < manifest["sources"].size(); ++i) {
+    const json &entry = manifest["sources"][i];
+
+    if (!entry.is_object()) {
+      return ImportResult<ImportedAssetDataPtr>::Err(
+          ImportError::Make(ImportError::Code::MalformedContent,
+                            "sources[" + std::to_string(i) +
+                                "] is not an object")
+              .WithPath(request.absolutePath));
+    }
+
+    if (!entry.contains("type") || !entry["type"].is_string()) {
+      return ImportResult<ImportedAssetDataPtr>::Err(
+          ImportError::Make(ImportError::Code::MalformedContent,
+                            "sources[" + std::to_string(i) +
+                                "] missing string 'type'")
+              .WithPath(request.absolutePath));
+    }
+
     const std::string type = entry.value("type", "");
 
     if (type == "directory") {
-      const auto dir = manifestDir / entry.value("path", "");
-      builder.AddFromDirectory(dir.string(), maxSpriteDimension);
+      if (!entry.contains("path") || !entry["path"].is_string()) {
+        return ImportResult<ImportedAssetDataPtr>::Err(
+            ImportError::Make(ImportError::Code::MalformedContent,
+                              "directory source missing string 'path'")
+                .WithPath(request.absolutePath));
+      }
+
+      const auto dir =
+          ResolveInside(manifestDir, entry["path"].get<std::string>());
+      if (!dir) {
+        return ImportResult<ImportedAssetDataPtr>::Err(
+            ImportError::Make(ImportError::Code::MalformedContent,
+                              "directory source escapes the manifest root")
+                .WithPath(request.absolutePath));
+      }
+
+      builder.AddFromDirectory(dir->string(), maxSpriteDimension);
     } else if (type == "solid") {
       const std::string name = entry.value("name", "");
+      if (name.empty()) {
+        return ImportResult<ImportedAssetDataPtr>::Err(
+            ImportError::Make(ImportError::Code::MalformedContent,
+                              "solid source requires a name")
+                .WithPath(request.absolutePath));
+      }
       if (entry.value("ifMissing", false) && builder.HasSource(name))
         continue;
+
       const auto color = ParseHex(entry.value("color", "FFFFFFFF"));
       if (!color) {
         return ImportResult<ImportedAssetDataPtr>::Err(
@@ -98,12 +162,35 @@ ImportTextureAtlas(const ImportRequest &request) {
                               "Invalid hex color in 'color'")
                 .WithPath(request.absolutePath));
       }
-      builder.AddSolid(name, *color, entry.value("size", 16));
+
+      const int size = entry.value("size", 16);
+      if (size < 1 || size > 4096) {
+        return ImportResult<ImportedAssetDataPtr>::Err(
+            ImportError::Make(ImportError::Code::MalformedContent,
+                              "solid 'size' must be in [1, 4096]")
+                .WithPath(request.absolutePath));
+      }
+
+      builder.AddSolid(name, *color, size);
     } else if (type == "checkerboard") {
       const std::string name = entry.value("name", "");
-      const int cells = entry.value("cells", 1);
+      if (name.empty()) {
+        return ImportResult<ImportedAssetDataPtr>::Err(
+            ImportError::Make(ImportError::Code::MalformedContent,
+                              "checkerboard source requires a name")
+                .WithPath(request.absolutePath));
+      }
       if (entry.value("ifMissing", false) && builder.HasSource(name))
         continue;
+
+      const int cells = entry.value("cells", 1);
+      if (cells < 1 || cells > 512) {
+        return ImportResult<ImportedAssetDataPtr>::Err(
+            ImportError::Make(ImportError::Code::MalformedContent,
+                              "checkerboard 'cells' must be in [1, 512]")
+                .WithPath(request.absolutePath));
+      }
+
       const auto colorA = ParseHex(entry.value("colorA", "FFFFFFFF"));
       const auto colorB = ParseHex(entry.value("colorB", "FFFFFFFF"));
       if (!colorA || !colorB) {
@@ -113,6 +200,11 @@ ImportTextureAtlas(const ImportRequest &request) {
                 .WithPath(request.absolutePath));
       }
       builder.AddCheckerboard(name, cells, *colorA, *colorB);
+    } else {
+      return ImportResult<ImportedAssetDataPtr>::Err(
+          ImportError::Make(ImportError::Code::MalformedContent,
+                            "Unknown source type '" + type + "'")
+              .WithPath(request.absolutePath));
     }
   }
 
