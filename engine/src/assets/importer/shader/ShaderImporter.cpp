@@ -4,6 +4,7 @@
 
 #include <fstream>
 #include <ios>
+#include <sstream>
 #include <string>
 
 namespace engine::asset {
@@ -21,15 +22,27 @@ bool ReadFile(const std::filesystem::path &path, std::string &out) {
 }
 
 ImportResult<ImportedAssetDataPtr> ImportShader(const ImportRequest &request) {
-  std::filesystem::path vertPath = request.absolutePath;
-  std::filesystem::path fragPath = request.absolutePath;
-
-  std::string stem = vertPath.stem().string();
-  if (stem.ends_with(".vert")) {
-    stem.resize(stem.size() - 5);
-    vertPath = vertPath.parent_path() / (stem + ".vert.glsl");
-    fragPath = vertPath.parent_path() / (stem + ".frag.glsl");
+  std::string stem = request.absolutePath.stem().string();
+  if (!stem.ends_with(".vert")) {
+    return ImportResult<ImportedAssetDataPtr>::Err(
+        ImportError::Make(
+            ImportError::Code::UnsupportedFormat,
+            "Shader entry must be named '<name>.vert.glsl'; got '" +
+                request.absolutePath.filename().string() + "'")
+            .WithPath(request.absolutePath));
   }
+
+  stem.resize(stem.size() - 5);
+  if (stem.empty()) {
+    return ImportResult<ImportedAssetDataPtr>::Err(
+        ImportError::Make(ImportError::Code::MalformedContent,
+                          "Shader base name is empty")
+            .WithPath(request.absolutePath));
+  }
+
+  const std::filesystem::path vertPath = request.absolutePath;
+  const std::filesystem::path fragPath =
+      request.absolutePath.parent_path() / (stem + ".frag.glsl");
 
   std::string vertSrc, fragSrc;
   if (!ReadFile(vertPath, vertSrc)) {
@@ -38,12 +51,18 @@ ImportResult<ImportedAssetDataPtr> ImportShader(const ImportRequest &request) {
                           "Cannot read vertex shader")
             .WithPath(vertPath));
   }
-
   if (!ReadFile(fragPath, fragSrc)) {
     return ImportResult<ImportedAssetDataPtr>::Err(
         ImportError::Make(ImportError::Code::FileUnreadable,
                           "Cannot read fragment shader")
             .WithPath(fragPath));
+  }
+
+  if (vertSrc.empty() || fragSrc.empty()) {
+    return ImportResult<ImportedAssetDataPtr>::Err(
+        ImportError::Make(ImportError::Code::MalformedContent,
+                          "Shader source is empty")
+            .WithPath(request.absolutePath));
   }
 
   auto result = std::make_unique<ShaderImportResult>();

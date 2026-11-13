@@ -12,7 +12,7 @@ public:
   AssetType GetAssetType() const override { return AssetType::Texture2D; }
 
   std::vector<std::string_view> GetSupportedExtensions() const override {
-    return {".png"};
+    return {".png", "jpg", "jpeg"};
   }
 
   std::unique_ptr<ImportSettings> GetDefaultSettings() const override {

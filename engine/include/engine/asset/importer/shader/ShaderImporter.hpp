@@ -12,7 +12,7 @@ public:
   AssetType GetAssetType() const override { return AssetType::Shader; }
 
   std::vector<std::string_view> GetSupportedExtensions() const override {
-    return {".glsl"};
+    return {".vert.glsl", ".frag.glsl"};
   }
 
   std::unique_ptr<ImportSettings> GetDefaultSettings() const override {
