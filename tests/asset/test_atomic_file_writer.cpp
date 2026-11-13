@@ -1,4 +1,4 @@
-#include "asset/test_harness.hpp"
+#include "test_harness.hpp"
 
 #include "engine/asset/persistence/AtomicFileWriter.hpp"
 

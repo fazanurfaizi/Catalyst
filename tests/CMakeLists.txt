@@ -1,6 +1,8 @@
 add_executable(engine_tests
   test_main.cpp
   asset/test_atomic_file_writer.cpp
+  asset/test_registry_serializer.cpp
+  asset/test_asset_manager_editor.cpp
   core/test_game_config_serializer.cpp
 )
 
