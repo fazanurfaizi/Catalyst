@@ -4,6 +4,7 @@ add_executable(engine_tests
   asset/test_registry_serializer.cpp
   asset/test_asset_manager_editor.cpp
   asset/test_audio_engine.cpp
+  asset/test_importers.cpp
   core/test_game_config_serializer.cpp
 )
 
@@ -13,6 +14,10 @@ target_link_libraries(engine_tests PRIVATE
 )
 
 target_include_directories(engine_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+
+target_compile_definitions(engine_tests PRIVATE
+  CATALYST_SOURCE_DIR="${CMAKE_SOURCE_DIR}"
+)
 
 if(GAME_WARNING_FLAGS)
   target_compile_options(engine_tests PRIVATE ${GAME_WARNING_FLAGS})
