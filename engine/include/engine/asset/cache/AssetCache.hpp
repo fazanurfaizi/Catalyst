@@ -7,6 +7,7 @@
 #include <cstddef>
 #include <map>
 #include <memory>
+#include <optional>
 
 namespace engine::asset {
 
@@ -28,7 +29,7 @@ public:
   AssetLoadState State(AssetHandle handle) const;
 
   /** Last ImportError, or nullptr if the state is not failed */
-  const ImportError *LastError(AssetHandle handle) const;
+  const std::optional<ImportError> LastError(AssetHandle handle) const;
 
   /** Unloaded -> Loading */
   void MarkLoading(AssetHandle handle);

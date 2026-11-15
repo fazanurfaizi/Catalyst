@@ -59,10 +59,11 @@ public:
   virtual AssetLoadState State(AssetHandle handle) const = 0;
 
   /** Record for handle, or nullptr if unknown. */
-  virtual const AssetRecord *Record(AssetHandle handle) const = 0;
+  // virtual const AssetRecord *Record(AssetHandle handle) const = 0;
 
   /** Last import error if state == Failed; nullptr otherwise. */
-  virtual const ImportError *LastError(AssetHandle handle) const = 0;
+  virtual const std::optional<ImportError>
+  LastError(AssetHandle handle) const = 0;
 
   /** Clears the failed state and reloads. No-op if state != Failed. */
   virtual void Retry(AssetHandle handle) = 0;

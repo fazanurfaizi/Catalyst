@@ -12,6 +12,7 @@
 #include <map>
 #include <memory>
 #include <mutex>
+#include <optional>
 #include <string_view>
 #include <unordered_map>
 #include <unordered_set>
@@ -30,9 +31,9 @@ public:
 
   AssetHandle FindByName(std::string_view name) const override;
 
-  const AssetRecord *Record(AssetHandle handle) const override;
+  // const AssetRecord *Record(AssetHandle handle) const override;
 
-  const ImportError *LastError(AssetHandle handle) const override;
+  const std::optional<ImportError> LastError(AssetHandle handle) const override;
 
   void Retry(AssetHandle handle) override;
 

@@ -1,6 +1,6 @@
 #include "engine/graphics/Renderer.hpp"
 
-#include "engine/asset/AssetPath.hpp"
+#include "engine/asset/builtin/BuiltinShaders.hpp"
 #include "engine/asset/core/AssetHandle.hpp"
 #include "engine/components/Light.hpp"
 #include "engine/components/Sprite.hpp"
@@ -10,7 +10,9 @@
 #include "engine/math/Rect.hpp"
 #include "engine/resources/TextureAtlasAsset.hpp"
 #include "engine/utils/Logger.hpp"
+
 #include "glad/gl.h"
+
 #include <algorithm>
 #include <cmath>
 #include <cstddef>
@@ -33,20 +35,6 @@ void Renderer::Init(int width, int height) {
   m_height = height;
 
   m_batch = std::make_unique<SpriteBatch>();
-
-  if (!m_lightShader.IsValid()) {
-    if (!m_lightShader.LoadFromFile(AssetPath("shaders/light"))) {
-      Logger::Error("[Renderer] failed to load 'shaders/light' - "
-                    "lighting pipeline disabled (scene renders unlit).");
-    }
-  }
-
-  if (!m_compositeShader.IsValid()) {
-    if (!m_compositeShader.LoadFromFile(AssetPath("shaders/composite"))) {
-      Logger::Error("[Renderer] failed to load 'shaders/composite' - "
-                    "lighting pipeline disabled (scene renders unlit).");
-    }
-  }
 
   EnsureRenderTargets();
   SetTileCounts(width, height);
@@ -72,8 +60,16 @@ glm::mat4 Renderer::UiProjection() const {
                     static_cast<float>(m_height), 0.0f, -1.0f, 1.0f);
 }
 
+void Renderer::SetAssetManager(asset::IAssetManager *assets) {
+  m_assets = assets;
+  RefreshShaders();
+}
+
 void Renderer::BeginFrame(const glm::mat4 &viewProjection,
                           const math::Rect &visibleBounds) {
+  if (m_assets && m_assets->GetReloadGeneration() != m_shaderGeneration)
+    RefreshShaders();
+
   if (m_frameActive) {
     Logger::Warn("[Renderer] BeginFrame while frame active");
     return;
@@ -341,23 +337,27 @@ void Renderer::ExecuteLight() {
   glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
   glClear(GL_COLOR_BUFFER_BIT);
 
+  if (!m_lightShader || !m_lightShader->Gpu())
+    return;
+
+  Shader &shader = *m_lightShader->Gpu();
+
   UpdateTileGrid(m_viewProjection);
   BuildTileGrid();
 
   m_lightRenderer.Upload(m_lightBuffer);
 
-  m_lightShader.Bind();
-  m_lightShader.SetMat4("uInViewProjection", glm::inverse(m_viewProjection));
-  m_lightShader.SetVec3("uAmbientColor", m_ambientColor);
-  m_lightShader.SetInt("uPointLightCount", m_lightBuffer.pointCount);
-  m_lightShader.SetInt("uDirectionalLightCount",
-                       m_lightBuffer.directionalCount);
-  m_lightShader.SetInt("uSpotLightCount", m_lightBuffer.spotCount);
-  m_lightShader.SetUInt("uTileCountX", m_tileCuller.TilesX());
-  m_lightShader.SetUInt("uTileCountY", m_tileCuller.TilesY());
-  m_lightShader.SetVec2("uTileWorldSize",
-                        {m_tileCuller.TileWorldW(), m_tileCuller.TileWorldH()});
-  m_lightShader.SetVec2("uWorldOrigin", m_tileCuller.WorldOrigin());
+  shader.Bind();
+  shader.SetMat4("uInViewProjection", glm::inverse(m_viewProjection));
+  shader.SetVec3("uAmbientColor", m_ambientColor);
+  shader.SetInt("uPointLightCount", m_lightBuffer.pointCount);
+  shader.SetInt("uDirectionalLightCount", m_lightBuffer.directionalCount);
+  shader.SetInt("uSpotLightCount", m_lightBuffer.spotCount);
+  shader.SetUInt("uTileCountX", m_tileCuller.TilesX());
+  shader.SetUInt("uTileCountY", m_tileCuller.TilesY());
+  shader.SetVec2("uTileWorldSize",
+                 {m_tileCuller.TileWorldW(), m_tileCuller.TileWorldH()});
+  shader.SetVec2("uWorldOrigin", m_tileCuller.WorldOrigin());
 
   m_fullscreenQuad.Draw();
 }
@@ -367,12 +367,17 @@ void Renderer::ExecuteComposite() {
   glViewport(0, 0, m_width, m_height);
   glClear(GL_COLOR_BUFFER_BIT);
 
-  m_compositeShader.Bind();
+  if (!m_compositeShader || !m_compositeShader->Gpu())
+    return;
+
+  Shader &shader = *m_compositeShader->Gpu();
+
+  shader.Bind();
   m_sceneRT.BindColorTexture(0);
   m_lightRT.BindColorTexture(1);
-  m_compositeShader.SetInt("uScene", 0);
-  m_compositeShader.SetInt("uLight", 1);
-  m_compositeShader.SetInt("uMode", 0);
+  shader.SetInt("uScene", 0);
+  shader.SetInt("uLight", 1);
+  shader.SetInt("uMode", 0);
 
   m_fullscreenQuad.Draw();
 }
@@ -382,19 +387,24 @@ void Renderer::ExecuteBlit(Attachment src) {
   glViewport(0, 0, m_width, m_height);
   glClear(GL_COLOR_BUFFER_BIT);
 
-  m_compositeShader.Bind();
+  if (!m_compositeShader || !m_compositeShader->Gpu())
+    return;
+
+  Shader &shader = *m_compositeShader->Gpu();
+  shader.Bind();
+
   if (src == AttachLightColor) {
     m_lightRT.BindColorTexture(0);
     m_sceneRT.BindColorTexture(1);
-    m_compositeShader.SetInt("uScene", 0);
-    m_compositeShader.SetInt("uLight", 1);
-    m_compositeShader.SetInt("uMode", 2);
+    shader.SetInt("uScene", 0);
+    shader.SetInt("uLight", 1);
+    shader.SetInt("uMode", 2);
   } else {
     m_sceneRT.BindColorTexture(0);
     m_lightRT.BindColorTexture(1);
-    m_compositeShader.SetInt("uScene", 0);
-    m_compositeShader.SetInt("uLight", 1);
-    m_compositeShader.SetInt("uMode", 1);
+    shader.SetInt("uScene", 0);
+    shader.SetInt("uLight", 1);
+    shader.SetInt("uMode", 1);
   }
 
   m_fullscreenQuad.Draw();
@@ -456,6 +466,32 @@ void Renderer::SetTileCounts(int width, int height) {
       std::max(1u, static_cast<std::uint32_t>(height) / kTilePx);
   m_tileCuller.SetTileGrid(tx, ty, 1.0f, 1.0f,
                            {0.0f, 0.0f}); // size overwritten below
+}
+
+void Renderer::RefreshShaders() {
+  if (!m_assets)
+    return;
+
+  if (auto shader = asset::builtin::AcquireShader(
+          *m_assets, asset::builtin::kLightShader)) {
+    m_lightShader = std::move(shader);
+  }
+
+  if (auto shader = asset::builtin::AcquireShader(
+          *m_assets, asset::builtin::kCompositeShader)) {
+    m_compositeShader = std::move(shader);
+  }
+
+  if (auto shader = asset::builtin::AcquireShader(
+          *m_assets, asset::builtin::kSpriteShader)) {
+    m_spriteShader = std::move(shader);
+
+    if (m_batch) {
+      m_batch->SetShader(m_spriteShader->Gpu());
+    }
+  }
+
+  m_shaderGeneration = m_assets->GetReloadGeneration();
 }
 
 } // namespace engine::graphics

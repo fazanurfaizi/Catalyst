@@ -6,8 +6,10 @@
 #include "engine/core/Game.hpp"
 #include "engine/core/GameState.hpp"
 #include "engine/ecs/Entity.hpp"
+#include "engine/editor/AssetEditor.hpp"
 #include "engine/graphics/TextRenderer.hpp"
 #include "engine/input/InputCodes.hpp"
+#include "engine/resources/ShaderAsset.hpp"
 #include "engine/resources/TextureAtlasAsset.hpp"
 #include "engine/scene/Scene.hpp"
 
@@ -42,6 +44,9 @@ private:
   engine::graphics::TextRenderer m_textRenderer;
   std::unique_ptr<engine::audio::MusicPlayer> m_music;
 
+  std::shared_ptr<engine::resources::ShaderAsset> m_textShaderAsset;
+  engine::editor::AssetBrowserState m_assetBrowser;
+
   engine::asset::AssetHandle m_fontHandle{};
   engine::asset::AssetHandle m_atlasHandle{};
   engine::asset::AssetHandle m_bgmHandle{};
@@ -59,5 +64,6 @@ private:
   void BuildAnimations();
   void ApplyRegion(engine::ecs::Entity e, std::string_view region);
   void DrawSceneDebug(engine::core::Game &game);
+  void RefreshTextShader(engine::core::Game &game);
   void ReloadAssets(engine::core::Game &game);
 };

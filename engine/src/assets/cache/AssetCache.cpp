@@ -55,13 +55,13 @@ AssetLoadState AssetCache::State(AssetHandle handle) const {
   return it->second.state;
 }
 
-const ImportError *AssetCache::LastError(AssetHandle handle) const {
+const std::optional<ImportError>
+AssetCache::LastError(AssetHandle handle) const {
   auto it = m_entries.find(handle);
-  if (it == m_entries.end())
-    return nullptr;
-  if (it->second.state != AssetLoadState::Failed)
-    return nullptr;
-  return &it->second.lastError;
+  if (it == m_entries.end() || it->second.state != AssetLoadState::Failed)
+    return std::nullopt;
+
+  return it->second.lastError;
 }
 
 void AssetCache::MarkLoading(AssetHandle handle) {

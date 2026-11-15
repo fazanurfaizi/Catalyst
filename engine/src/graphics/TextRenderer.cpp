@@ -1,6 +1,5 @@
 #include "engine/graphics/TextRenderer.hpp"
 
-#include "engine/asset/AssetPath.hpp"
 #include "engine/graphics/text/TextLayout.hpp"
 #include "engine/resources/FontAsset.hpp"
 #include "engine/utils/Logger.hpp"
@@ -13,11 +12,6 @@
 namespace engine::graphics {
 
 TextRenderer::TextRenderer() {
-  if (!m_shader.LoadFromFile(AssetPath("shaders/text"))) {
-    Logger::Error("[TextRenderer] Failed to compile text shader");
-    return;
-  }
-
   glGenVertexArrays(1, &m_vao);
   glGenBuffers(1, &m_vbo);
   glBindVertexArray(m_vao);
@@ -83,10 +77,12 @@ void TextRenderer::Draw(const resources::FontAsset &font,
   glEnable(GL_BLEND);
   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-  m_shader.Bind();
-  m_shader.SetMat4("uProjection", projection);
-  m_shader.SetVec4("uTextColor", color);
-  m_shader.SetInt("uText", 0);
+  Shader &shader = m_shaderOverride ? *m_shaderOverride : m_shader;
+
+  shader.Bind();
+  shader.SetMat4("uProjection", projection);
+  shader.SetVec4("uTextColor", color);
+  shader.SetInt("uText", 0);
 
   glActiveTexture(GL_TEXTURE0);
   glBindTexture(GL_TEXTURE_2D, gpu->GetTextureId());
@@ -104,7 +100,7 @@ void TextRenderer::Draw(const resources::FontAsset &font,
   glBindBuffer(GL_ARRAY_BUFFER, 0);
   glBindVertexArray(0);
   glBindTexture(GL_TEXTURE_2D, 0);
-  m_shader.Unbind();
+  shader.Unbind();
 }
 
 } // namespace engine::graphics

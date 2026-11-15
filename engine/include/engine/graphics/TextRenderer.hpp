@@ -20,10 +20,13 @@ public:
             const glm::mat4 &projection, float maxWidth = 0.0f,
             TextAlignment alignment = TextAlignment::Left);
 
+  void SetShader(Shader *shader) { m_shaderOverride = shader; }
+
 private:
   GLuint m_vao = 0;
   GLuint m_vbo = 0;
   Shader m_shader;
+  Shader *m_shaderOverride = nullptr;
 
   std::vector<Vertex> m_vertices;
 };

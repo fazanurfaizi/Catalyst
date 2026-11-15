@@ -13,6 +13,7 @@
 #include "engine/graphics/texture/Texture.hpp"
 #include "engine/math/Color.hpp"
 #include "engine/math/Rect.hpp"
+#include "engine/resources/ShaderAsset.hpp"
 #include "engine/scene/Scene.hpp"
 
 #include <cstdint>
@@ -37,6 +38,8 @@ public:
   [[nodiscard]] glm::mat4 UiProjection() const;
   [[nodiscard]] int Width() const { return m_width; }
   [[nodiscard]] int Height() const { return m_height; }
+
+  void SetAssetManager(asset::IAssetManager *assets);
 
   void BeginFrame(const glm::mat4 &viewProjection,
                   const math::Rect &visibleBounds);
@@ -77,6 +80,8 @@ private:
   void ExecuteBlit(Attachment src);
   void ExecuteClearDepth();
 
+  void RefreshShaders();
+
   std::unique_ptr<SpriteBatch> m_batch;
   SpriteDrawList m_drawList;
   RenderPipeline m_pipeline;
@@ -84,8 +89,13 @@ private:
   RenderTarget m_sceneRT;
   RenderTarget m_lightRT;
 
-  Shader m_lightShader;
-  Shader m_compositeShader;
+  std::shared_ptr<resources::ShaderAsset> m_spriteShader;
+  std::shared_ptr<resources::ShaderAsset> m_lightShader;
+  std::shared_ptr<resources::ShaderAsset> m_compositeShader;
+
+  asset::IAssetManager *m_assets = nullptr;
+  std::uint64_t m_shaderGeneration = 0;
+
   FullscreenQuad m_fullscreenQuad;
 
   LightRenderer m_lightRenderer;

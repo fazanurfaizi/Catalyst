@@ -1,5 +1,6 @@
 #include "game/states/PlayingState.hpp"
 
+#include "engine/asset/builtin/BuiltinShaders.hpp"
 #include "engine/asset/manager/AssetManagerEditor.hpp"
 #include "engine/audio/MusicPlayer.hpp"
 #include "engine/components/AudioSource.hpp"
@@ -8,6 +9,7 @@
 #include "engine/core/Game.hpp"
 #include "engine/core/GameConfigSerializer.hpp"
 #include "engine/ecs/Entity.hpp"
+#include "engine/editor/AssetEditor.hpp"
 #include "engine/graphics/Renderer.hpp"
 #include "engine/math/Color.hpp"
 #include "engine/resources/SoundAsset.hpp"
@@ -120,6 +122,7 @@ void PlayingState::OnEnter(engine::core::Game &game) {
   }
 
   ResolveHandles(game);
+  RefreshTextShader(game);
 
   for (auto h :
        {m_fontHandle, m_atlasHandle, m_bgmHandle, m_heroAttackSfxHandle}) {
@@ -230,6 +233,8 @@ void PlayingState::OnEnter(engine::core::Game &game) {
 void PlayingState::OnExit(engine::core::Game &game) {
   m_music.reset();
   m_atlasCache.reset();
+  m_textShaderAsset.reset();
+  m_textRenderer.SetShader(nullptr);
 
   auto *assets = game.Assets();
   if (!assets)
@@ -448,6 +453,8 @@ void PlayingState::OnResize(engine::core::Game &game, int w, int h) {
 }
 
 void PlayingState::ReloadAssets(engine::core::Game &game) {
+  RefreshTextShader(game);
+
   auto *assets = game.Assets();
   if (!assets)
     return;
@@ -500,6 +507,9 @@ void PlayingState::ApplyRegion(engine::ecs::Entity e, std::string_view region) {
 }
 
 void PlayingState::OnImGui(engine::core::Game &game) {
+  if (auto *assets = game.Assets())
+    engine::editor::DrawAssetBrowser(*assets, m_assetBrowser);
+
 #ifndef DEBUG
   DrawSceneDebug(game);
 #endif
@@ -541,16 +551,6 @@ void PlayingState::DrawSceneDebug(engine::core::Game &game) {
                                         : m_atlasHandle.ToString().c_str());
     if (ImGui::Button("Force Reimport Atlas"))
       assets->Reimport(m_atlasHandle);
-
-    if (ImGui::Button("Import Asset")) {
-      if (auto *editor =
-              dynamic_cast<engine::asset::AssetManagerEditor *>(assets)) {
-        const auto h = editor->ImportAsset(m_importPath, "tower_texture");
-        if (h.IsNull()) {
-          engine::Logger::Warn("[Editor] Import failed");
-        }
-      }
-    }
 
     if (ImGui::Button("Save Game Config")) {
       game.SyncConfigFromAssets();
@@ -615,4 +615,16 @@ void PlayingState::DrawSceneDebug(engine::core::Game &game) {
   }
 
   ImGui::End();
+}
+
+void PlayingState::RefreshTextShader(engine::core::Game &game) {
+  auto *assets = game.Assets();
+  if (!assets)
+    return;
+
+  if (auto shader = engine::asset::builtin::AcquireShader(
+          *assets, engine::asset::builtin::kTextShader)) {
+    m_textShaderAsset = std::move(shader);
+    m_textRenderer.SetShader(m_textShaderAsset->Gpu());
+  }
 }

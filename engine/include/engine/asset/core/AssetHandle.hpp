@@ -25,6 +25,8 @@ public:
    */
   static AssetHandle FromString(std::string_view str);
 
+  static AssetHandle FromStableString(std::string_view str);
+
   /**
    * @brief Returns the null handle. Same as default construction
    */

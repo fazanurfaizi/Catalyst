@@ -1,7 +1,12 @@
 #include "engine/core/Game.hpp"
 
 #include "engine/asset/core/AssetRecord.hpp"
+
 #include "engine/asset/manager/AssetManagerRuntime.hpp"
+#ifdef CATALYST_EDITOR
+#include "engine/asset/manager/AssetManagerEditor.hpp"
+#endif // CATALYST_EDITOR
+//
 #include "engine/audio/AudioEngine.hpp"
 #include "engine/components/AnimationClip.hpp"
 #include "engine/components/Animator.hpp"
@@ -160,6 +165,7 @@ bool Game::Run() {
     Logger::Error("Game::Run called without a valid window");
     return false;
   }
+
   if (!m_renderer) {
     Logger::Error("Game::Run called without a renderer");
     return false;
@@ -184,16 +190,27 @@ bool Game::Run() {
                  m_gameConfig.root.c_str());
   }
 
+#ifdef CATALYST_EDITOR
+  m_assets = std::make_unique<asset::AssetManagerEditor>(m_importerRegistry,
+                                                         m_gameConfig.root);
+#else
   m_assets = std::make_unique<asset::AssetManagerRuntime>(m_importerRegistry,
                                                           m_gameConfig.root);
+#endif
 
   for (auto &record : m_gameConfig.assets) {
     m_assets->AddRecord(record);
   }
 
+  asset::AssetModule::RegisterBuiltinAssets(*m_assets);
+
   for (const auto &record : m_gameConfig.assets) {
     m_assets->RefreshSettingsHash(record.handle);
   }
+
+  m_assets->ClearDirty();
+
+  m_renderer->SetAssetManager(m_assets.get());
 
   m_assets->ClearDirty();
 
@@ -202,6 +219,9 @@ bool Game::Run() {
       std::make_unique<asset::AssetWatcher>(std::chrono::milliseconds(500));
 
   for (const auto &record : m_gameConfig.assets) {
+    if (record.builtin)
+      continue;
+
     if (record.state != asset::AssetRecordState::Valid)
       continue;
 
@@ -307,6 +327,9 @@ void Game::SyncConfigFromAssets() {
   const auto live = m_assets->RecordsSnapshot();
 
   for (const auto &record : live) {
+    if (record.builtin)
+      continue;
+
     auto it =
         std::find_if(m_gameConfig.assets.begin(), m_gameConfig.assets.end(),
                      [&](const asset::AssetRecord &existing) {

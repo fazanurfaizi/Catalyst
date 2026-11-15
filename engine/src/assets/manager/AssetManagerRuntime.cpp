@@ -1,7 +1,11 @@
 #include "engine/asset/manager/AssetManagerRuntime.hpp"
+
+#include "engine/asset/builtin/BuiltinShaders.hpp"
+#include "engine/asset/core/AssetRecord.hpp"
 #include "engine/asset/finalizer/AssetFinalizer.hpp"
 #include "engine/asset/persistence/SidecarSerializer.hpp"
 #include "engine/utils/Logger.hpp"
+
 #include <exception>
 #include <filesystem>
 #include <mutex>
@@ -19,6 +23,7 @@ void AssetManagerRuntime::AddRecord(AssetRecord record) {
 
   const AssetHandle handle = record.handle;
   const std::string name = record.name;
+  const bool isBuiltin = record.builtin;
 
   auto [it, inserted] = m_records.emplace(handle, std::move(record));
   if (!inserted) {
@@ -29,14 +34,33 @@ void AssetManagerRuntime::AddRecord(AssetRecord record) {
 
   m_dirty = true;
 
-  if (!name.empty()) {
-    auto [nit, ninserted] = m_nameToHandle.emplace(name, handle);
-    if (!ninserted) {
-      Logger::Error("[AssetManagerRuntime] duplicate name '%s' ignored "
-                    "(already maps to handle %s)",
-                    name.c_str(), m_nameToHandle[name].ToString().c_str());
-    }
+  if (name.empty()) {
+    return;
   }
+
+  auto [nit, ninserted] = m_nameToHandle.emplace(name, handle);
+  if (ninserted) {
+    return;
+  }
+
+  const AssetRecord *owner = RecordLocked(nit->second);
+  const bool ownerBuiltin = owner && owner->builtin;
+
+  if (!isBuiltin && ownerBuiltin) {
+    Logger::Info("[AssetManagerRuntime] project asset '%s' overrides "
+                 "engine built-in",
+                 name.c_str());
+    nit->second = handle;
+    return;
+  }
+
+  if (isBuiltin && owner && !owner->builtin) {
+    return;
+  }
+
+  Logger::Error("[AssetManagerRuntime] duplicate name '%s' ignored "
+                "(already maps to handle %s)",
+                name.c_str(), m_nameToHandle[name].ToString().c_str());
 }
 
 AssetHandle AssetManagerRuntime::FindByName(std::string_view name) const {
@@ -44,12 +68,6 @@ AssetHandle AssetManagerRuntime::FindByName(std::string_view name) const {
 
   auto it = m_nameToHandle.find(std::string(name));
   return it == m_nameToHandle.end() ? AssetHandle::Null() : it->second;
-}
-
-const AssetRecord *AssetManagerRuntime::Record(AssetHandle handle) const {
-  std::lock_guard<std::mutex> lock(m_mutex);
-
-  return RecordLocked(handle);
 }
 
 AssetType AssetManagerRuntime::Type(AssetHandle handle) const {
@@ -74,7 +92,8 @@ AssetLoadState AssetManagerRuntime::State(AssetHandle handle) const {
   return m_cache.State(handle);
 }
 
-const ImportError *AssetManagerRuntime::LastError(AssetHandle handle) const {
+const std::optional<ImportError>
+AssetManagerRuntime::LastError(AssetHandle handle) const {
   std::lock_guard<std::mutex> lock(m_mutex);
 
   return m_cache.LastError(handle);
@@ -164,17 +183,23 @@ std::shared_ptr<Asset> AssetManagerRuntime::PreloadCpu(AssetHandle handle) {
     return nullptr;
   }
 
+  const bool isBuiltin = record->builtin;
+  const std::string builtinName = record->name;
+
   // Importer lookup
-  IAssetImporter *importer =
-      m_registry.FindForExtension(record->path.extension().string());
-  if (!importer) {
-    m_cache.MarkFailed(handle,
-                       ImportError::Make(ImportError::Code::UnsupportedFormat,
-                                         "No importer for extension"));
-    return nullptr;
+  IAssetImporter *importer = nullptr;
+  if (!isBuiltin) {
+    importer = m_registry.FindForExtension(record->path.extension().string());
+    if (!importer) {
+      m_cache.MarkFailed(handle,
+                         ImportError::Make(ImportError::Code::UnsupportedFormat,
+                                           "No importer for extension"));
+      return nullptr;
+    }
   }
 
-  const std::filesystem::path absPath = m_projectRoot / record->path;
+  const std::filesystem::path absPath =
+      isBuiltin ? std::filesystem::path{} : m_projectRoot / record->path;
   std::uint64_t previousHash = record->settingsHash;
 
   m_inflight.insert(handle);
@@ -186,25 +211,35 @@ std::shared_ptr<Asset> AssetManagerRuntime::PreloadCpu(AssetHandle handle) {
   std::optional<ImportError> failure;
 
   try {
-    auto settings = LoadSidecarSettings(absPath, importer, &settingsHash);
-
-    if (previousHash != 0 && previousHash != settingsHash) {
-      Logger::Info("[AssetManagerRuntime] settings changed for %s, reloading",
-                   handle.ToString().c_str());
-    }
-
-    ImportRequest request{absPath, settings.get()};
-    auto imported = importer->Import(request);
-    if (imported.IsError()) {
-      failure = imported.Error();
-    } else {
-      asset = AssetFinalizer::Finalize(handle, std::move(imported.Value()),
-                                       /*eagerGpu=*/false);
-
+    if (isBuiltin) {
+      asset = builtin::CreateAsset(handle, builtinName);
       if (!asset) {
         failure = ImportError::Make(ImportError::Code::Internal,
-                                    "CreateCPU failed (see log)")
-                      .WithPath(absPath);
+                                    "Built-in asset source missing")
+                      .WithPath(builtin::PathOf(builtinName));
+      }
+    } else {
+
+      auto settings = LoadSidecarSettings(absPath, importer, &settingsHash);
+
+      if (previousHash != 0 && previousHash != settingsHash) {
+        Logger::Info("[AssetManagerRuntime] settings changed for %s, reloading",
+                     handle.ToString().c_str());
+      }
+
+      ImportRequest request{absPath, settings.get()};
+      auto imported = importer->Import(request);
+      if (imported.IsError()) {
+        failure = imported.Error();
+      } else {
+        asset = AssetFinalizer::Finalize(handle, std::move(imported.Value()),
+                                         /*eagerGpu=*/false);
+
+        if (!asset) {
+          failure = ImportError::Make(ImportError::Code::Internal,
+                                      "CreateCPU failed (see log)")
+                        .WithPath(absPath);
+        }
       }
     }
   } catch (const std::exception &e) {
@@ -292,6 +327,9 @@ bool AssetManagerRuntime::RefreshSettingsHash(AssetHandle handle) {
 
   AssetRecord *record = MutableRecordLocked(handle);
   if (!record)
+    return false;
+
+  if (record->builtin)
     return false;
 
   if (record->settingsHash != 0)

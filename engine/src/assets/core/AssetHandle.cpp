@@ -28,6 +28,24 @@ AssetHandle AssetHandle::FromString(std::string_view str) {
   return AssetHandle(value);
 }
 
+// FNV-1a 64-bit, high bit forced to 1 so the result is never Null().
+// Deterministic: same relative path always yields the same handle, so
+// hand-editing a config file does not silently invalidate the asset
+// identity between runs.
+AssetHandle AssetHandle::FromStableString(std::string_view str) {
+  std::uint64_t h = 1469598103934665603ULL;
+  for (unsigned char c : str) {
+    h ^= c;
+    h *= 1099511628211ULL;
+  }
+  h |= (1ULL << 63);
+
+  char buffer[17];
+  std::snprintf(buffer, sizeof(buffer), "%016llx",
+                static_cast<unsigned long long>(h));
+  return FromString(buffer);
+}
+
 std::string AssetHandle::ToString() const {
   char buffer[17];
   std::snprintf(buffer, sizeof(buffer), "%016llx",

@@ -9,27 +9,17 @@ namespace engine::asset {
 
 using nlohmann::json;
 
-// FNV-1a 64-bit, high bit forced to 1 so the result is never Null().
-// Deterministic: same relative path always yields the same handle, so
-// hand-editing a config file does not silently invalidate the asset
-// identity between runs.
 AssetHandle RegistrySerializer::DeriveHandleFromPath(std::string_view path) {
-  std::uint64_t h = 1469598103934665603ULL;
-  for (unsigned char c : path) {
-    h ^= c;
-    h *= 1099511628211ULL;
-  }
-  h |= (1ULL << 63);
-  char buf[17];
-  std::snprintf(buf, sizeof(buf), "%016llx",
-                static_cast<unsigned long long>(h));
-  return engine::asset::AssetHandle::FromString(buf);
+  return AssetHandle::FromStableString(path);
 }
 
 json RegistrySerializer::ToJson(const std::vector<AssetRecord> &records) {
   json array = json::array();
 
   for (const auto &record : records) {
+    if (record.builtin)
+      continue;
+
     if (record.path.empty()) {
       Logger::Warn("[RegistrySerializer] skipping asset with empty path");
       continue;
