@@ -227,6 +227,20 @@ void PlayingState::OnEnter(engine::core::Game &game) {
   }
 }
 
+void PlayingState::OnExit(engine::core::Game &game) {
+  m_music.reset();
+  m_atlasCache.reset();
+
+  auto *assets = game.Assets();
+  if (!assets)
+    return;
+
+  assets->Release(m_atlasHandle);
+  assets->Release(m_fontHandle);
+  assets->Release(m_bgmHandle);
+  assets->Release(m_heroAttackSfxHandle);
+}
+
 void PlayingState::OnUpdate(engine::core::Game &game, double dt) {
   auto *assets = game.Assets();
   if (!assets)

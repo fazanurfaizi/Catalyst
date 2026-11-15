@@ -18,6 +18,7 @@
 class PlayingState final : public engine::core::GameState {
 public:
   void OnEnter(engine::core::Game &game) override;
+  void OnExit(engine::core::Game &game) override;
 
   void OnUpdate(engine::core::Game &game, double dt) override;
   void OnFixedUpdate(engine::core::Game &game, double dt) override;

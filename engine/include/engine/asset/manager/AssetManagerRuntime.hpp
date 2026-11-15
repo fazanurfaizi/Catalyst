@@ -7,12 +7,14 @@
 #include "engine/asset/importer/ImporterRegistry.hpp"
 #include "engine/asset/manager/IAssetManager.hpp"
 
+#include <condition_variable>
 #include <filesystem>
 #include <map>
 #include <memory>
 #include <mutex>
 #include <string_view>
 #include <unordered_map>
+#include <unordered_set>
 
 namespace engine::asset {
 
@@ -79,10 +81,14 @@ private:
   const AssetRecord *RecordLocked(AssetHandle handle) const;
   AssetRecord *MutableRecordLocked(AssetHandle handle);
 
-  std::shared_ptr<Asset> PreloadCpuLocked(AssetHandle handle);
-  std::shared_ptr<Asset> EnsureGpuLocked(AssetHandle handle);
+  // std::shared_ptr<Asset> PreloadCpuLocked(AssetHandle handle);
+  // std::shared_ptr<Asset> EnsureGpuLocked(AssetHandle handle);
 
   mutable std::mutex m_mutex;
+  std::mutex m_gpuMutex;
+
+  std::condition_variable m_cv;
+  std::unordered_set<AssetHandle> m_inflight;
 };
 
 } // namespace engine::asset
