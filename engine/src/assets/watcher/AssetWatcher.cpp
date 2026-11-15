@@ -1,5 +1,6 @@
 #include "engine/asset/watcher/AssetWatcher.hpp"
 
+#include <mutex>
 #include <system_error>
 #include <utility>
 
@@ -110,6 +111,7 @@ void AssetWatcher::Stop() {
     return;
 
   m_stop.store(true, std::memory_order_relaxed);
+  m_cv.notify_all();
 
   if (m_thread.joinable())
     m_thread.join();
@@ -133,92 +135,102 @@ std::size_t AssetWatcher::WatchedCount() const {
 }
 
 void AssetWatcher::ThreadLoop() {
+  std::unique_lock<std::mutex> waitLock(m_waitMutex);
+
   while (!m_stop.load(std::memory_order_relaxed)) {
-    std::this_thread::sleep_for(m_pollInterval);
-    if (m_stop.load(std::memory_order_relaxed))
+    if (m_cv.wait_for(waitLock, m_pollInterval, [this] {
+          return m_stop.load(std::memory_order_relaxed);
+        })) {
       break;
+    }
 
-    // Per-file watches
-    {
-      std::lock_guard<std::mutex> lock(m_mutex);
+    waitLock.unlock();
+    PollOnce();
+    waitLock.lock();
+  }
+}
 
-      for (auto &[handle, w] : m_files) {
-        std::error_code ec;
-        const auto mtime = std::filesystem::last_write_time(w.path, ec);
-        if (ec)
-          continue;
+void AssetWatcher::PollOnce() {
+  // Per-file watches
+  {
+    std::lock_guard<std::mutex> lock(m_mutex);
 
-        if (!w.hasMtime) {
-          w.mtime = mtime;
-          w.hasMtime = true;
-          continue;
-        }
+    for (auto &[handle, w] : m_files) {
+      std::error_code ec;
+      const auto mtime = std::filesystem::last_write_time(w.path, ec);
+      if (ec)
+        continue;
 
-        if (mtime == w.mtime)
-          continue;
-
+      if (!w.hasMtime) {
         w.mtime = mtime;
-        m_pending.push_back(FileEvent{handle, w.path, FileEventType::Modified});
+        w.hasMtime = true;
+        continue;
+      }
+
+      if (mtime == w.mtime)
+        continue;
+
+      w.mtime = mtime;
+      m_pending.push_back(FileEvent{handle, w.path, FileEventType::Modified});
+    }
+  }
+
+  // Snapshot directory state, then scan without holding the lock
+  struct Snapshot {
+    std::filesystem::path path;
+    std::map<std::filesystem::path, WatchedFile> files;
+  };
+
+  std::vector<Snapshot> snapshots;
+  {
+    std::lock_guard<std::mutex> lock(m_mutex);
+    snapshots.reserve(m_dirs.size());
+
+    for (const auto &[path, dir] : m_dirs)
+      snapshots.push_back(Snapshot{path, dir.files});
+  }
+
+  for (auto &snapshot : snapshots) {
+    auto current = ScanDirectory(snapshot.path);
+
+    bool changed = false;
+    std::filesystem::path changedPath;
+
+    for (const auto &[path, info] : current) {
+      auto prev = snapshot.files.find(path);
+      if (prev == snapshot.files.end())
+        continue;
+
+      if (prev->second.mtime != info.mtime) {
+        changed = true;
+        changedPath = path;
+        break;
       }
     }
 
-    // Snapshot directory state, then scan without holding the lock
-    struct Snapshot {
-      std::filesystem::path path;
-      std::map<std::filesystem::path, WatchedFile> files;
-    };
-
-    std::vector<Snapshot> snapshots;
-    {
-      std::lock_guard<std::mutex> lock(m_mutex);
-      snapshots.reserve(m_dirs.size());
-
-      for (const auto &[path, dir] : m_dirs)
-        snapshots.push_back(Snapshot{path, dir.files});
-    }
-
-    for (auto &snapshot : snapshots) {
-      auto current = ScanDirectory(snapshot.path);
-
-      bool changed = false;
-      std::filesystem::path changedPath;
-
-      for (const auto &[path, info] : current) {
-        auto prev = snapshot.files.find(path);
-        if (prev == snapshot.files.end())
-          continue;
-
-        if (prev->second.mtime != info.mtime) {
+    if (!changed) {
+      for (const auto &[path, prev] : snapshot.files) {
+        if (current.find(path) == current.end()) {
           changed = true;
           changedPath = path;
           break;
         }
       }
+    }
 
-      if (!changed) {
-        for (const auto &[path, prev] : snapshot.files) {
-          if (current.find(path) == current.end()) {
-            changed = true;
-            changedPath = path;
-            break;
-          }
-        }
-      }
+    {
+      std::lock_guard<std::mutex> lock(m_mutex);
 
-      {
-        std::lock_guard<std::mutex> lock(m_mutex);
+      auto it = m_dirs.find(snapshot.path);
+      if (it == m_dirs.end())
+        continue;
 
-        auto it = m_dirs.find(snapshot.path);
-        if (it == m_dirs.end())
-          continue;
+      it->second.files = std::move(current);
 
-        it->second.files = std::move(current);
-
-        if (changed) {
-          for (AssetHandle handle : it->second.handles) {
-            m_pending.push_back(
-                FileEvent{handle, changedPath, FileEventType::Modified});
-          }
+      if (changed) {
+        for (AssetHandle handle : it->second.handles) {
+          m_pending.push_back(
+              FileEvent{handle, changedPath, FileEventType::Modified});
         }
       }
     }

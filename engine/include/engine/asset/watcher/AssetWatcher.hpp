@@ -5,6 +5,7 @@
 
 #include <atomic>
 #include <chrono>
+#include <condition_variable>
 #include <filesystem>
 #include <map>
 #include <mutex>
@@ -29,6 +30,7 @@ public:
   void Unwatch(AssetHandle handle);
   void Start();
   void Stop();
+
   std::vector<FileEvent> Poll();
   std::size_t WatchedCount() const;
 
@@ -49,6 +51,7 @@ private:
   ScanDirectory(const std::filesystem::path &dir);
 
   void ThreadLoop();
+  void PollOnce();
 
   std::chrono::milliseconds m_pollInterval;
 
@@ -60,6 +63,9 @@ private:
   std::thread m_thread;
   std::atomic<bool> m_stop{false};
   std::atomic<bool> m_started{false};
+
+  std::mutex m_waitMutex;
+  std::condition_variable m_cv;
 };
 
 } // namespace engine::asset
