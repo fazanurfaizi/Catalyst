@@ -3,9 +3,11 @@
 #include "engine/resources/TextureAtlasAsset.hpp"
 #include "engine/utils/StringHash.hpp"
 #include <cstdint>
+#include <filesystem>
 #include <functional>
 #include <string>
 #include <string_view>
+#include <unordered_map>
 #include <unordered_set>
 #include <utility>
 
@@ -46,6 +48,14 @@ private:
     int height;
     std::vector<std::uint8_t> rgba8;
   };
+
+  struct CachedSource {
+    std::filesystem::file_time_type mtime{};
+    std::uintmax_t size = 0;
+    Source source;
+  };
+
+  static std::unordered_map<std::string, CachedSource> &SourceCache();
 
   void AddSource(Source &&src);
 

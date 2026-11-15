@@ -3,6 +3,7 @@
 #include "engine/asset/importer/texture-atlas/TextureAtlasBuilder.hpp"
 #include "engine/asset/importer/texture-atlas/TextureAtlasImportResult.hpp"
 #include "engine/asset/importer/texture-atlas/TextureAtlasImportSettings.hpp"
+#include "engine/utils/Logger.hpp"
 
 #include <nlohmann/json.hpp>
 #include <stb/stb_image.h>
@@ -104,6 +105,8 @@ ImportTextureAtlas(const ImportRequest &request) {
                           "Manifest missing 'sources' array")
             .WithPath(request.absolutePath));
   }
+
+  const auto t0 = std::chrono::steady_clock::now();
 
   for (std::size_t i = 0; i < manifest["sources"].size(); ++i) {
     const json &entry = manifest["sources"][i];
@@ -214,6 +217,11 @@ ImportTextureAtlas(const ImportRequest &request) {
         ImportError::Make(ImportError::Code::TooLarge, "Atlas packing failed")
             .WithPath(request.absolutePath));
   }
+
+  Logger::Info("[TextureAtlas] import took %lld ms",
+               (long long)std::chrono::duration_cast<std::chrono::milliseconds>(
+                   std::chrono::steady_clock::now() - t0)
+                   .count());
 
   auto result = std::make_unique<TextureAtlasImportResult>();
   result->width = static_cast<std::uint32_t>(packed.width);

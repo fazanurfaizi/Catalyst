@@ -11,7 +11,10 @@
 #include <numeric>
 #include <stb/stb_image.h>
 #include <stb/stb_image_resize.h>
+#include <string>
 #include <string_view>
+#include <system_error>
+#include <unordered_map>
 #include <vector>
 
 namespace engine::asset {
@@ -120,6 +123,31 @@ bool TextureAtlasBuilder::AddFromFile(const std::string &name,
     return false;
   }
 
+  std::error_code ecPath;
+  const auto absPath = std::filesystem::weakly_canonical(path, ecPath);
+
+  std::error_code ecTime;
+  const auto mtime = std::filesystem::last_write_time(path, ecTime);
+
+  std::error_code ecSize;
+  const auto fileSize = std::filesystem::file_size(path, ecSize);
+
+  const std::string cacheKey =
+      (ecPath ? path : absPath.string()) + "|" + std::to_string(maxDimension);
+
+  auto &cache = SourceCache();
+
+  if (!ecTime && !ecSize) {
+    auto it = cache.find(cacheKey);
+    if (it != cache.end() && it->second.mtime == mtime &&
+        it->second.size == fileSize) {
+      Source src = it->second.source;
+      src.name = name;
+      AddSource(std::move(src));
+      return true;
+    }
+  }
+
   stbi_set_flip_vertically_on_load_thread(true);
   int w = 0;
   int h = 0;
@@ -172,6 +200,17 @@ bool TextureAtlasBuilder::AddFromFile(const std::string &name,
   }
 
   stbi_image_free(data);
+
+  if (!ecTime && !ecSize) {
+    if (cache.size() > 256)
+      cache.clear();
+
+    CachedSource entry;
+    entry.mtime = mtime;
+    entry.size = fileSize;
+    entry.source = src;
+    cache[cacheKey] = std::move(entry);
+  }
 
   AddSource(std::move(src));
 
@@ -328,6 +367,13 @@ bool TextureAtlasBuilder::Pack(Packed &out, int maxSize) const {
     }
   }
 
+  if (bestSize == 0) {
+    Logger::Error("[TextureAtlasBuilder] no layout fits within %dpx "
+                  "(check maxSpriteDimension/maxAtlasDimension)",
+                  maxSize);
+    return false;
+  }
+
   const std::uint64_t outBytes =
       static_cast<std::uint64_t>(bestSize) * bestSize * 4ull;
 
@@ -372,6 +418,12 @@ bool TextureAtlasBuilder::Pack(Packed &out, int maxSize) const {
   Logger::Info("[TextureAtlasBuilder] packed %zu sources into %dx%d", n,
                bestSize, bestSize);
   return true;
+}
+
+std::unordered_map<std::string, TextureAtlasBuilder::CachedSource> &
+TextureAtlasBuilder::SourceCache() {
+  static thread_local std::unordered_map<std::string, CachedSource> cache;
+  return cache;
 }
 
 } // namespace engine::asset

@@ -124,10 +124,8 @@ void AssetManagerRuntime::Reimport(AssetHandle handle) {
                  handle.ToString().c_str());
   }
 
-  {
-    std::lock_guard<std::mutex> lock(m_mutex);
-    ++m_reloadGeneration;
-  }
+  std::lock_guard<std::mutex> lock(m_mutex);
+  ++m_reloadGeneration;
 }
 
 std::uint64_t AssetManagerRuntime::GetReloadGeneration() const {

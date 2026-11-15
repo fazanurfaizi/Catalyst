@@ -6,10 +6,16 @@
 #include "engine/asset/importer/sound/SoundImporter.hpp"
 #include "engine/asset/importer/texture-atlas/TextureAtlasImporter.hpp"
 #include "engine/asset/importer/texture2d/Texture2DImporter.hpp"
+#include "engine/utils/Logger.hpp"
 
 namespace engine::asset {
 
 void AssetModule::RegisterDefaultImporters(ImporterRegistry &registry) {
+  if (registry.GetImporterCount() != 0) {
+    Logger::Warn("[AssetModule] default importers already registered, skipped");
+    return;
+  }
+
   registry.Register(std::make_unique<Texture2DImporter>());
   registry.Register(std::make_unique<TextureAtlasImporter>());
   registry.Register(std::make_unique<FontImporter>());

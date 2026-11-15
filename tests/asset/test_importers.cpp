@@ -262,3 +262,23 @@ void RunSoundImporterTests() {
   CHECK(WasError(importer.Import(ImportRequest(dir / "missing.wav")),
                  ImportError::Code::FileNotFound));
 }
+
+void RunTextureAtlasOverflowTest() {
+  engine::asset::TextureAtlasImporter importer;
+  const auto dir = TempDir("atlas_overflow");
+
+  fs::create_directories(dir / "sprites");
+  fs::copy_file(
+      fs::path(kSourceDir) / "assets" / "atlas" / "sprites" / "enemy.png",
+      dir / "sprites" / "enemy.png", fs::copy_options::overwrite_existing);
+
+  WriteText(dir / "small.atlas",
+            R"({"sources":[{"type":"directory","path":"sprites"}]})");
+
+  engine::asset::TextureAtlasImportSettings settings;
+  settings.maxAtlasDimension = 256;
+  settings.maxSpriteDimension = 0;
+
+  CHECK(WasError(importer.Import(ImportRequest(dir / "small.atlas", &settings)),
+                 ImportError::Code::TooLarge));
+}
