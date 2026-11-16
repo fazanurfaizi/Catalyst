@@ -2,16 +2,18 @@
 
 #include "engine/asset/core/AssetRecord.hpp"
 
-#include "engine/asset/manager/AssetManagerRuntime.hpp"
 #ifdef CATALYST_EDITOR
 #include "engine/asset/manager/AssetManagerEditor.hpp"
+#else
+#include "engine/asset/manager/AssetManagerRuntime.hpp"
 #endif // CATALYST_EDITOR
-//
+
 #include "engine/audio/AudioEngine.hpp"
 #include "engine/components/AnimationClip.hpp"
 #include "engine/components/Animator.hpp"
 #include "engine/components/AudioSource.hpp"
 #include "engine/components/Camera2D.hpp"
+#include "engine/components/CameraFollow.hpp"
 #include "engine/components/Light.hpp"
 #include "engine/components/Name.hpp"
 #include "engine/components/Particle.hpp"
@@ -53,6 +55,7 @@ void InitializeComponentSerialization() {
   reg.Register<components::Animator>();
   reg.Register<components::AudioSource>();
   reg.Register<components::Camera2D>();
+  reg.Register<components::CameraFollow>();
   reg.Register<components::PointLight>();
   reg.Register<components::DirectionalLight>();
   reg.Register<components::SpotLight>();

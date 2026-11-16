@@ -1,7 +1,6 @@
 #pragma once
 
 #include "engine/asset/manager/IAssetManager.hpp"
-#include "engine/graphics/gl/Shader.hpp"
 #include "engine/graphics/lighting/LightBuffer.hpp"
 #include "engine/graphics/lighting/LightRenderer.hpp"
 #include "engine/graphics/lighting/LightTileCuller.hpp"
@@ -11,8 +10,8 @@
 #include "engine/graphics/pipeline/RenderTarget.hpp"
 #include "engine/graphics/sprite/SpriteDrawList.hpp"
 #include "engine/graphics/texture/Texture.hpp"
+#include "engine/math/Camera.hpp"
 #include "engine/math/Color.hpp"
-#include "engine/math/Rect.hpp"
 #include "engine/resources/ShaderAsset.hpp"
 #include "engine/scene/Scene.hpp"
 
@@ -41,8 +40,7 @@ public:
 
   void SetAssetManager(asset::IAssetManager *assets);
 
-  void BeginFrame(const glm::mat4 &viewProjection,
-                  const math::Rect &visibleBounds);
+  void BeginFrame(const math::Camera &camera);
   void EndFrame();
 
   void RenderSprites(scene::Scene &scene, asset::IAssetManager *assets);
@@ -104,8 +102,7 @@ private:
 
   std::vector<SpriteInstance> m_instanceScratch;
 
-  glm::mat4 m_viewProjection{1.0f};
-  math::Rect m_visibleBounds{};
+  math::Camera m_camera;
   glm::vec3 m_ambientColor{0.05f};
 
   int m_width = 0, m_height = 0;

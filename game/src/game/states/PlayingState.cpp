@@ -21,10 +21,13 @@
 
 #include "engine/components/Animator.hpp"
 #include "engine/components/Camera2D.hpp"
+#include "engine/components/CameraFollow.hpp"
 #include "engine/components/RenderLayer.hpp"
 #include "engine/components/Sprite.hpp"
 #include "engine/components/Transform.hpp"
 #include "engine/components/Velocity.hpp"
+
+#include "engine/math/Camera.hpp"
 
 #include "engine/systems/AnimationSystem.hpp"
 #include "engine/systems/CameraFollowSystem.hpp"
@@ -223,9 +226,12 @@ void PlayingState::OnEnter(engine::core::Game &game) {
 
   if (camera && reg.IsAlive(*camera)) {
     if (auto *cam = reg.TryGet<engine::components::Camera2D>(*camera)) {
-      if (hero && reg.IsAlive(*hero))
-        cam->followTarget = *hero;
       cam->active = true;
+      if (hero && reg.IsAlive(*hero)) {
+        auto &follow =
+            reg.GetOrEmplace<engine::components::CameraFollow>(*camera);
+        follow.target = *hero;
+      }
     }
   }
 }
@@ -346,12 +352,10 @@ void PlayingState::OnRender(engine::core::Game &game) {
   if (!m_atlasCache)
     return;
 
-  const float aspect = renderer.AspectRatio();
-  const glm::mat4 vp = camera->ViewProjectionMatrix(aspect);
-  const engine::math::Rect bounds = camera->VisibleWorldBounds(aspect);
+  const engine::math::Camera cam = camera->View(renderer.AspectRatio());
 
-  renderer.BeginFrame(vp, bounds);
-  DrawWorldGrid(renderer, bounds, *m_atlasCache);
+  renderer.BeginFrame(cam);
+  DrawWorldGrid(renderer, cam.visibleBounds, *m_atlasCache);
   renderer.RenderSprites(m_scene, game.Assets());
   renderer.RenderLights(m_scene);
   renderer.EndFrame();
@@ -391,9 +395,11 @@ void PlayingState::OnScroll(engine::core::Game &game, double dx, double dy) {
   glm::vec2 cursorFb = game.Display().CursorToFramebuffer(
       {static_cast<float>(cursor.x), static_cast<float>(cursor.y)});
 
-  const auto before = camera.ScreenToWorld(cursorFb, fbSize);
+  const auto before = camera.View(game.Display().AspectRatio())
+                          .ScreenToWorld(cursorFb, fbSize);
   camera.ZoomBy(dy > 0 ? 1.1f : 1.0f / 1.1f);
-  const auto after = camera.ScreenToWorld(cursorFb, fbSize);
+  const auto after = camera.View(game.Display().AspectRatio())
+                         .ScreenToWorld(cursorFb, fbSize);
   camera.Move(before - after);
 }
 
@@ -421,7 +427,8 @@ void PlayingState::OnMouseButton(engine::core::Game &game,
   auto cursor = in.CursorPos();
   glm::vec2 cursorFb = game.Display().CursorToFramebuffer(
       {static_cast<float>(cursor.x), static_cast<float>(cursor.y)});
-  glm::vec2 worldPos = camera.ScreenToWorld(cursorFb, fbSize);
+  glm::vec2 worldPos = camera.View(game.Display().AspectRatio())
+                           .ScreenToWorld(cursorFb, fbSize);
 
   if (button == engine::input::MouseButton::Left) {
     if (auto *anim = reg.TryGet<engine::components::Animator>(*heroE)) {

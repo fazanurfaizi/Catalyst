@@ -65,8 +65,7 @@ void Renderer::SetAssetManager(asset::IAssetManager *assets) {
   RefreshShaders();
 }
 
-void Renderer::BeginFrame(const glm::mat4 &viewProjection,
-                          const math::Rect &visibleBounds) {
+void Renderer::BeginFrame(const math::Camera &camera) {
   if (m_assets && m_assets->GetReloadGeneration() != m_shaderGeneration)
     RefreshShaders();
 
@@ -77,8 +76,7 @@ void Renderer::BeginFrame(const glm::mat4 &viewProjection,
 
   EnsureRenderTargets();
 
-  m_viewProjection = viewProjection;
-  m_visibleBounds = visibleBounds;
+  m_camera = camera;
 
   m_drawList.Clear();
   m_pipeline.Reset();
@@ -189,7 +187,7 @@ void Renderer::RenderSprites(scene::Scene &scene,
     math::Rect eRect(t.position.x - ex, t.position.y - ey, ex * 2.0f,
                      ey * 2.0f);
 
-    if (!m_visibleBounds.Intersects(eRect))
+    if (!m_camera.visibleBounds.Intersects(eRect))
       continue;
 
     const float key = (s.ySortKey != 0.0f) ? s.ySortKey : t.position.y;
@@ -321,7 +319,7 @@ void Renderer::ExecuteSprite() {
   m_lastDrawCalls = 0;
   m_lastQuadCount = static_cast<std::uint32_t>(cmds.size());
 
-  m_batch->Begin(m_viewProjection);
+  m_batch->Begin(m_camera.viewProjection);
 
   for (const auto &g : groups) {
     m_batch->DrawInstances(m_instanceScratch.data() + g.start, g.count,
@@ -342,13 +340,13 @@ void Renderer::ExecuteLight() {
 
   Shader &shader = *m_lightShader->Gpu();
 
-  UpdateTileGrid(m_viewProjection);
+  UpdateTileGrid(m_camera.viewProjection);
   BuildTileGrid();
 
   m_lightRenderer.Upload(m_lightBuffer);
 
   shader.Bind();
-  shader.SetMat4("uInViewProjection", glm::inverse(m_viewProjection));
+  shader.SetMat4("uInViewProjection", glm::inverse(m_camera.viewProjection));
   shader.SetVec3("uAmbientColor", m_ambientColor);
   shader.SetInt("uPointLightCount", m_lightBuffer.pointCount);
   shader.SetInt("uDirectionalLightCount", m_lightBuffer.directionalCount);
