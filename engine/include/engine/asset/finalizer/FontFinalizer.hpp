@@ -11,7 +11,8 @@ class FontImportResult;
 class FontFinalizer {
 public:
   static std::shared_ptr<Asset> Finalize(AssetHandle handle,
-                                         const FontImportResult &data);
+                                         const FontImportResult &data,
+                                         bool eagerGpu = true);
 };
 
 } // namespace engine::asset

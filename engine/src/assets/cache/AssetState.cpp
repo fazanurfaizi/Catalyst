@@ -10,6 +10,8 @@ const char *AssetLoadStateToString(AssetLoadState state) noexcept {
     return "Loading";
   case AssetLoadState::Loaded:
     return "Loaded";
+  case AssetLoadState::Uploaded:
+    return "Uploaded";
   case AssetLoadState::Failed:
     return "Failed";
   }

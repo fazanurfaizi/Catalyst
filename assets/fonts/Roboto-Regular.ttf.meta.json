@@ -2,7 +2,7 @@
   "importer": "catalyst.font",
   "version": 1,
   "settings": {
-    "pixelSize": 180.0,
+    "pixelSize": 18.0,
     "atlasWidth": 1024,
     "atlasHeight": 1024,
     "firstCodepoint": 32,

@@ -35,6 +35,8 @@ struct AssetRecord {
   AssetRecordState state = AssetRecordState::Valid;
   std::uint64_t settingsHash = 0;
   std::vector<AssetHandle> dependencies;
+
+  bool builtin = false;
 };
 
 } // namespace engine::asset

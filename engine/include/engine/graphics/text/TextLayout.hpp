@@ -1,17 +1,14 @@
 #pragma once
 
 #include "engine/graphics/text/Font.hpp"
+
+#include "engine/graphics/text/TextAlignment.hpp"
+
 #include <glm/glm.hpp>
 #include <string>
 #include <vector>
 
 namespace engine::graphics {
-
-enum class TextAlignment {
-  Left,
-  Center,
-  Right,
-};
 
 struct Vertex {
   glm::vec2 position;

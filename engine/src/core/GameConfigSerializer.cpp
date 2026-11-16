@@ -2,8 +2,11 @@
 
 #include "engine/asset/core/AssetHandle.hpp"
 #include "engine/asset/core/AssetType.hpp"
+#include "engine/asset/persistence/AtomicFileWriter.hpp"
+#include "engine/asset/persistence/RegistrySerializer.hpp"
 #include "engine/utils/Logger.hpp"
 
+#include <filesystem>
 #include <nlohmann/json.hpp>
 
 #include <cstdio>
@@ -12,27 +15,6 @@
 namespace engine::core {
 
 using json = nlohmann::json;
-
-namespace {
-
-// FNV-1a 64-bit, high bit forced to 1 so the result is never Null().
-// Deterministic: same relative path always yields the same handle, so
-// hand-editing a config file does not silently invalidate the asset
-// identity between runs.
-engine::asset::AssetHandle DeriveHandleFromPath(const std::string &path) {
-  std::uint64_t h = 1469598103934665603ULL;
-  for (unsigned char c : path) {
-    h ^= c;
-    h *= 1099511628211ULL;
-  }
-  h |= (1ULL << 63);
-  char buf[17];
-  std::snprintf(buf, sizeof(buf), "%016llx",
-                static_cast<unsigned long long>(h));
-  return engine::asset::AssetHandle::FromString(buf);
-}
-
-} // namespace
 
 std::optional<GameConfig>
 GameConfigSerializer::Load(const std::filesystem::path &file) {
@@ -92,63 +74,8 @@ GameConfigSerializer::Load(const std::filesystem::path &file) {
     return std::nullopt;
   }
 
-  for (std::size_t i = 0; i < doc["assets"].size(); ++i) {
-    const json &entry = doc["assets"][i];
-
-    if (!entry.is_object()) {
-      Logger::Warn(
-          "[GameConfigSerializer] asset[%zu] is not an object; skipped", i);
-      continue;
-    }
-    if (!entry.contains("type") || !entry["type"].is_string()) {
-      Logger::Warn("[GameConfigSerializer] asset[%zu] missing 'type'; skipped",
-                   i);
-      continue;
-    }
-    if (!entry.contains("path") || !entry["path"].is_string()) {
-      Logger::Warn("[GameConfigSerializer] asset[%zu] missing 'path'; skipped",
-                   i);
-      continue;
-    }
-
-    const std::string typeStr = entry["type"].get<std::string>();
-    const std::string pathStr = entry["path"].get<std::string>();
-    const std::string nameStr =
-        (entry.contains("name") && entry["name"].is_string())
-            ? entry["name"].get<std::string>()
-            : std::string();
-
-    const engine::asset::AssetType type =
-        engine::asset::AssetTypeFromString(typeStr);
-    if (type == engine::asset::AssetType::None) {
-      Logger::Warn(
-          "[GameConfigSerializer] asset[%zu] unknown type '%s'; skipped", i,
-          typeStr.c_str());
-      continue;
-    }
-
-    engine::asset::AssetHandle handle = engine::asset::AssetHandle::Null();
-    if (entry.contains("handle") && entry["handle"].is_string()) {
-      handle = engine::asset::AssetHandle::FromString(
-          entry["handle"].get<std::string>());
-    }
-    if (handle.IsNull()) {
-      handle = DeriveHandleFromPath(pathStr);
-    }
-
-    engine::asset::AssetRecord record(handle, type,
-                                      std::filesystem::path(pathStr), nameStr);
-
-    const std::filesystem::path absPath = config.root / record.path;
-    if (!std::filesystem::exists(absPath)) {
-      record.state = engine::asset::AssetRecordState::Missing;
-      Logger::Warn("[GameConfigSerializer] asset '%s' missing on disk: %s",
-                   nameStr.empty() ? pathStr.c_str() : nameStr.c_str(),
-                   absPath.c_str());
-    }
-
-    config.assets.emplace_back(std::move(record));
-  }
+  config.assets =
+      asset::RegistrySerializer::FromJson(doc["assets"], config.root);
 
   return config;
 }
@@ -157,28 +84,27 @@ bool GameConfigSerializer::Save(const GameConfig &config,
                                 const std::filesystem::path &file) {
   json doc;
   doc["version"] = config.version;
+
   if (!config.projectName.empty()) {
     doc["projectName"] = config.projectName;
   }
-  doc["assets"] = json::array();
 
-  for (const auto &record : config.assets) {
-    json entry;
-    entry["type"] = engine::asset::AssetTypeToString(record.type);
-    entry["path"] = record.path.generic_string();
-    if (!record.name.empty()) {
-      entry["name"] = record.name;
-    }
-    entry["handle"] = record.handle.ToString();
-    doc["assets"].push_back(std::move(entry));
+  std::error_code ec;
+  const auto configDir = std::filesystem::absolute(file).parent_path();
+  auto relativeRoot = std::filesystem::relative(config.root, configDir, ec);
+  if (ec || relativeRoot.empty()) {
+    relativeRoot = config.root;
   }
+  doc["root"] = relativeRoot.generic_string();
 
-  std::ofstream out(file);
-  if (!out) {
-    Logger::Error("[GameConfigSerializer] cannot write '%s'", file.c_str());
+  doc["assets"] = asset::RegistrySerializer::ToJson(config.assets);
+
+  if (!asset::AtomicFileWriter::Write(file, doc.dump(2) + "\n")) {
+    Logger::Error("[GameConfigSerializer] rename failed: %s",
+                  ec.message().c_str());
     return false;
   }
-  out << doc.dump(2) << '\n';
+
   return true;
 }
 

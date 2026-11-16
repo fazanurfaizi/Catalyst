@@ -1,10 +1,13 @@
 #pragma once
 
-#include "engine/graphics/assets/TextureAtlasAsset.hpp"
+#include "engine/resources/TextureAtlasAsset.hpp"
+#include "engine/utils/StringHash.hpp"
 #include <cstdint>
+#include <filesystem>
 #include <functional>
 #include <string>
 #include <string_view>
+#include <unordered_map>
 #include <unordered_set>
 #include <utility>
 
@@ -18,7 +21,7 @@ public:
     int width = 0;
     int height = 0;
     std::vector<std::uint8_t> rgba8;
-    std::vector<std::pair<std::string, graphics::AtlasRegion>> regions;
+    std::vector<std::pair<std::string, resources::AtlasRegion>> regions;
   };
 
   int AddFromDirectory(const std::string &directory, int maxDimension = 0);
@@ -46,11 +49,18 @@ private:
     std::vector<std::uint8_t> rgba8;
   };
 
+  struct CachedSource {
+    std::filesystem::file_time_type mtime{};
+    std::uintmax_t size = 0;
+    Source source;
+  };
+
+  static std::unordered_map<std::string, CachedSource> &SourceCache();
+
   void AddSource(Source &&src);
 
   std::vector<Source> m_sources;
-  std::unordered_set<std::string, graphics::StringHash, std::equal_to<>>
-      m_sourceNames;
+  std::unordered_set<std::string, StringHash, std::equal_to<>> m_sourceNames;
 };
 
 } // namespace engine::asset

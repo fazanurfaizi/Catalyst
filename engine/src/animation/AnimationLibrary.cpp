@@ -1,7 +1,7 @@
 #include "engine/animation/AnimationLibrary.hpp"
 
 #include "engine/components/AnimationClip.hpp"
-#include "engine/graphics/assets/TextureAtlasAsset.hpp"
+#include "engine/resources/TextureAtlasAsset.hpp"
 #include "engine/utils/Logger.hpp"
 #include <cassert>
 #include <string>
@@ -26,7 +26,7 @@ void AnimationLibrary::Add(components::AnimationClip clip) {
 }
 
 bool AnimationLibrary::AddStrip(const std::string &clipName,
-                                const graphics::TextureAtlasAsset &atlas,
+                                const resources::TextureAtlasAsset &atlas,
                                 const std::string &regionPrefix, int frameCount,
                                 float frameDurationSec, bool loop) {
   if (frameCount <= 0 || frameDurationSec <= 0.0f) {

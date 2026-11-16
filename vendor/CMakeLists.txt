@@ -99,6 +99,12 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(miniaudio)
 
+FetchContent_Declare(
+  field_reflection
+  GIT_REPOSITORY https://github.com/yosh-matsuda/field-reflection.git
+  GIT_TAG v1.1.1)
+FetchContent_MakeAvailable(field_reflection)
+
 if(NOT TARGET imgui)
   # Fallback for older ImGui tags without CMakeLists.txt
   file(GLOB IMGUI_CORE_SOURCES
@@ -126,4 +132,4 @@ target_sources(imgui PRIVATE
   ${imgui_SOURCE_DIR}/backends/imgui_impl_opengl3.cpp
 )
 target_include_directories(imgui PUBLIC ${imgui_SOURCE_DIR}/backends)
-target_link_libraries(imgui PUBLIC glfw glad)
+target_link_libraries(imgui PUBLIC glfw glad field_reflection::field_reflection)

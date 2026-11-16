@@ -4,9 +4,9 @@
 
 #include <algorithm>
 #include <cstddef>
-#include <stb/stb_image.h>
-
 #include <filesystem>
+#include <limits>
+#include <stb/stb_image.h>
 
 namespace engine::asset {
 
@@ -22,10 +22,11 @@ ImportTexture2D(const ImportRequest &request) {
   if (!settings)
     settings = &kDefaultSettings;
 
-  if (!std::filesystem::exists(request.absolutePath)) {
+  std::error_code ec;
+  if (!std::filesystem::is_regular_file(request.absolutePath, ec) || ec) {
     return ImportResult<ImportedAssetDataPtr>::Err(
         ImportError::Make(ImportError::Code::FileNotFound,
-                          "Texture file not found")
+                          "Texture file not found or not a regular file")
             .WithPath(request.absolutePath));
   }
 
@@ -49,8 +50,18 @@ ImportTexture2D(const ImportRequest &request) {
             .WithPath(request.absolutePath));
   }
 
-  const std::size_t row_bytes = static_cast<std::size_t>(w) * 4;
-  const std::size_t total = static_cast<std::size_t>(w) * h * 4;
+  const std::uint64_t pixels =
+      static_cast<std::uint64_t>(w) * static_cast<std::uint64_t>(h);
+  if (pixels > std::numeric_limits<std::size_t>::max() / 4ull) {
+    stbi_image_free(raw);
+    return ImportResult<ImportedAssetDataPtr>::Err(
+        ImportError::Make(ImportError::Code::TooLarge,
+                          "Image dimensions overflow pixel buffer size")
+            .WithPath(request.absolutePath));
+  }
+
+  const std::size_t row_bytes = static_cast<std::size_t>(w) * 4ull;
+  const std::size_t total = row_bytes * static_cast<std::size_t>(h);
 
   auto result = std::make_unique<Texture2DImportResult>();
   result->width = static_cast<std::uint32_t>(w);

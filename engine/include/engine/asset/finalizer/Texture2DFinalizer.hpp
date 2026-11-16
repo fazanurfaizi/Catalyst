@@ -11,7 +11,8 @@ class Texture2DImportResult;
 class Texture2DFinalizer {
 public:
   static std::shared_ptr<Asset> Finalize(AssetHandle handle,
-                                         const Texture2DImportResult &data);
+                                         const Texture2DImportResult &data,
+                                         bool eagerGpu = true);
 };
 
 } // namespace engine::asset

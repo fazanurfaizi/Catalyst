@@ -1,9 +1,30 @@
 #include "engine/core/Game.hpp"
 
-#include "engine/asset/AssetManager.hpp"
+#include "engine/asset/core/AssetRecord.hpp"
+
+#ifdef CATALYST_EDITOR
+#include "engine/asset/manager/AssetManagerEditor.hpp"
+#else
 #include "engine/asset/manager/AssetManagerRuntime.hpp"
+#endif // CATALYST_EDITOR
+
+#include "engine/audio/AudioEngine.hpp"
+#include "engine/components/AnimationClip.hpp"
+#include "engine/components/Animator.hpp"
+#include "engine/components/AudioSource.hpp"
+#include "engine/components/Camera2D.hpp"
+#include "engine/components/CameraFollow.hpp"
+#include "engine/components/Light.hpp"
+#include "engine/components/Name.hpp"
+#include "engine/components/Particle.hpp"
+#include "engine/components/ParticleEmitter.hpp"
+#include "engine/components/Sprite.hpp"
+#include "engine/components/TextComponent.hpp"
+#include "engine/components/Transform.hpp"
+#include "engine/components/Velocity.hpp"
 #include "engine/core/Clock.hpp"
 #include "engine/core/GameConfigSerializer.hpp"
+#include "engine/ecs/ComponentSerializer.hpp"
 #include "engine/graphics/Renderer.hpp"
 #include "engine/utils/Logger.hpp"
 #include "imgui.h"
@@ -12,6 +33,7 @@
 
 // @NOTE: glfwGetProcAddress for glad loader
 #include <GLFW/glfw3.h>
+#include <algorithm>
 #include <glad/gl.h>
 
 #include <cstdio>
@@ -24,12 +46,35 @@ namespace {
 void GlfwErrorCallback(int code, const char *desc) {
   std::fprintf(stderr, "GLFW error %d: %s\n", code, desc);
 }
+
+void InitializeComponentSerialization() {
+  auto &reg = ecs::ComponentRegistry::Instance();
+
+  reg.Register<components::AnimationFrame>();
+  reg.Register<components::AnimationClip>();
+  reg.Register<components::Animator>();
+  reg.Register<components::AudioSource>();
+  reg.Register<components::Camera2D>();
+  reg.Register<components::CameraFollow>();
+  reg.Register<components::PointLight>();
+  reg.Register<components::DirectionalLight>();
+  reg.Register<components::SpotLight>();
+  reg.Register<components::Name>();
+  reg.Register<components::Particle>();
+  reg.Register<components::ParticleEmitter>();
+  reg.Register<components::Sprite>();
+  reg.Register<components::TextComponent>();
+  reg.Register<components::Transform>();
+  reg.Register<components::Velocity>();
+  reg.Register<components::LinearVelocity>();
+}
 } // namespace
 
 Game::Game(const platform::WindowConfig &config, const DebugConfig &debug,
            std::filesystem::path gameConfigPath)
     : m_config(config), m_debug(debug),
       m_gameConfigPath(std::move(gameConfigPath)) {
+
   m_window = platform::Window::Create(m_config);
   if (!m_window) {
     Logger::Error("glfwInit failed");
@@ -80,6 +125,8 @@ Game::Game(const platform::WindowConfig &config, const DebugConfig &debug,
 
   Logger::Info("GL: %s",
                reinterpret_cast<const char *>(glGetString(GL_VERSION)));
+
+  InitializeComponentSerialization();
 }
 
 Game::~Game() {
@@ -121,6 +168,7 @@ bool Game::Run() {
     Logger::Error("Game::Run called without a valid window");
     return false;
   }
+
   if (!m_renderer) {
     Logger::Error("Game::Run called without a renderer");
     return false;
@@ -130,7 +178,7 @@ bool Game::Run() {
     Logger::Error("Audio failed to initialiez; continuing without audio");
   }
 
-  asset::AssetManager::RegisterDefaultImporters(m_importerRegistry);
+  asset::AssetModule::RegisterDefaultImporters(m_importerRegistry);
 
   auto configOpt = GameConfigSerializer::Load(m_gameConfigPath);
   if (!configOpt) {
@@ -145,18 +193,38 @@ bool Game::Run() {
                  m_gameConfig.root.c_str());
   }
 
+#ifdef CATALYST_EDITOR
+  m_assets = std::make_unique<asset::AssetManagerEditor>(m_importerRegistry,
+                                                         m_gameConfig.root);
+#else
   m_assets = std::make_unique<asset::AssetManagerRuntime>(m_importerRegistry,
                                                           m_gameConfig.root);
+#endif
 
   for (auto &record : m_gameConfig.assets) {
-    m_assets->AddRecord(std::move(record));
+    m_assets->AddRecord(record);
   }
+
+  asset::AssetModule::RegisterBuiltinAssets(*m_assets);
+
+  for (const auto &record : m_gameConfig.assets) {
+    m_assets->RefreshSettingsHash(record.handle);
+  }
+
+  m_assets->ClearDirty();
+
+  m_renderer->SetAssetManager(m_assets.get());
+
+  m_assets->ClearDirty();
 
 #ifdef CATALYST_EDITOR
   m_watcher =
       std::make_unique<asset::AssetWatcher>(std::chrono::milliseconds(500));
 
   for (const auto &record : m_gameConfig.assets) {
+    if (record.builtin)
+      continue;
+
     if (record.state != asset::AssetRecordState::Valid)
       continue;
 
@@ -187,6 +255,8 @@ bool Game::Run() {
   m_clock.Reset();
 
   while (m_running && !CloseRequested()) {
+    audio::AudioEngine::Get().Update();
+
 #ifdef CATALYST_EDITOR
     if (m_watcher) {
       for (const auto &ev : m_watcher->Poll()) {
@@ -251,6 +321,30 @@ bool Game::Run() {
   OnShutdown();
 
   return true;
+}
+
+void Game::SyncConfigFromAssets() {
+  if (!m_assets)
+    return;
+
+  const auto live = m_assets->RecordsSnapshot();
+
+  for (const auto &record : live) {
+    if (record.builtin)
+      continue;
+
+    auto it =
+        std::find_if(m_gameConfig.assets.begin(), m_gameConfig.assets.end(),
+                     [&](const asset::AssetRecord &existing) {
+                       return existing.handle == record.handle;
+                     });
+
+    if (it == m_gameConfig.assets.end()) {
+      m_gameConfig.assets.push_back(record);
+    } else {
+      *it = record;
+    }
+  }
 }
 
 } // namespace engine::core

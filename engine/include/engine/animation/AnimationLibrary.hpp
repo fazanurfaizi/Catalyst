@@ -1,7 +1,8 @@
 #pragma once
 
 #include "engine/components/AnimationClip.hpp"
-#include "engine/graphics/assets/TextureAtlasAsset.hpp"
+#include "engine/resources/TextureAtlasAsset.hpp"
+#include "engine/utils/StringHash.hpp"
 
 #include <functional>
 #include <string>
@@ -21,7 +22,7 @@ public:
   void Add(components::AnimationClip clip);
 
   bool AddStrip(const std::string &clipName,
-                const graphics::TextureAtlasAsset &atlas,
+                const resources::TextureAtlasAsset &atlas,
                 const std::string &regionPrefix, int frameCount,
                 float frameDurationSec, bool loop = true);
 
@@ -29,8 +30,8 @@ public:
   int Count() const { return static_cast<int>(m_clips.size()); }
 
 private:
-  std::unordered_map<std::string, components::AnimationClip,
-                     graphics::StringHash, std::equal_to<>>
+  std::unordered_map<std::string, components::AnimationClip, StringHash,
+                     std::equal_to<>>
       m_clips;
 };
 

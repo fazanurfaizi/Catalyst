@@ -1,16 +1,18 @@
 #include "engine/graphics/Renderer.hpp"
 
-#include "engine/asset/AssetPath.hpp"
+#include "engine/asset/builtin/BuiltinShaders.hpp"
 #include "engine/asset/core/AssetHandle.hpp"
 #include "engine/components/Light.hpp"
 #include "engine/components/Sprite.hpp"
 #include "engine/components/Transform.hpp"
-#include "engine/graphics/assets/TextureAtlasAsset.hpp"
 #include "engine/graphics/sprite/SpriteBatch.hpp"
 #include "engine/graphics/sprite/SpriteDrawList.hpp"
 #include "engine/math/Rect.hpp"
+#include "engine/resources/TextureAtlasAsset.hpp"
 #include "engine/utils/Logger.hpp"
+
 #include "glad/gl.h"
+
 #include <algorithm>
 #include <cmath>
 #include <cstddef>
@@ -33,20 +35,6 @@ void Renderer::Init(int width, int height) {
   m_height = height;
 
   m_batch = std::make_unique<SpriteBatch>();
-
-  if (!m_lightShader.IsValid()) {
-    if (!m_lightShader.LoadFromFile(AssetPath("shaders/light"))) {
-      Logger::Error("[Renderer] failed to load 'shaders/light' - "
-                    "lighting pipeline disabled (scene renders unlit).");
-    }
-  }
-
-  if (!m_compositeShader.IsValid()) {
-    if (!m_compositeShader.LoadFromFile(AssetPath("shaders/composite"))) {
-      Logger::Error("[Renderer] failed to load 'shaders/composite' - "
-                    "lighting pipeline disabled (scene renders unlit).");
-    }
-  }
 
   EnsureRenderTargets();
   SetTileCounts(width, height);
@@ -72,8 +60,15 @@ glm::mat4 Renderer::UiProjection() const {
                     static_cast<float>(m_height), 0.0f, -1.0f, 1.0f);
 }
 
-void Renderer::BeginFrame(const glm::mat4 &viewProjection,
-                          const math::Rect &visibleBounds) {
+void Renderer::SetAssetManager(asset::IAssetManager *assets) {
+  m_assets = assets;
+  RefreshShaders();
+}
+
+void Renderer::BeginFrame(const math::Camera &camera) {
+  if (m_assets && m_assets->GetReloadGeneration() != m_shaderGeneration)
+    RefreshShaders();
+
   if (m_frameActive) {
     Logger::Warn("[Renderer] BeginFrame while frame active");
     return;
@@ -81,8 +76,7 @@ void Renderer::BeginFrame(const glm::mat4 &viewProjection,
 
   EnsureRenderTargets();
 
-  m_viewProjection = viewProjection;
-  m_visibleBounds = visibleBounds;
+  m_camera = camera;
 
   m_drawList.Clear();
   m_pipeline.Reset();
@@ -166,9 +160,9 @@ void Renderer::Draw(const glm::vec2 &position, const glm::vec2 &scale,
   m_hasSprites = true;
 }
 
-void Renderer::RenderSprites(scene::World &world,
+void Renderer::RenderSprites(scene::Scene &scene,
                              asset::IAssetManager *assets) {
-  auto &reg = world.Registry();
+  auto &reg = scene.Registry();
 
   struct Cmd {
     const components::Transform *t;
@@ -193,7 +187,7 @@ void Renderer::RenderSprites(scene::World &world,
     math::Rect eRect(t.position.x - ex, t.position.y - ey, ex * 2.0f,
                      ey * 2.0f);
 
-    if (!m_visibleBounds.Intersects(eRect))
+    if (!m_camera.visibleBounds.Intersects(eRect))
       continue;
 
     const float key = (s.ySortKey != 0.0f) ? s.ySortKey : t.position.y;
@@ -206,17 +200,19 @@ void Renderer::RenderSprites(scene::World &world,
     return a.yKey < b.yKey;
   });
 
-  std::unordered_map<asset::AssetHandle, std::shared_ptr<TextureAtlasAsset>>
+  std::unordered_map<asset::AssetHandle,
+                     std::shared_ptr<resources::TextureAtlasAsset>>
       atlasCache;
 
-  auto resolveAtlas =
-      [&](asset::AssetHandle h) -> std::shared_ptr<TextureAtlasAsset> {
+  auto resolveAtlas = [&](asset::AssetHandle h)
+      -> std::shared_ptr<resources::TextureAtlasAsset> {
     if (h.IsNull())
       return nullptr;
     auto it = atlasCache.find(h);
     if (it != atlasCache.end())
       return it->second;
-    auto a = assets ? assets->Acquire<TextureAtlasAsset>(h) : nullptr;
+    auto a =
+        assets ? assets->Acquire<resources::TextureAtlasAsset>(h) : nullptr;
     atlasCache[h] = a;
     return a;
   };
@@ -233,6 +229,15 @@ void Renderer::RenderSprites(scene::World &world,
     if (!atlas)
       continue;
 
+    if (!atlas->EnsureGpu()) {
+      Logger::Warn("[Renderer] atlas GPU upload failed for handle %s",
+                   s.atlas.ToString().c_str());
+      continue;
+    }
+
+    if (!atlas->IsGpuReady())
+      continue;
+
     const auto *region = atlas->GetRegion(s.regionName);
     if (!region)
       continue;
@@ -243,8 +248,8 @@ void Renderer::RenderSprites(scene::World &world,
   }
 }
 
-void Renderer::RenderLights(scene::World &world) {
-  auto &reg = world.Registry();
+void Renderer::RenderLights(scene::Scene &scene) {
+  auto &reg = scene.Registry();
 
   m_lightBuffer.pointCount = 0;
   m_lightBuffer.directionalCount = 0;
@@ -314,7 +319,7 @@ void Renderer::ExecuteSprite() {
   m_lastDrawCalls = 0;
   m_lastQuadCount = static_cast<std::uint32_t>(cmds.size());
 
-  m_batch->Begin(m_viewProjection);
+  m_batch->Begin(m_camera.viewProjection);
 
   for (const auto &g : groups) {
     m_batch->DrawInstances(m_instanceScratch.data() + g.start, g.count,
@@ -330,23 +335,27 @@ void Renderer::ExecuteLight() {
   glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
   glClear(GL_COLOR_BUFFER_BIT);
 
-  UpdateTileGrid(m_viewProjection);
+  if (!m_lightShader || !m_lightShader->Gpu())
+    return;
+
+  Shader &shader = *m_lightShader->Gpu();
+
+  UpdateTileGrid(m_camera.viewProjection);
   BuildTileGrid();
 
   m_lightRenderer.Upload(m_lightBuffer);
 
-  m_lightShader.Bind();
-  m_lightShader.SetMat4("uInViewProjection", glm::inverse(m_viewProjection));
-  m_lightShader.SetVec3("uAmbientColor", m_ambientColor);
-  m_lightShader.SetInt("uPointLightCount", m_lightBuffer.pointCount);
-  m_lightShader.SetInt("uDirectionalLightCount",
-                       m_lightBuffer.directionalCount);
-  m_lightShader.SetInt("uSpotLightCount", m_lightBuffer.spotCount);
-  m_lightShader.SetUInt("uTileCountX", m_tileCuller.TilesX());
-  m_lightShader.SetUInt("uTileCountY", m_tileCuller.TilesY());
-  m_lightShader.SetVec2("uTileWorldSize",
-                        {m_tileCuller.TileWorldW(), m_tileCuller.TileWorldH()});
-  m_lightShader.SetVec2("uWorldOrigin", m_tileCuller.WorldOrigin());
+  shader.Bind();
+  shader.SetMat4("uInViewProjection", glm::inverse(m_camera.viewProjection));
+  shader.SetVec3("uAmbientColor", m_ambientColor);
+  shader.SetInt("uPointLightCount", m_lightBuffer.pointCount);
+  shader.SetInt("uDirectionalLightCount", m_lightBuffer.directionalCount);
+  shader.SetInt("uSpotLightCount", m_lightBuffer.spotCount);
+  shader.SetUInt("uTileCountX", m_tileCuller.TilesX());
+  shader.SetUInt("uTileCountY", m_tileCuller.TilesY());
+  shader.SetVec2("uTileWorldSize",
+                 {m_tileCuller.TileWorldW(), m_tileCuller.TileWorldH()});
+  shader.SetVec2("uWorldOrigin", m_tileCuller.WorldOrigin());
 
   m_fullscreenQuad.Draw();
 }
@@ -356,12 +365,17 @@ void Renderer::ExecuteComposite() {
   glViewport(0, 0, m_width, m_height);
   glClear(GL_COLOR_BUFFER_BIT);
 
-  m_compositeShader.Bind();
+  if (!m_compositeShader || !m_compositeShader->Gpu())
+    return;
+
+  Shader &shader = *m_compositeShader->Gpu();
+
+  shader.Bind();
   m_sceneRT.BindColorTexture(0);
   m_lightRT.BindColorTexture(1);
-  m_compositeShader.SetInt("uScene", 0);
-  m_compositeShader.SetInt("uLight", 1);
-  m_compositeShader.SetInt("uMode", 0);
+  shader.SetInt("uScene", 0);
+  shader.SetInt("uLight", 1);
+  shader.SetInt("uMode", 0);
 
   m_fullscreenQuad.Draw();
 }
@@ -371,19 +385,24 @@ void Renderer::ExecuteBlit(Attachment src) {
   glViewport(0, 0, m_width, m_height);
   glClear(GL_COLOR_BUFFER_BIT);
 
-  m_compositeShader.Bind();
+  if (!m_compositeShader || !m_compositeShader->Gpu())
+    return;
+
+  Shader &shader = *m_compositeShader->Gpu();
+  shader.Bind();
+
   if (src == AttachLightColor) {
     m_lightRT.BindColorTexture(0);
     m_sceneRT.BindColorTexture(1);
-    m_compositeShader.SetInt("uScene", 0);
-    m_compositeShader.SetInt("uLight", 1);
-    m_compositeShader.SetInt("uMode", 2);
+    shader.SetInt("uScene", 0);
+    shader.SetInt("uLight", 1);
+    shader.SetInt("uMode", 2);
   } else {
     m_sceneRT.BindColorTexture(0);
     m_lightRT.BindColorTexture(1);
-    m_compositeShader.SetInt("uScene", 0);
-    m_compositeShader.SetInt("uLight", 1);
-    m_compositeShader.SetInt("uMode", 1);
+    shader.SetInt("uScene", 0);
+    shader.SetInt("uLight", 1);
+    shader.SetInt("uMode", 1);
   }
 
   m_fullscreenQuad.Draw();
@@ -420,14 +439,14 @@ void Renderer::UpdateTileGrid(const glm::mat4 &viewProjection) {
   const glm::vec2 hi = glm::max(glm::max(c0, c1), glm::max(c2, c3));
 
   // Guard against a degenerate/identity projection.
-  const float worldW = std::max(hi.x - lo.x, 1e-3f);
-  const float worldH = std::max(hi.y - lo.y, 1e-3f);
+  const float sceneW = std::max(hi.x - lo.x, 1e-3f);
+  const float sceneH = std::max(hi.y - lo.y, 1e-3f);
 
   const auto tilesX = m_tileCuller.TilesX();
   const auto tilesY = m_tileCuller.TilesY();
 
-  m_tileCuller.SetTileGrid(tilesX, tilesY, worldW / static_cast<float>(tilesX),
-                           worldH / static_cast<float>(tilesY), lo);
+  m_tileCuller.SetTileGrid(tilesX, tilesY, sceneW / static_cast<float>(tilesX),
+                           sceneH / static_cast<float>(tilesY), lo);
 }
 
 void Renderer::BuildTileGrid() {
@@ -445,6 +464,32 @@ void Renderer::SetTileCounts(int width, int height) {
       std::max(1u, static_cast<std::uint32_t>(height) / kTilePx);
   m_tileCuller.SetTileGrid(tx, ty, 1.0f, 1.0f,
                            {0.0f, 0.0f}); // size overwritten below
+}
+
+void Renderer::RefreshShaders() {
+  if (!m_assets)
+    return;
+
+  if (auto shader = asset::builtin::AcquireShader(
+          *m_assets, asset::builtin::kLightShader)) {
+    m_lightShader = std::move(shader);
+  }
+
+  if (auto shader = asset::builtin::AcquireShader(
+          *m_assets, asset::builtin::kCompositeShader)) {
+    m_compositeShader = std::move(shader);
+  }
+
+  if (auto shader = asset::builtin::AcquireShader(
+          *m_assets, asset::builtin::kSpriteShader)) {
+    m_spriteShader = std::move(shader);
+
+    if (m_batch) {
+      m_batch->SetShader(m_spriteShader->Gpu());
+    }
+  }
+
+  m_shaderGeneration = m_assets->GetReloadGeneration();
 }
 
 } // namespace engine::graphics

@@ -1,5 +1,7 @@
 #pragma once
 
+#include "nlohmann/json_fwd.hpp"
+
 #include <cstddef>
 #include <cstdint>
 #include <functional>
@@ -22,6 +24,8 @@ public:
    * @brief Parses the canonical string form. Returns Null() if malformed
    */
   static AssetHandle FromString(std::string_view str);
+
+  static AssetHandle FromStableString(std::string_view str);
 
   /**
    * @brief Returns the null handle. Same as default construction
@@ -49,6 +53,10 @@ private:
 
   ValueType m_value = 0;
 };
+
+void to_json(nlohmann::json &j, const AssetHandle &handle);
+
+void from_json(const nlohmann::json &j, AssetHandle &handle);
 
 } // namespace engine::asset
 

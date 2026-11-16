@@ -5,10 +5,13 @@
 #include "engine/asset/core/AssetHandle.hpp"
 #include "engine/asset/core/AssetRecord.hpp"
 #include "engine/asset/core/ImportError.hpp"
+
 #include <memory>
+#include <optional>
 #include <string_view>
 #include <type_traits>
 #include <utility>
+#include <vector>
 
 namespace engine::asset {
 
@@ -56,10 +59,11 @@ public:
   virtual AssetLoadState State(AssetHandle handle) const = 0;
 
   /** Record for handle, or nullptr if unknown. */
-  virtual const AssetRecord *Record(AssetHandle handle) const = 0;
+  // virtual const AssetRecord *Record(AssetHandle handle) const = 0;
 
   /** Last import error if state == Failed; nullptr otherwise. */
-  virtual const ImportError *LastError(AssetHandle handle) const = 0;
+  virtual const std::optional<ImportError>
+  LastError(AssetHandle handle) const = 0;
 
   /** Clears the failed state and reloads. No-op if state != Failed. */
   virtual void Retry(AssetHandle handle) = 0;
@@ -82,6 +86,27 @@ public:
 
   /** Increments on every successful or attempted Reimport. */
   virtual std::uint64_t GetReloadGeneration() const = 0;
+
+  /** Import CPU-only. Safe for background threads. */
+  virtual std::shared_ptr<Asset> PreloadCpu(AssetHandle handle) = 0;
+
+  /** Ensure GPU resource is ready. Must run on main thread with GL context */
+  virtual std::shared_ptr<Asset> EnsureGpu(AssetHandle handle) = 0;
+
+  virtual std::optional<AssetRecord> RecordCopy(AssetHandle handle) const = 0;
+
+  virtual bool RefreshSettingsHash(AssetHandle handle) = 0;
+
+  /** Handle whose relative path matches, or Null() if not registered. */
+  virtual AssetHandle FindByPath(std::string_view relativePath) const = 0;
+
+  /** Copy of all records, ordered by handle. Safe for editor/save paths. */
+  virtual std::vector<AssetRecord> RecordsSnapshot() const = 0;
+
+  /** True when records changed since the last ClearDirty(). */
+  virtual bool IsDirty() const = 0;
+
+  virtual void ClearDirty() = 0;
 };
 
 } // namespace engine::asset

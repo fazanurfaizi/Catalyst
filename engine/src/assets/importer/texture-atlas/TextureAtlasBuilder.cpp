@@ -1,5 +1,4 @@
 #include "engine/asset/importer/texture-atlas/TextureAtlasBuilder.hpp"
-#include "engine/graphics/assets/TextureAtlasAsset.hpp"
 #include "engine/utils/Logger.hpp"
 
 #include <glm/glm.hpp>
@@ -8,16 +7,31 @@
 #include <array>
 #include <cstddef>
 #include <filesystem>
+#include <limits>
 #include <numeric>
 #include <stb/stb_image.h>
 #include <stb/stb_image_resize.h>
+#include <string>
+#include <string_view>
+#include <system_error>
+#include <unordered_map>
 #include <vector>
 
 namespace engine::asset {
 
 namespace {
 
-std::array<std::string, 1> kAllowedImageExtensions = {".png"};
+std::array<std::string, 3> kAllowedImageExtensions = {".png", "jpg", "jpeg"};
+
+std::string ToLowerAscii(std::string_view s) {
+  std::string out;
+  out.reserve(s.size());
+  for (char c : s) {
+    out.push_back(
+        static_cast<char>(std::tolower(static_cast<unsigned char>(c))));
+  }
+  return out;
+}
 
 std::uint8_t *PixelAt(std::vector<std::uint8_t> &data, int stride, int x,
                       int y) {
@@ -65,8 +79,9 @@ int TextureAtlasBuilder::AddFromDirectory(const std::string &directory,
       continue;
 
     const auto &path = entry.path();
+    const std::string ext = ToLowerAscii(path.extension().string());
     auto it = std::find(kAllowedImageExtensions.begin(),
-                        kAllowedImageExtensions.end(), path.extension());
+                        kAllowedImageExtensions.end(), ext);
     if (it == kAllowedImageExtensions.end())
       continue;
 
@@ -87,7 +102,7 @@ int TextureAtlasBuilder::AddFromDirectory(const std::string &directory,
       name += (part.has_extension() ? part.stem().string() : part.string());
     }
 
-    if (AddFromFile(name, path.string()), maxDimension) {
+    if (AddFromFile(name, path.string(), maxDimension)) {
       ++added;
     }
   }
@@ -99,6 +114,7 @@ int TextureAtlasBuilder::AddFromDirectory(const std::string &directory,
 
   return added;
 }
+
 bool TextureAtlasBuilder::AddFromFile(const std::string &name,
                                       const std::string &path,
                                       int maxDimension) {
@@ -107,12 +123,39 @@ bool TextureAtlasBuilder::AddFromFile(const std::string &name,
     return false;
   }
 
-  stbi_set_flip_vertically_on_load(true);
+  std::error_code ecPath;
+  const auto absPath = std::filesystem::weakly_canonical(path, ecPath);
+
+  std::error_code ecTime;
+  const auto mtime = std::filesystem::last_write_time(path, ecTime);
+
+  std::error_code ecSize;
+  const auto fileSize = std::filesystem::file_size(path, ecSize);
+
+  const std::string cacheKey =
+      (ecPath ? path : absPath.string()) + "|" + std::to_string(maxDimension);
+
+  auto &cache = SourceCache();
+
+  if (!ecTime && !ecSize) {
+    auto it = cache.find(cacheKey);
+    if (it != cache.end() && it->second.mtime == mtime &&
+        it->second.size == fileSize) {
+      Source src = it->second.source;
+      src.name = name;
+      AddSource(std::move(src));
+      return true;
+    }
+  }
+
+  stbi_set_flip_vertically_on_load_thread(true);
   int w = 0;
   int h = 0;
   int channels = 0;
 
   stbi_uc *data = stbi_load(path.c_str(), &w, &h, &channels, STBI_rgb_alpha);
+  stbi_set_flip_vertically_on_load_thread(false);
+
   if (!data) {
     const char *dsc = stbi_failure_reason() ? stbi_failure_reason() : "?";
     Logger::Error("[TextureAtlas] failed to load: %s (%s)", path.c_str(), dsc);
@@ -125,11 +168,31 @@ bool TextureAtlasBuilder::AddFromFile(const std::string &name,
   if (maxDimension > 0 && (w > maxDimension || h > maxDimension)) {
     const int newW = (w >= h) ? maxDimension : (w * maxDimension / h);
     const int newH = (h >= w) ? maxDimension : (h * maxDimension / w);
+
+    if (newW <= 0 || newH <= 0) {
+      stbi_image_free(data);
+      Logger::Error("[TextureAtlas] invalid resize target for: %s",
+                    path.c_str());
+      return false;
+    }
+
+    const std::uint64_t bytes = static_cast<std::uint64_t>(newW) * newH * 4ull;
+    if (bytes > std::numeric_limits<std::size_t>::max()) {
+      stbi_image_free(data);
+      Logger::Error("[TextureAtlas] resize overflow: %s", path.c_str());
+      return false;
+    }
+
     src.width = newW;
     src.height = newH;
-    src.rgba8.resize(static_cast<std::size_t>(newW) * newH * 4);
-    stbir_resize_uint8(data, w, h, 0, src.rgba8.data(), newW, newH, 0,
-                       STBI_rgb_alpha);
+    src.rgba8.resize(static_cast<std::size_t>(bytes));
+
+    if (!stbir_resize_uint8(data, w, h, 0, src.rgba8.data(), newW, newH, 0,
+                            STBI_rgb_alpha)) {
+      stbi_image_free(data);
+      Logger::Error("[TextureAtlas] resize failed for: %s", path.c_str());
+      return false;
+    }
   } else {
     src.width = w;
     src.height = h;
@@ -137,6 +200,17 @@ bool TextureAtlasBuilder::AddFromFile(const std::string &name,
   }
 
   stbi_image_free(data);
+
+  if (!ecTime && !ecSize) {
+    if (cache.size() > 256)
+      cache.clear();
+
+    CachedSource entry;
+    entry.mtime = mtime;
+    entry.size = fileSize;
+    entry.source = src;
+    cache[cacheKey] = std::move(entry);
+  }
 
   AddSource(std::move(src));
 
@@ -146,6 +220,15 @@ bool TextureAtlasBuilder::AddFromFile(const std::string &name,
 bool TextureAtlasBuilder::AddFromPixels(const std::string &name, int w, int h,
                                         const std::uint8_t *rgba8) {
   if (w <= 0 || h <= 0 || !rgba8)
+    return false;
+
+  if (w > 16384 || h > 16384) {
+    Logger::Error("[TextureAtlas] source too large: %dx%d", w, h);
+    return false;
+  }
+
+  const std::uint64_t bytes = static_cast<std::uint64_t>(w) * h * 4ull;
+  if (bytes > std::numeric_limits<std::size_t>::max())
     return false;
 
   if (HasSource(name)) {
@@ -171,8 +254,11 @@ void TextureAtlasBuilder::AddSource(Source &&src) {
 
 bool TextureAtlasBuilder::AddSolid(const std::string &name, std::uint32_t rgba,
                                    int size) {
-  if (size < 1)
-    size = 1;
+  if (size < 1 || size > 4096) {
+    Logger::Error("[TextureAtlas] invalid solid size: %d", size);
+    return false;
+  }
+
   std::uint8_t c[4];
   Unpack(rgba, c);
 
@@ -188,8 +274,11 @@ bool TextureAtlasBuilder::AddSolid(const std::string &name, std::uint32_t rgba,
 
 bool TextureAtlasBuilder::AddCheckerboard(const std::string &name, int cells,
                                           std::uint32_t a, std::uint32_t b) {
-  if (cells < 1)
-    cells = 1;
+  if (cells < 1 || cells > 512) {
+    Logger::Error("[TextureAtlas] invalid checkerboard cells: %d", cells);
+    return false;
+  }
+
   constexpr int kCellPx = 8;
   const int size = cells * kCellPx;
 
@@ -220,8 +309,13 @@ bool TextureAtlasBuilder::Pack(Packed &out, int maxSize) const {
 
   const std::size_t n = m_sources.size();
 
-  int sizeLimit = 256;
-  while (sizeLimit * 2 <= maxSize)
+  if (maxSize < 1) {
+    Logger::Error("[TextureAtlasBuilder] invalid maxSize %d", maxSize);
+    return false;
+  }
+
+  int sizeLimit = 1;
+  while (sizeLimit <= maxSize / 2)
     sizeLimit *= 2;
 
   constexpr int kPad = 1;
@@ -235,7 +329,9 @@ bool TextureAtlasBuilder::Pack(Packed &out, int maxSize) const {
   std::vector<glm::ivec2> bestPositions;
   int bestSize = 0;
 
-  for (int size = 256; size <= sizeLimit; size *= 2) {
+  const int startSize = std::min(256, sizeLimit);
+
+  for (int size = startSize; size <= sizeLimit; size *= 2) {
     std::vector<glm::ivec2> pos(n);
     int shelfY = 0, shelfH = 0, cursorX = 0;
     bool fits = true;
@@ -272,24 +368,23 @@ bool TextureAtlasBuilder::Pack(Packed &out, int maxSize) const {
   }
 
   if (bestSize == 0) {
-    int largestW = 0, largestH = 0;
-    std::size_t totalPaddedArea = 0;
-    for (const auto &s : m_sources) {
-      largestW = std::max(largestW, s.width);
-      largestH = std::max(largestH, s.height);
-      totalPaddedArea += static_cast<std::size_t>(s.width + 2) * (s.height + 2);
-    }
-    Logger::Error(
-        "[TextureAtlasBuilder] cannot pack %zu sources within %dx%d "
-        "(largest source %dx%d, total padded area %zu px = %.1f%% of %d²)",
-        n, sizeLimit, sizeLimit, largestW, largestH, totalPaddedArea,
-        100.0 * totalPaddedArea / (double(sizeLimit) * sizeLimit), sizeLimit);
+    Logger::Error("[TextureAtlasBuilder] no layout fits within %dpx "
+                  "(check maxSpriteDimension/maxAtlasDimension)",
+                  maxSize);
+    return false;
+  }
+
+  const std::uint64_t outBytes =
+      static_cast<std::uint64_t>(bestSize) * bestSize * 4ull;
+
+  if (outBytes > std::numeric_limits<std::size_t>::max()) {
+    Logger::Error("[TextureAtlasBuilder] atlas allocation overflow");
     return false;
   }
 
   out.width = bestSize;
   out.height = bestSize;
-  out.rgba8.assign(static_cast<std::size_t>(bestSize) * bestSize * 4, 0);
+  out.rgba8.assign(static_cast<std::size_t>(outBytes), 0);
   out.regions.clear();
   out.regions.reserve(n);
 
@@ -311,7 +406,7 @@ bool TextureAtlasBuilder::Pack(Packed &out, int maxSize) const {
       }
     }
 
-    graphics::AtlasRegion region;
+    resources::AtlasRegion region;
     region.uvMin = {static_cast<float>(px) / bestSize,
                     static_cast<float>(py) / bestSize};
     region.uvMax = {static_cast<float>(px + s.width) / bestSize,
@@ -323,6 +418,12 @@ bool TextureAtlasBuilder::Pack(Packed &out, int maxSize) const {
   Logger::Info("[TextureAtlasBuilder] packed %zu sources into %dx%d", n,
                bestSize, bestSize);
   return true;
+}
+
+std::unordered_map<std::string, TextureAtlasBuilder::CachedSource> &
+TextureAtlasBuilder::SourceCache() {
+  static thread_local std::unordered_map<std::string, CachedSource> cache;
+  return cache;
 }
 
 } // namespace engine::asset

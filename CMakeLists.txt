@@ -5,7 +5,7 @@ set(GAME_VERSION_MINOR 0)
 set(GAME_VERSION_PATCH 0)
 set(GAME_VERSION_STRING ${GAME_VERSION_MAJOR}.${GAME_VERSION_MINOR}.${GAME_VERSION_PATCH})
 
-project(KingdomRushFrontiers
+project(Catalyst
   VERSION ${GAME_VERSION_STRING}
   DESCRIPTION "Catalyst"
   LANGUAGES C CXX
@@ -87,7 +87,7 @@ add_subdirectory(game)
 if(GAME_BUILD_TESTS)
   include(CTest)
   enable_testing()
-  # add_subdirectory(tests)
+  add_subdirectory(tests)
 endif()
 
 # Build targets

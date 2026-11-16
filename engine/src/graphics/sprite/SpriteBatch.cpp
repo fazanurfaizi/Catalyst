@@ -1,8 +1,6 @@
 #include "engine/graphics/sprite/SpriteBatch.hpp"
-#include "engine/asset/AssetPath.hpp"
 #include "engine/graphics/sprite/SpriteDrawList.hpp"
 #include "engine/graphics/texture/Texture.hpp"
-#include "engine/utils/Logger.hpp"
 #include "glad/gl.h"
 
 #include <cstddef>
@@ -10,11 +8,6 @@
 namespace engine::graphics {
 
 SpriteBatch::SpriteBatch() {
-  if (!m_shader.LoadFromFile(engine::AssetPath("shaders/sprite"))) {
-    Logger::Error("[SpriteBatch] shader compilation failed");
-    return;
-  }
-
   // clang-format off
   constexpr float kCorners[] = {
     -0.5f, -0.5f,
@@ -123,11 +116,14 @@ void SpriteBatch::DrawInstances(const SpriteInstance *data, std::size_t count,
                static_cast<GLsizeiptr>(count * sizeof(SpriteInstance)), data,
                GL_STREAM_DRAW);
 
-  m_shader.Bind();
-  m_shader.SetMat4("uViewProjection", m_viewProjection);
-  // glUniformMatrix4fv(m_uViewport, 1, GL_FALSE, &m_viewProjection[0][0]);
-  // glUniform1i(m_uTexture, 0);
-  m_shader.SetInt("uTexture", 0);
+  Shader &shader = ActiveShader();
+  if (!shader.IsValid())
+    return;
+
+  shader.Bind();
+  shader.SetMat4("uViewProjection", m_viewProjection);
+  shader.SetInt("uTexture", 0);
+
   const Texture *tex = texture ? texture : &m_defaultTexture;
   tex->Bind(0);
 

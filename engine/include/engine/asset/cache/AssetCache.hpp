@@ -7,6 +7,7 @@
 #include <cstddef>
 #include <map>
 #include <memory>
+#include <optional>
 
 namespace engine::asset {
 
@@ -15,24 +16,30 @@ public:
   AssetCache() = default;
   ~AssetCache() = default;
 
-  AssetCache(const AssetCache &) = default;
-  AssetCache &operator=(const AssetCache &) = default;
+  AssetCache(const AssetCache &) = delete;
+  AssetCache &operator=(const AssetCache &) = delete;
+
+  std::shared_ptr<Asset> FindAny(AssetHandle handle);
 
   /** Returns the loaded asset, or nullptr. Demotes expired entries to Unloaded
    */
-  std::shared_ptr<Asset> FindLoaded(AssetHandle handle);
+  std::shared_ptr<Asset> FindUploaded(AssetHandle handle);
 
   /** Current runtime state. Returns Unloaded for unknown handles */
   AssetLoadState State(AssetHandle handle) const;
 
   /** Last ImportError, or nullptr if the state is not failed */
-  const ImportError *LastError(AssetHandle handle) const;
+  const std::optional<ImportError> LastError(AssetHandle handle) const;
 
   /** Unloaded -> Loading */
   void MarkLoading(AssetHandle handle);
 
-  /** Loading -> Loaded. Stores the asset's week ptr */
-  void Insert(AssetHandle handle, std::shared_ptr<Asset> asset);
+  /** Loading -> Loaded. Stores the asset in the cache. */
+  void Insert(AssetHandle handle, std::shared_ptr<Asset> asset,
+              AssetLoadState state = AssetLoadState::Loaded);
+
+  // Uploaded to GPU
+  void MarkUploaded(AssetHandle handle);
 
   /** Any -> Failed. Records the error, doesn't store an asset */
   void MarkFailed(AssetHandle handle, ImportError error);
@@ -45,7 +52,7 @@ public:
 
 private:
   struct Entry {
-    std::weak_ptr<Asset> asset;
+    std::shared_ptr<Asset> asset;
     AssetLoadState state = AssetLoadState::Unloaded;
     ImportError lastError;
   };

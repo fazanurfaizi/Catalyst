@@ -1,7 +1,7 @@
 #pragma once
 
 #include "engine/asset/core/ImportedAssetData.hpp"
-#include "engine/graphics/assets/TextureAtlasAsset.hpp"
+#include "engine/resources/TextureAtlasAsset.hpp"
 
 #include <cstdint>
 #include <string>
@@ -17,7 +17,7 @@ public:
   std::uint32_t width = 0;
   std::uint32_t height = 0;
   std::vector<std::uint8_t> rgba8;
-  std::vector<std::pair<std::string, graphics::AtlasRegion>> regions;
+  std::vector<std::pair<std::string, resources::AtlasRegion>> regions;
 };
 
 } // namespace engine::asset

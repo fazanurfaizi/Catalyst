@@ -40,15 +40,20 @@ public:
   std::uint32_t LastDrawCalls() const { return m_lastDrawCalls; }
   std::uint32_t LastInstanceCount() const { return m_lastInstanceCount; }
 
-  Shader &GetShader() { return m_shader; }
+  void SetShader(Shader *shader) { m_shaderOverride = shader; }
 
 private:
+  Shader &ActiveShader() {
+    return m_shaderOverride ? *m_shaderOverride : m_shader;
+  }
+
+  Shader m_shader;
+  Shader *m_shaderOverride = nullptr;
+
   GLuint m_vao = 0;
   GLuint m_staticVbo = 0;
   GLuint m_ibo = 0;
   GLuint m_instanceVbo = 0;
-
-  Shader m_shader;
 
   glm::mat4 m_viewProjection{1.0f};
 

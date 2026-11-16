@@ -13,6 +13,6 @@ public:
   std::filesystem::path absolutePath;
   std::uint32_t sampleRate = 0;
   std::uint32_t channels = 0;
-  std::uint32_t frameCount = 0;
+  std::uint64_t frameCount = 0;
 };
 } // namespace engine::asset

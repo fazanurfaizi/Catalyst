@@ -1,8 +1,7 @@
 #include "engine/graphics/TextRenderer.hpp"
 
-#include "engine/asset/AssetPath.hpp"
-#include "engine/graphics/assets/FontAsset.hpp"
 #include "engine/graphics/text/TextLayout.hpp"
+#include "engine/resources/FontAsset.hpp"
 #include "engine/utils/Logger.hpp"
 #include "glad/gl.h"
 
@@ -13,11 +12,6 @@
 namespace engine::graphics {
 
 TextRenderer::TextRenderer() {
-  if (!m_shader.LoadFromFile(AssetPath("shaders/text"))) {
-    Logger::Error("[TextRenderer] Failed to compile text shader");
-    return;
-  }
-
   glGenVertexArrays(1, &m_vao);
   glGenBuffers(1, &m_vbo);
   glBindVertexArray(m_vao);
@@ -45,14 +39,33 @@ TextRenderer::~TextRenderer() {
   glDeleteBuffers(1, &m_vbo);
 }
 
-void TextRenderer::Draw(const Font &font, const std::string &text,
-                        const glm::vec2 &position, float scale,
-                        const glm::vec4 &color, const glm::mat4 &projection,
-                        float maxWidth, TextAlignment alignment) {
+// void TextRenderer::Draw(const Font &font, const std::string &text,
+//                         const glm::vec2 &position, float scale,
+//                         const glm::vec4 &color, const glm::mat4 &projection,
+//                         float maxWidth, TextAlignment alignment) {
+//
+// }
+
+void TextRenderer::Draw(const resources::FontAsset &font,
+                        const std::string &text, const glm::vec2 &position,
+                        float scale, const glm::vec4 &color,
+                        const glm::mat4 &projection, float maxWidth,
+                        TextAlignment alignment) {
+  if (!font.EnsureGpu()) {
+    Logger::Warn("[TextRenderer] font GPU not ready, skipping draw");
+    return;
+  }
+
   if (text.empty())
     return;
 
-  TextLayout::BuildTextBatch(font, text, maxWidth, scale, alignment, m_vertices,
+  const graphics::Font *gpu = font.GpuFont();
+  if (!gpu) {
+    Logger::Warn("[TextRenderer] font GPU null after EnsureGpu");
+    return;
+  }
+
+  TextLayout::BuildTextBatch(*gpu, text, maxWidth, scale, alignment, m_vertices,
                              position);
 
   if (m_vertices.empty())
@@ -64,13 +77,15 @@ void TextRenderer::Draw(const Font &font, const std::string &text,
   glEnable(GL_BLEND);
   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-  m_shader.Bind();
-  m_shader.SetMat4("uProjection", projection);
-  m_shader.SetVec4("uTextColor", color);
-  m_shader.SetInt("uText", 0);
+  Shader &shader = m_shaderOverride ? *m_shaderOverride : m_shader;
+
+  shader.Bind();
+  shader.SetMat4("uProjection", projection);
+  shader.SetVec4("uTextColor", color);
+  shader.SetInt("uText", 0);
 
   glActiveTexture(GL_TEXTURE0);
-  glBindTexture(GL_TEXTURE_2D, font.GetTextureId());
+  glBindTexture(GL_TEXTURE_2D, gpu->GetTextureId());
   glBindVertexArray(m_vao);
 
   glBindBuffer(GL_ARRAY_BUFFER, m_vbo);
@@ -85,19 +100,7 @@ void TextRenderer::Draw(const Font &font, const std::string &text,
   glBindBuffer(GL_ARRAY_BUFFER, 0);
   glBindVertexArray(0);
   glBindTexture(GL_TEXTURE_2D, 0);
-  m_shader.Unbind();
-}
-
-void TextRenderer::Draw(const FontAsset &fontAsset, const std::string &text,
-                        const glm::vec2 &position, float scale,
-                        const glm::vec4 &color, const glm::mat4 &projection,
-                        float maxWidth, TextAlignment alignment) {
-  if (!fontAsset.font) {
-    return;
-  }
-
-  Draw(*fontAsset.font, text, position, scale, color, projection, maxWidth,
-       alignment);
+  shader.Unbind();
 }
 
 } // namespace engine::graphics

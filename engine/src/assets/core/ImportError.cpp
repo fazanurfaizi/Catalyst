@@ -1,5 +1,7 @@
 #include "engine/asset/core/ImportError.hpp"
 
+#include <sstream>
+
 namespace engine::asset {
 
 const char *ImportErrorCodeToString(ImportError::Code code) noexcept {

@@ -6,11 +6,16 @@
 #include "engine/asset/core/AssetRecord.hpp"
 #include "engine/asset/importer/ImporterRegistry.hpp"
 #include "engine/asset/manager/IAssetManager.hpp"
+
+#include <condition_variable>
 #include <filesystem>
 #include <map>
 #include <memory>
+#include <mutex>
+#include <optional>
 #include <string_view>
 #include <unordered_map>
+#include <unordered_set>
 
 namespace engine::asset {
 
@@ -26,9 +31,9 @@ public:
 
   AssetHandle FindByName(std::string_view name) const override;
 
-  const AssetRecord *Record(AssetHandle handle) const override;
+  // const AssetRecord *Record(AssetHandle handle) const override;
 
-  const ImportError *LastError(AssetHandle handle) const override;
+  const std::optional<ImportError> LastError(AssetHandle handle) const override;
 
   void Retry(AssetHandle handle) override;
 
@@ -42,9 +47,23 @@ public:
 
   void Reimport(AssetHandle handle) override;
 
-  std::uint64_t GetReloadGeneration() const override {
-    return m_reloadGeneration;
-  }
+  std::uint64_t GetReloadGeneration() const override;
+
+  std::shared_ptr<Asset> PreloadCpu(AssetHandle handle) override;
+
+  std::shared_ptr<Asset> EnsureGpu(AssetHandle handle) override;
+
+  std::optional<AssetRecord> RecordCopy(AssetHandle handle) const override;
+
+  bool RefreshSettingsHash(AssetHandle handle) override;
+
+  AssetHandle FindByPath(std::string_view relativePath) const override;
+
+  std::vector<AssetRecord> RecordsSnapshot() const override;
+
+  bool IsDirty() const override;
+
+  void ClearDirty() override;
 
 protected:
   ImporterRegistry &m_registry;
@@ -56,6 +75,21 @@ protected:
   std::unordered_map<std::string, AssetHandle> m_nameToHandle;
 
   std::uint64_t m_reloadGeneration = 0;
+
+  bool m_dirty = false;
+
+private:
+  const AssetRecord *RecordLocked(AssetHandle handle) const;
+  AssetRecord *MutableRecordLocked(AssetHandle handle);
+
+  // std::shared_ptr<Asset> PreloadCpuLocked(AssetHandle handle);
+  // std::shared_ptr<Asset> EnsureGpuLocked(AssetHandle handle);
+
+  mutable std::mutex m_mutex;
+  std::mutex m_gpuMutex;
+
+  std::condition_variable m_cv;
+  std::unordered_set<AssetHandle> m_inflight;
 };
 
 } // namespace engine::asset

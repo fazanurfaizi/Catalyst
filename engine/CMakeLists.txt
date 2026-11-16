@@ -1,6 +1,8 @@
 add_library(engine STATIC
   src/animation/AnimationLibrary.cpp
 
+  src/assets/builtin/BuiltinShaders.cpp
+
   src/assets/cache/AssetCache.cpp
   src/assets/cache/AssetState.cpp
 
@@ -8,25 +10,36 @@ add_library(engine STATIC
   src/assets/core/AssetRecord.cpp
   src/assets/core/AssetType.cpp
   src/assets/core/ImportError.cpp
-  src/assets/core/ImportRequest.cpp
 
   src/assets/finalizer/AnimationFinalizer.cpp
   src/assets/finalizer/AssetFinalizer.cpp
   src/assets/finalizer/FontFinalizer.cpp
   src/assets/finalizer/SoundFinalizer.cpp
+  src/assets/finalizer/ShaderFinalizer.cpp
   src/assets/finalizer/Texture2DFinalizer.cpp
   src/assets/finalizer/TextureAtlasFinalizer.cpp
 
+  src/assets/importer/ImporterRegistry.cpp
+
   src/assets/importer/animation/AnimationImporter.cpp
+
+  src/assets/importer/font/FontImportSettings.cpp
   src/assets/importer/font/FontImporter.cpp
+
   src/assets/importer/sound/SoundImporter.cpp
+
+  src/assets/importer/shader/ShaderImportSettings.cpp
+  src/assets/importer/shader/ShaderImporter.cpp
+
+  src/assets/importer/texture2d/Texture2DImportSettings.cpp
   src/assets/importer/texture2d/Texture2DImporter.cpp
+
   src/assets/importer/texture-atlas/TextureAtlasImporter.cpp
   src/assets/importer/texture-atlas/TextureAtlasBuilder.cpp
-  src/assets/importer/ImporterRegistry.cpp
-  src/assets/importer/font/FontImportSettings.cpp
-  src/assets/importer/texture2d/Texture2DImportSettings.cpp
   src/assets/importer/texture-atlas/TextureAtlasImportSettings.cpp
+
+  src/assets/persistence/AtomicFileWriter.cpp
+  src/assets/persistence/RegistrySerializer.cpp
   src/assets/persistence/SidecarSerializer.cpp
 
   src/assets/manager/AssetManagerRuntime.cpp
@@ -35,18 +48,23 @@ add_library(engine STATIC
   src/assets/watcher/AssetWatcher.cpp
   src/assets/watcher/FileEvent.cpp
 
-  src/assets/AssetManager.cpp
+  src/assets/AssetModule.cpp
 
   src/audio/AudioEngine.cpp
   src/audio/MusicPlayer.cpp
-  src/audio/assets/Sound.cpp
 
   src/core/Game.cpp
   src/core/GameStateManager.cpp
   src/core/GameConfigSerializer.cpp
 
-  src/graphics/assets/AnimationAsset.cpp
-  src/graphics/assets/Texture2DAsset.cpp
+  src/editor/AssetEditor.cpp
+
+  src/resources/AnimationAsset.cpp
+  src/resources/FontAsset.cpp
+  src/resources/ShaderAsset.cpp
+  src/resources/TextureAsset.cpp
+  src/resources/Texture2DAsset.cpp
+  src/resources/TextureAtlasAsset.cpp
 
   src/graphics/Renderer.cpp
   src/graphics/TextRenderer.cpp
@@ -77,7 +95,8 @@ add_library(engine STATIC
   src/platform/Display.cpp
   src/platform/Window.cpp
 
-  src/scene/World.cpp
+  src/scene/Scene.cpp
+  src/scene/SceneSerializer.cpp
 
   src/utils/Logger.cpp
 )
@@ -115,6 +134,7 @@ target_link_libraries(engine PRIVATE
   imgui
   stb_image
   miniaudio
+  field_reflection::field_reflection
 )
 
 target_compile_definitions(engine PUBLIC
@@ -125,4 +145,30 @@ target_compile_definitions(engine PUBLIC
 if(GAME_WARNING_FLAGS)
   target_compile_options(engine PRIVATE ${GAME_WARNING_FLAGS})
 endif()
+
+# Built-in shader embedding
+set(CATALYST_SHADER_DIR "${CMAKE_CURRENT_SOURCE_DIR}/assets/shaders")
+set(CATALYST_GEN_DIR "${CMAKE_CURRENT_BINARY_DIR}/generated")
+set(CATALYST_EMBED_INC "${CATALYST_GEN_DIR}/EmbedShaders.inc")
+
+file(GLOB_RECURSE CATALYST_SHADER_FILES CONFIGURE_DEPENDS
+    "${CATALYST_SHADER_DIR}/*.glsl")
+
+add_custom_command(
+  OUTPUT "${CATALYST_EMBED_INC}"
+  COMMAND "${CMAKE_COMMAND}" -E make_directory "${CATALYST_GEN_DIR}"
+  COMMAND "${CMAKE_COMMAND}"
+          "-DSHADER_DIR=${CATALYST_SHADER_DIR}"
+          "-DOUTPUT_FILE=${CATALYST_EMBED_INC}"
+          -P "${CMAKE_CURRENT_SOURCE_DIR}/cmake/EmbedShaders.cmake"
+  DEPENDS ${CATALYST_SHADER_FILES}
+          "${CMAKE_CURRENT_SOURCE_DIR}/cmake/EmbedShaders.cmake"
+  COMMENT "Embeddding engine shaders"
+  VERBATIM
+)
+
+add_custom_target(catalyst_embed_shaders DEPENDS "${CATALYST_EMBED_INC}")
+add_dependencies(engine catalyst_embed_shaders)
+
+target_include_directories(engine PRIVATE "${CATALYST_GEN_DIR}")
 
