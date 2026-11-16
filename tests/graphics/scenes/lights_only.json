@@ -1,0 +1,91 @@
+{
+  "entities": [
+    {
+      "components": {
+        "N6engine10components10PointLightE": {
+          "ambient": [
+            0.1,
+            0.1,
+            0.1
+          ],
+          "color": [
+            1.0,
+            1.0,
+            1.0,
+            1.0
+          ],
+          "constant": 1.0,
+          "diffuse": [
+            1.0,
+            0.8,
+            0.6
+          ],
+          "linear": 0.09,
+          "quadratic": 0.032,
+          "specular": [
+            1.0,
+            1.0,
+            1.0
+          ]
+        },
+        "N6engine10components9TransformE": {
+          "position": [
+            480.0,
+            360.0
+          ],
+          "rotation": 0.0,
+          "scale": [
+            1.0,
+            1.0
+          ]
+        }
+      },
+      "generation": 0,
+      "index": 0
+    },
+    {
+      "components": {
+        "N6engine10components10PointLightE": {
+          "ambient": [
+            0.1,
+            0.1,
+            0.1
+          ],
+          "color": [
+            1.0,
+            1.0,
+            1.0,
+            1.0
+          ],
+          "constant": 1.0,
+          "diffuse": [
+            0.6,
+            0.8,
+            1.0
+          ],
+          "linear": 0.09,
+          "quadratic": 0.032,
+          "specular": [
+            1.0,
+            1.0,
+            1.0
+          ]
+        },
+        "N6engine10components9TransformE": {
+          "position": [
+            800.0,
+            360.0
+          ],
+          "rotation": 0.0,
+          "scale": [
+            1.0,
+            1.0
+          ]
+        }
+      },
+      "generation": 0,
+      "index": 1
+    }
+  ],
+  "version": 1
+}

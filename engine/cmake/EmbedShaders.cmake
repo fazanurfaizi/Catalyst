@@ -18,7 +18,6 @@ foreach(rel IN LISTS shader_files)
   string(APPEND contents "  {\"${rel}\", R\"CATALYST_SHADER(${src})CATALYST_SHADER\"},\n")
 endforeach()
 
-file(WRITE "${OUTPUT_FILE}.tmp" "${contents}")
-execute_process(COMMAND "${CMAKE_COMMAND}" -E copy_if_different
-                "${OUTPUT_FILE}.tmp" "${OUTPUT_FILE}")
-file(REMOVE "${OUTPUT_FILE}.tmp")
+# Write the output directly. Using copy_if_different here would leave an
+# unchanged file with an old timestamp, making the build rule re-run forever.
+file(WRITE "${OUTPUT_FILE}" "${contents}")

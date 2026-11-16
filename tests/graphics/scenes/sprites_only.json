@@ -1,0 +1,92 @@
+{
+  "entities": [
+    {
+      "components": {
+        "N6engine10components6SpriteE": {
+          "atlas": "",
+          "color": [
+            1.0,
+            0.3,
+            0.3,
+            1.0
+          ],
+          "layer": 0,
+          "regionName": "",
+          "ySortKey": 0.0
+        },
+        "N6engine10components9TransformE": {
+          "position": [
+            320.0,
+            360.0
+          ],
+          "rotation": 0.0,
+          "scale": [
+            200.0,
+            200.0
+          ]
+        }
+      },
+      "generation": 0,
+      "index": 0
+    },
+    {
+      "components": {
+        "N6engine10components6SpriteE": {
+          "atlas": "",
+          "color": [
+            0.3,
+            1.0,
+            0.3,
+            1.0
+          ],
+          "layer": 0,
+          "regionName": "",
+          "ySortKey": 0.0
+        },
+        "N6engine10components9TransformE": {
+          "position": [
+            640.0,
+            360.0
+          ],
+          "rotation": 0.0,
+          "scale": [
+            120.0,
+            120.0
+          ]
+        }
+      },
+      "generation": 0,
+      "index": 1
+    },
+    {
+      "components": {
+        "N6engine10components6SpriteE": {
+          "atlas": "",
+          "color": [
+            0.3,
+            0.3,
+            1.0,
+            1.0
+          ],
+          "layer": 0,
+          "regionName": "",
+          "ySortKey": 0.0
+        },
+        "N6engine10components9TransformE": {
+          "position": [
+            960.0,
+            360.0
+          ],
+          "rotation": 0.0,
+          "scale": [
+            100.0,
+            100.0
+          ]
+        }
+      },
+      "generation": 0,
+      "index": 2
+    }
+  ],
+  "version": 1
+}

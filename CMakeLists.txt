@@ -88,6 +88,7 @@ if(GAME_BUILD_TESTS)
   include(CTest)
   enable_testing()
   add_subdirectory(tests)
+  add_subdirectory(tests/graphics)
 endif()
 
 # Build targets

@@ -5,6 +5,7 @@
 #include "engine/asset/manager/IAssetManager.hpp"
 #include "engine/audio/AudioEngine.hpp"
 #include "engine/core/Clock.hpp"
+#include "engine/core/DevCapture.hpp"
 #include "engine/core/GameConfig.hpp"
 #include "engine/core/GameStateManager.hpp"
 #include "engine/platform/Window.hpp"
@@ -22,7 +23,8 @@ struct GLFWwindow;
 
 namespace engine::graphics {
 class Renderer;
-}
+class SwapChain;
+} // namespace engine::graphics
 
 namespace engine::core {
 
@@ -35,7 +37,8 @@ class Game {
 public:
   explicit Game(const platform::WindowConfig &config,
                 const DebugConfig &debug = {},
-                std::filesystem::path gameConfigPath = "game.json");
+                std::filesystem::path gameConfigPath = "game.json",
+                DevCaptureOptions dev = {});
   virtual ~Game();
 
   Game(const Game &) = delete;
@@ -121,6 +124,10 @@ private:
   GameConfig m_gameConfig{};
 
   std::unique_ptr<graphics::Renderer> m_renderer;
+  std::unique_ptr<graphics::SwapChain> m_swapChain;
+
+  DevCaptureOptions m_dev{};
+  int m_presentedFrames = 0;
 
 #ifdef CATALYST_EDITOR
   std::unique_ptr<asset::AssetWatcher> m_watcher;

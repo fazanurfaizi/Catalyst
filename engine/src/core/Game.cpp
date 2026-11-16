@@ -1,6 +1,7 @@
 #include "engine/core/Game.hpp"
 
 #include "engine/asset/core/AssetRecord.hpp"
+#include "engine/graphics/gl/SwapChain.hpp"
 
 #ifdef CATALYST_EDITOR
 #include "engine/asset/manager/AssetManagerEditor.hpp"
@@ -71,9 +72,9 @@ void InitializeComponentSerialization() {
 } // namespace
 
 Game::Game(const platform::WindowConfig &config, const DebugConfig &debug,
-           std::filesystem::path gameConfigPath)
+           std::filesystem::path gameConfigPath, DevCaptureOptions dev)
     : m_config(config), m_debug(debug),
-      m_gameConfigPath(std::move(gameConfigPath)) {
+      m_gameConfigPath(std::move(gameConfigPath)), m_dev(std::move(dev)) {
 
   m_window = platform::Window::Create(m_config);
   if (!m_window) {
@@ -174,6 +175,16 @@ bool Game::Run() {
     return false;
   }
 
+  const bool captureMode = m_dev.IsCaptureMode();
+  if (captureMode) {
+    m_debug.showFps = false;
+    if (m_window)
+      m_window->SetVsync(false);
+  }
+
+  m_swapChain = std::make_unique<graphics::SwapChain>();
+  m_swapChain->Initialize(m_window->GlfwHandle());
+
   if (!audio::AudioEngine::Get().Init()) {
     Logger::Error("Audio failed to initialiez; continuing without audio");
   }
@@ -218,26 +229,28 @@ bool Game::Run() {
   m_assets->ClearDirty();
 
 #ifdef CATALYST_EDITOR
-  m_watcher =
-      std::make_unique<asset::AssetWatcher>(std::chrono::milliseconds(500));
+  if (!captureMode) {
+    m_watcher =
+        std::make_unique<asset::AssetWatcher>(std::chrono::milliseconds(500));
 
-  for (const auto &record : m_gameConfig.assets) {
-    if (record.builtin)
-      continue;
+    for (const auto &record : m_gameConfig.assets) {
+      if (record.builtin)
+        continue;
 
-    if (record.state != asset::AssetRecordState::Valid)
-      continue;
+      if (record.state != asset::AssetRecordState::Valid)
+        continue;
 
-    const std::filesystem::path abs = m_gameConfig.root / record.path;
-    const std::filesystem::path parent = abs.parent_path();
+      const std::filesystem::path abs = m_gameConfig.root / record.path;
+      const std::filesystem::path parent = abs.parent_path();
 
-    m_watcher->WatchDirectory(record.handle, parent);
+      m_watcher->WatchDirectory(record.handle, parent);
 
-    Logger::Info("[Game] watching '%s' for handle '%s'", parent.c_str(),
-                 record.name.empty() ? record.path.c_str()
-                                     : record.name.c_str());
+      Logger::Info("[Game] watching '%s' for handle '%s'", parent.c_str(),
+                   record.name.empty() ? record.path.c_str()
+                                       : record.name.c_str());
+    }
+    m_watcher->Start();
   }
-  m_watcher->Start();
 #endif
 
   OnStart();
@@ -258,7 +271,7 @@ bool Game::Run() {
     audio::AudioEngine::Get().Update();
 
 #ifdef CATALYST_EDITOR
-    if (m_watcher) {
+    if (!captureMode && m_watcher) {
       for (const auto &ev : m_watcher->Poll()) {
         Logger::Info("[hot-reload] %s", ev.path.c_str());
         m_assets->Reimport(ev.handle);
@@ -285,6 +298,11 @@ bool Game::Run() {
     m_stateManager.Update(*this, m_clock.DeltaTime());
 
     m_stateManager.LateUpdate(*this, m_clock.DeltaTime());
+
+    const bool captureThisFrame = captureMode && m_dev.frames > 0 &&
+                                  (m_presentedFrames == m_dev.frames - 1);
+    if (captureThisFrame)
+      m_swapChain->RequestCapture();
 
     m_window->ClearWindow();
     m_stateManager.Render(*this);
@@ -315,7 +333,21 @@ bool Game::Run() {
       ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
     }
 
-    m_window->SwapBuffers();
+    if (captureThisFrame) {
+      std::vector<std::uint8_t> px;
+      int w = 0, h = 0;
+      if (m_swapChain->ReadBackCapture(px, w, h))
+        WritePpmRgba(m_dev.screenshot, px.data(), w, h);
+      else
+        Logger::Error("[Game] DevCapture readback failed");
+    }
+
+    m_swapChain->Present();
+    ++m_presentedFrames;
+
+    if (captureMode && m_dev.frames > 0 && m_presentedFrames >= m_dev.frames) {
+      m_running = false;
+    }
   }
 
   OnShutdown();
