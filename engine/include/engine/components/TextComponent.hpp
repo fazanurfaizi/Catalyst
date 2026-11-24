@@ -1,6 +1,6 @@
 #pragma once
 
-#include "engine/asset/core/AssetHandle.hpp"
+#include "engine/assets/core/AssetHandle.hpp"
 #include "engine/graphics/text/TextAlignment.hpp"
 #include "engine/math/Color.hpp"
 #include <glm/glm.hpp>

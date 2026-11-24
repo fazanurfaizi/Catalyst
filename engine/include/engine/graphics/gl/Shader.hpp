@@ -18,7 +18,6 @@ public:
   Shader(Shader &&) noexcept;
   Shader &operator=(Shader &&) noexcept;
 
-  bool LoadFromFile(const std::string &path);
   bool Compile(const std::string &vertexSrc, const std::string &fragmentSrc);
 
   void Bind() const;

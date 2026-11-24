@@ -1,8 +1,9 @@
 #pragma once
 
-#include "engine/asset/core/Asset.hpp"
-#include "engine/asset/importer/shader/ShaderImportResult.hpp"
+#include "engine/assets/core/Asset.hpp"
+#include "engine/assets/importer/shader/ShaderImportResult.hpp"
 #include "engine/graphics/gl/Shader.hpp"
+
 #include <memory>
 
 namespace engine::resources {

@@ -1,8 +1,10 @@
-#include "engine/asset/finalizer/Texture2DFinalizer.hpp"
-#include "engine/asset/importer/texture2d/Texture2DImportResult.hpp"
+#include "engine/assets/finalizer/Texture2DFinalizer.hpp"
+
+#include "engine/assets/importer/texture2d/Texture2DImportResult.hpp"
 #include "engine/resources/Texture2DAsset.hpp"
 #include "engine/utils/Buffer.hpp"
 #include "engine/utils/Logger.hpp"
+
 #include <memory>
 
 namespace engine::asset {

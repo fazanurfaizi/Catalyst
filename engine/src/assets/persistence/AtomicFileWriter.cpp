@@ -1,4 +1,4 @@
-#include "engine/asset/persistence/AtomicFileWriter.hpp"
+#include "engine/assets/persistence/AtomicFileWriter.hpp"
 #include "engine/utils/Logger.hpp"
 
 #include <fstream>

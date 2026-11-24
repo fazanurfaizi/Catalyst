@@ -1,9 +1,9 @@
-#include "engine/asset/manager/AssetManagerRuntime.hpp"
+#include "engine/assets/manager/AssetManagerRuntime.hpp"
 
-#include "engine/asset/builtin/BuiltinShaders.hpp"
-#include "engine/asset/core/AssetRecord.hpp"
-#include "engine/asset/finalizer/AssetFinalizer.hpp"
-#include "engine/asset/persistence/SidecarSerializer.hpp"
+#include "engine/assets/builtin/BuiltinShaders.hpp"
+#include "engine/assets/core/AssetRecord.hpp"
+#include "engine/assets/finalizer/AssetFinalizer.hpp"
+#include "engine/assets/persistence/SidecarSerializer.hpp"
 #include "engine/utils/Logger.hpp"
 
 #include <exception>

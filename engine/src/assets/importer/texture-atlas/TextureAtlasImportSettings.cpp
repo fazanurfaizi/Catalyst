@@ -1,4 +1,4 @@
-#include "engine/asset/importer/texture-atlas/TextureAtlasImportSettings.hpp"
+#include "engine/assets/importer/texture-atlas/TextureAtlasImportSettings.hpp"
 
 namespace engine::asset {
 

@@ -1,7 +1,7 @@
-#include "engine/asset/builtin/BuiltinShaders.hpp"
+#include "engine/assets/builtin/BuiltinShaders.hpp"
 
-#include "engine/asset/importer/shader/ShaderImportResult.hpp"
-#include "engine/asset/manager/IAssetManager.hpp"
+#include "engine/assets/importer/shader/ShaderImportResult.hpp"
+#include "engine/assets/manager/IAssetManager.hpp"
 #include "engine/resources/ShaderAsset.hpp"
 #include "engine/utils/Logger.hpp"
 
@@ -17,9 +17,13 @@ struct EmbeddedFile {
   std::string_view source;
 };
 
+// clang-format off
 constexpr EmbeddedFile kEmbeddedFiles[] = {
+#if __has_include("EmbedShaders.inc")
 #include "EmbedShaders.inc"
+#endif
 };
+// clang-format on
 
 std::string_view FindSource(std::string_view path) {
   for (const auto &f : kEmbeddedFiles) {

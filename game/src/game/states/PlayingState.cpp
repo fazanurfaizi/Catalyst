@@ -1,7 +1,7 @@
 #include "game/states/PlayingState.hpp"
 
-#include "engine/asset/builtin/BuiltinShaders.hpp"
-#include "engine/asset/manager/AssetManagerEditor.hpp"
+#include "engine/assets/builtin/BuiltinShaders.hpp"
+#include "engine/assets/manager/AssetManagerEditor.hpp"
 #include "engine/audio/MusicPlayer.hpp"
 #include "engine/components/AudioSource.hpp"
 #include "engine/components/Light.hpp"
@@ -395,11 +395,11 @@ void PlayingState::OnScroll(engine::core::Game &game, double dx, double dy) {
   glm::vec2 cursorFb = game.Display().CursorToFramebuffer(
       {static_cast<float>(cursor.x), static_cast<float>(cursor.y)});
 
-  const auto before = camera.View(game.Display().AspectRatio())
-                          .ScreenToWorld(cursorFb, fbSize);
+  const auto before =
+      camera.View(game.Display().AspectRatio()).ScreenToWorld(cursorFb, fbSize);
   camera.ZoomBy(dy > 0 ? 1.1f : 1.0f / 1.1f);
-  const auto after = camera.View(game.Display().AspectRatio())
-                         .ScreenToWorld(cursorFb, fbSize);
+  const auto after =
+      camera.View(game.Display().AspectRatio()).ScreenToWorld(cursorFb, fbSize);
   camera.Move(before - after);
 }
 
@@ -427,8 +427,8 @@ void PlayingState::OnMouseButton(engine::core::Game &game,
   auto cursor = in.CursorPos();
   glm::vec2 cursorFb = game.Display().CursorToFramebuffer(
       {static_cast<float>(cursor.x), static_cast<float>(cursor.y)});
-  glm::vec2 worldPos = camera.View(game.Display().AspectRatio())
-                           .ScreenToWorld(cursorFb, fbSize);
+  glm::vec2 worldPos =
+      camera.View(game.Display().AspectRatio()).ScreenToWorld(cursorFb, fbSize);
 
   if (button == engine::input::MouseButton::Left) {
     if (auto *anim = reg.TryGet<engine::components::Animator>(*heroE)) {

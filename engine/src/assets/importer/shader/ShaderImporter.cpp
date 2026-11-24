@@ -1,6 +1,6 @@
-#include "engine/asset/importer/shader/ShaderImporter.hpp"
-#include "engine/asset/core/ImportResult.hpp"
-#include "engine/asset/importer/shader/ShaderImportResult.hpp"
+#include "engine/assets/importer/shader/ShaderImporter.hpp"
+#include "engine/assets/core/ImportResult.hpp"
+#include "engine/assets/importer/shader/ShaderImportResult.hpp"
 
 #include <fstream>
 #include <ios>

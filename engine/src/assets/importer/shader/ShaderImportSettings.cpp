@@ -1,5 +1,5 @@
-#include "engine/asset/importer/shader/ShaderImportSettings.hpp"
-#include "engine/asset/importer/ImportSettings.hpp"
+#include "engine/assets/importer/shader/ShaderImportSettings.hpp"
+#include "engine/assets/importer/ImportSettings.hpp"
 
 namespace engine::asset {
 

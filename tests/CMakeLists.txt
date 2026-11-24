@@ -19,8 +19,8 @@ target_compile_definitions(engine_tests PRIVATE
   CATALYST_SOURCE_DIR="${CMAKE_SOURCE_DIR}"
 )
 
-if(GAME_WARNING_FLAGS)
-  target_compile_options(engine_tests PRIVATE ${GAME_WARNING_FLAGS})
+if(CATALYST_WARNING_FLAGS)
+  target_compile_options(engine_tests PRIVATE ${CATALYST_WARNING_FLAGS})
 endif()
 
 add_test(NAME engine_tests COMMAND engine_tests)

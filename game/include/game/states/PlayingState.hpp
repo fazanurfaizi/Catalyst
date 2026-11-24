@@ -1,7 +1,7 @@
 #pragma once
 
 #include "engine/animation/AnimationLibrary.hpp"
-#include "engine/asset/core/AssetHandle.hpp"
+#include "engine/assets/core/AssetHandle.hpp"
 #include "engine/audio/MusicPlayer.hpp"
 #include "engine/core/Game.hpp"
 #include "engine/core/GameState.hpp"

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "engine/asset/manager/IAssetManager.hpp"
+#include "engine/assets/manager/IAssetManager.hpp"
 #include "engine/graphics/lighting/LightBuffer.hpp"
 #include "engine/graphics/lighting/LightRenderer.hpp"
 #include "engine/graphics/lighting/LightTileCuller.hpp"

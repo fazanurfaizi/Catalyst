@@ -1,5 +1,5 @@
-#include "engine/asset/importer/sound/SoundImporter.hpp"
-#include "engine/asset/importer/sound/SoundImportResult.hpp"
+#include "engine/assets/importer/sound/SoundImporter.hpp"
+#include "engine/assets/importer/sound/SoundImportResult.hpp"
 #include "engine/utils/Logger.hpp"
 #include "extras/nodes/ma_channel_separator_node/ma_channel_separator_node.h"
 

@@ -1,11 +1,11 @@
 #include "engine/core/Game.hpp"
 
-#include "engine/asset/core/AssetRecord.hpp"
+#include "engine/assets/core/AssetRecord.hpp"
 
 #ifdef CATALYST_EDITOR
-#include "engine/asset/manager/AssetManagerEditor.hpp"
+#include "engine/assets/manager/AssetManagerEditor.hpp"
 #else
-#include "engine/asset/manager/AssetManagerRuntime.hpp"
+#include "engine/assets/manager/AssetManagerRuntime.hpp"
 #endif // CATALYST_EDITOR
 
 #include "engine/audio/AudioEngine.hpp"

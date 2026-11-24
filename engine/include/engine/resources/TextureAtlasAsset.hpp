@@ -3,7 +3,9 @@
 #include "engine/resources/TextureAsset.hpp"
 #include "engine/resources/TextureFormat.hpp"
 #include "engine/utils/StringHash.hpp"
+
 #include <glm/glm.hpp>
+
 #include <string>
 #include <unordered_map>
 #include <utility>

@@ -1,5 +1,5 @@
 #include "engine/resources/FontAsset.hpp"
-#include "engine/asset/importer/font/FontImportResult.hpp"
+#include "engine/assets/importer/font/FontImportResult.hpp"
 #include "engine/graphics/text/Font.hpp"
 #include "engine/utils/Logger.hpp"
 

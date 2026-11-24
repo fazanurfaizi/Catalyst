@@ -1,6 +1,7 @@
 #pragma once
 
-#include "engine/asset/core/AssetRecord.hpp"
+#include "engine/assets/core/AssetRecord.hpp"
+
 #include <filesystem>
 #include <string>
 #include <vector>

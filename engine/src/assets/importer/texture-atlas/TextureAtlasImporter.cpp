@@ -1,8 +1,8 @@
-#include "engine/asset/importer/texture-atlas/TextureAtlasImporter.hpp"
-#include "engine/asset/core/ImportError.hpp"
-#include "engine/asset/importer/texture-atlas/TextureAtlasBuilder.hpp"
-#include "engine/asset/importer/texture-atlas/TextureAtlasImportResult.hpp"
-#include "engine/asset/importer/texture-atlas/TextureAtlasImportSettings.hpp"
+#include "engine/assets/importer/texture-atlas/TextureAtlasImporter.hpp"
+#include "engine/assets/core/ImportError.hpp"
+#include "engine/assets/importer/texture-atlas/TextureAtlasBuilder.hpp"
+#include "engine/assets/importer/texture-atlas/TextureAtlasImportResult.hpp"
+#include "engine/assets/importer/texture-atlas/TextureAtlasImportSettings.hpp"
 #include "engine/utils/Logger.hpp"
 
 #include <nlohmann/json.hpp>

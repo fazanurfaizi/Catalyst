@@ -1,10 +1,12 @@
 #pragma once
 
-#include "engine/asset/core/Asset.hpp"
-#include "engine/asset/core/AssetHandle.hpp"
-#include "engine/asset/core/AssetType.hpp"
-#include <cstdint>
+#include "engine/assets/core/Asset.hpp"
+#include "engine/assets/core/AssetHandle.hpp"
+#include "engine/assets/core/AssetType.hpp"
+
 #include <glm/glm.hpp>
+
+#include <cstdint>
 #include <map>
 #include <string>
 #include <variant>

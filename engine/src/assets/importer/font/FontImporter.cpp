@@ -1,5 +1,5 @@
-#include "engine/asset/importer/font/FontImporter.hpp"
-#include "engine/asset/importer/font/FontImportResult.hpp"
+#include "engine/assets/importer/font/FontImporter.hpp"
+#include "engine/assets/importer/font/FontImportResult.hpp"
 
 #include <algorithm>
 #include <cmath>

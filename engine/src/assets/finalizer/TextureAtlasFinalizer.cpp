@@ -1,8 +1,10 @@
-#include "engine/asset/finalizer/TextureAtlasFinalizer.hpp"
-#include "engine/asset/importer/texture-atlas/TextureAtlasImportResult.hpp"
+#include "engine/assets/finalizer/TextureAtlasFinalizer.hpp"
+
+#include "engine/assets/importer/texture-atlas/TextureAtlasImportResult.hpp"
 #include "engine/resources/TextureAtlasAsset.hpp"
 #include "engine/resources/TextureFormat.hpp"
 #include "engine/utils/Logger.hpp"
+
 #include <memory>
 
 namespace engine::asset {

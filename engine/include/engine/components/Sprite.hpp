@@ -4,7 +4,7 @@
 #include <string>
 
 #include "RenderLayer.hpp"
-#include "engine/asset/core/AssetHandle.hpp"
+#include "engine/assets/core/AssetHandle.hpp"
 #include "engine/math/Color.hpp"
 
 namespace engine::components {

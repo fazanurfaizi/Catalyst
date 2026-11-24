@@ -3,7 +3,6 @@
 #include "engine/resources/TextureFormat.hpp"
 
 #include <cstdint>
-#include <string>
 
 namespace engine::graphics {
 
@@ -16,8 +15,6 @@ public:
   Texture &operator=(const Texture &) = delete;
   Texture(Texture &&) noexcept;
   Texture &operator=(Texture &&) noexcept;
-
-  bool LoadFromFile(const std::string &path);
 
   // Solid RGBA color
   void CreateSolid(std::uint32_t rgba);

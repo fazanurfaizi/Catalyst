@@ -1,8 +1,8 @@
 #pragma once
 
-#include "engine/asset/AssetModule.hpp"
-#include "engine/asset/importer/ImporterRegistry.hpp"
-#include "engine/asset/manager/IAssetManager.hpp"
+#include "engine/assets/AssetModule.hpp"
+#include "engine/assets/importer/ImporterRegistry.hpp"
+#include "engine/assets/manager/IAssetManager.hpp"
 #include "engine/audio/AudioEngine.hpp"
 #include "engine/core/Clock.hpp"
 #include "engine/core/GameConfig.hpp"
@@ -10,7 +10,7 @@
 #include "engine/platform/Window.hpp"
 
 #ifdef CATALYST_EDITOR
-#include "engine/asset/watcher/AssetWatcher.hpp"
+#include "engine/assets/watcher/AssetWatcher.hpp"
 #endif // CATALYST_EDITOR
 
 #include <filesystem>

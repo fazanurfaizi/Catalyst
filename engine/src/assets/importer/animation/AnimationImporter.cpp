@@ -1,5 +1,5 @@
-#include "engine/asset/importer/animation/AnimationImporter.hpp"
-#include "engine/asset/importer/animation/AnimationImportResult.hpp"
+#include "engine/assets/importer/animation/AnimationImporter.hpp"
+#include "engine/assets/importer/animation/AnimationImportResult.hpp"
 #include "engine/resources/AnimationAsset.hpp"
 
 #include <cmath>

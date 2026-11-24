@@ -1,150 +1,43 @@
-add_library(engine STATIC
-  src/animation/AnimationLibrary.cpp
+add_library(engine INTERFACE)
 
-  src/assets/builtin/BuiltinShaders.cpp
+add_subdirectory(src/utils)
+add_subdirectory(src/math)
+add_subdirectory(src/core)
+add_subdirectory(src/platform)
+add_subdirectory(src/input)
+add_subdirectory(src/ecs)
+add_subdirectory(src/resources)
+add_subdirectory(src/assets)
+add_subdirectory(src/graphics)
+# add_subdirectory(src/render)
+add_subdirectory(src/components)
+add_subdirectory(src/animation)
+add_subdirectory(src/scene)
+add_subdirectory(src/audio)
+add_subdirectory(src/editor)
 
-  src/assets/cache/AssetCache.cpp
-  src/assets/cache/AssetState.cpp
-
-  src/assets/core/AssetHandle.cpp
-  src/assets/core/AssetRecord.cpp
-  src/assets/core/AssetType.cpp
-  src/assets/core/ImportError.cpp
-
-  src/assets/finalizer/AnimationFinalizer.cpp
-  src/assets/finalizer/AssetFinalizer.cpp
-  src/assets/finalizer/FontFinalizer.cpp
-  src/assets/finalizer/SoundFinalizer.cpp
-  src/assets/finalizer/ShaderFinalizer.cpp
-  src/assets/finalizer/Texture2DFinalizer.cpp
-  src/assets/finalizer/TextureAtlasFinalizer.cpp
-
-  src/assets/importer/ImporterRegistry.cpp
-
-  src/assets/importer/animation/AnimationImporter.cpp
-
-  src/assets/importer/font/FontImportSettings.cpp
-  src/assets/importer/font/FontImporter.cpp
-
-  src/assets/importer/sound/SoundImporter.cpp
-
-  src/assets/importer/shader/ShaderImportSettings.cpp
-  src/assets/importer/shader/ShaderImporter.cpp
-
-  src/assets/importer/texture2d/Texture2DImportSettings.cpp
-  src/assets/importer/texture2d/Texture2DImporter.cpp
-
-  src/assets/importer/texture-atlas/TextureAtlasImporter.cpp
-  src/assets/importer/texture-atlas/TextureAtlasBuilder.cpp
-  src/assets/importer/texture-atlas/TextureAtlasImportSettings.cpp
-
-  src/assets/persistence/AtomicFileWriter.cpp
-  src/assets/persistence/RegistrySerializer.cpp
-  src/assets/persistence/SidecarSerializer.cpp
-
-  src/assets/manager/AssetManagerRuntime.cpp
-  src/assets/manager/AssetManagerEditor.cpp
-
-  src/assets/watcher/AssetWatcher.cpp
-  src/assets/watcher/FileEvent.cpp
-
-  src/assets/AssetModule.cpp
-
-  src/audio/AudioEngine.cpp
-  src/audio/MusicPlayer.cpp
-
-  src/core/Game.cpp
-  src/core/GameStateManager.cpp
-  src/core/GameConfigSerializer.cpp
-
-  src/editor/AssetEditor.cpp
-
-  src/resources/AnimationAsset.cpp
-  src/resources/FontAsset.cpp
-  src/resources/ShaderAsset.cpp
-  src/resources/TextureAsset.cpp
-  src/resources/Texture2DAsset.cpp
-  src/resources/TextureAtlasAsset.cpp
-
-  src/graphics/Renderer.cpp
-  src/graphics/TextRenderer.cpp
-
-  src/graphics/gl/Shader.cpp
-
-  src/graphics/lighting/LightRenderer.cpp
-  src/graphics/lighting/LightTileCuller.cpp
-
-  src/graphics/pipeline/FullscreenQuad.cpp
-  src/graphics/pipeline/RenderTarget.cpp
-  
-  src/graphics/sprite/SpriteBatch.cpp
-  src/graphics/sprite/SpriteDrawList.cpp
-
-  src/graphics/stb/stbi_image_impl.cpp
-  src/graphics/stb/stb_truetype_impl.cpp
-
-  src/graphics/text/Font.cpp
-  src/graphics/text/TextLayout.cpp
-
-  src/graphics/texture/Texture.cpp
-  
-  src/input/InputSystem.cpp
-  
-  src/math/Rect.cpp
-
-  src/platform/Display.cpp
-  src/platform/Window.cpp
-
-  src/scene/Scene.cpp
-  src/scene/SceneSerializer.cpp
-
-  src/utils/Logger.cpp
+target_link_libraries(engine INTERFACE
+  engine_utils
+  engine_math
+  engine_core
+  engine_platform
+  engine_input
+  engine_ecs
+  engine_resources
+  engine_assets
+  engine_graphics
+  # engine_render
+  engine_components
+  engine_animation
+  engine_scene
+  engine_audio
+  engine_editor
 )
 
-# Public include root. Consumers see: include <glgame/core/Logger.hpp>
-target_include_directories(engine PUBLIC
-  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-  $<INSTALL_INTERFACE:include>
-)
-
-target_compile_definitions(engine PUBLIC
+target_compile_definitions(engine INTERFACE
   $<$<CONFIG:Debug>:CATALYST_EDITOR>
   $<$<CONFIG:RelWithDebInfo>:CATALYST_EDITOR>
 )
-
-# C++20 propagates to consumers automatically
-target_compile_features(engine PUBLIC cxx_std_20)
-
-# Vendored include dirs the engine uses internally (not part of the public API)
-target_include_directories(engine PRIVATE
-  "${CMAKE_SOURCE_DIR}/vendor/imgui"
-  "${CMAKE_SOURCE_DIR}/vendor/stb-image/include"
-)
-
-# Public API leak-through: game code will see glm/glfw/glad through engine.
-target_link_libraries(engine PUBLIC
-  glm
-  glfw
-  glad
-  nlohmann_json::nlohmann_json
-)
-
-# Internal-only dependencies.
-target_link_libraries(engine PRIVATE
-  imgui
-  stb_image
-  miniaudio
-  field_reflection::field_reflection
-)
-
-target_compile_definitions(engine PUBLIC
-  GLFW_INCLUDE_NONE=1
-)
-
-# Propagate warnings from the root CMakeLists (see previous answer)
-if(GAME_WARNING_FLAGS)
-  target_compile_options(engine PRIVATE ${GAME_WARNING_FLAGS})
-endif()
 
 # Built-in shader embedding
 set(CATALYST_SHADER_DIR "${CMAKE_CURRENT_SOURCE_DIR}/assets/shaders")
@@ -168,7 +61,7 @@ add_custom_command(
 )
 
 add_custom_target(catalyst_embed_shaders DEPENDS "${CATALYST_EMBED_INC}")
-add_dependencies(engine catalyst_embed_shaders)
+add_dependencies(engine_assets catalyst_embed_shaders)
 
-target_include_directories(engine PRIVATE "${CATALYST_GEN_DIR}")
+target_include_directories(engine_assets PRIVATE "${CATALYST_GEN_DIR}")
 

@@ -1,5 +1,5 @@
-#include "engine/asset/importer/font/FontImportSettings.hpp"
-#include "engine/asset/importer/ImportSettings.hpp"
+#include "engine/assets/importer/font/FontImportSettings.hpp"
+#include "engine/assets/importer/ImportSettings.hpp"
 
 namespace engine::asset {
 

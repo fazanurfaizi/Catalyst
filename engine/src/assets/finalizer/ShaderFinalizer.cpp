@@ -1,5 +1,6 @@
-#include "engine/asset/finalizer/ShaderFinalizer.hpp"
-#include "engine/asset/importer/shader/ShaderImportResult.hpp"
+#include "engine/assets/finalizer/ShaderFinalizer.hpp"
+
+#include "engine/assets/importer/shader/ShaderImportResult.hpp"
 #include "engine/resources/ShaderAsset.hpp"
 #include "engine/utils/Logger.hpp"
 

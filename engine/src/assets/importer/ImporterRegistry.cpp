@@ -1,4 +1,4 @@
-#include "engine/asset/importer/ImporterRegistry.hpp"
+#include "engine/assets/importer/ImporterRegistry.hpp"
 #include "engine/utils/Logger.hpp"
 
 #include <cassert>

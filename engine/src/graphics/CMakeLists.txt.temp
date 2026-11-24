@@ -1,0 +1,48 @@
+add_library(engine_graphics STATIC)
+
+target_include_directories(engine_graphics PUBLIC ${CMAKE_SOURCE_DIR}/include)
+
+target_sources(engine_graphics PRIVATE
+  RhiContext.cpp
+  Device.cpp
+  Buffer.cpp
+  Texture.cpp
+  Shader.cpp
+  Pipeline.cpp
+  Framebuffer.cpp
+  CommandBuffer.cpp
+  ResourcePool.cpp
+)
+
+if(CATALYST_RHI_BACKEND STREQUAL "opengl")
+  target_sources(engine_graphics PRIVATE
+    backend/opengl/GLDevice.cpp
+    backend/opengl/GLTexture.cpp
+    backend/opengl/GLShader.cpp
+    backend/opengl/GLBuffer.cpp
+    backend/opengl/GLFramebuffer.cpp
+    backend/opengl/GLCommandBuffer.cpp
+    backend/opengl/GLPipeline.cpp
+    backend/opengl/GLSwapchain.cpp
+    backend/opengl/GLStateCache.cpp
+  )
+
+  target_compile_definitions(engine_graphics PRIVATE ENGINE_GRAPHICS_OPENGL=1)
+
+  target_link_libraries(engine_graphics
+    PUBLIC  engine_core engine_math
+    PRIVATE glad
+  )
+elseif(CATALYST_RHI_BACKEND STREQUAL "vulkan")
+  target_sources(engine_graphics PRIVATE
+    backend/vulkan/VkDevice.cpp
+    backend/vulkan/VkTexture.cpp
+  )
+  target_compile_definitions(engine_graphics PRIVATE ENGINE_GRAPHICS_VULKAN=1)
+  target_link_libraries(engine_graphics
+    PUBLIC  engine_core engine_math
+    PRIVATE Vulkan::Vulkan
+  )
+else()
+  message(FATAL_ERROR "Unknown CATALYST_GRAPHICS_BACKEND: ${CATALYST_GRAPHICS_BACKEND}")
+endif()

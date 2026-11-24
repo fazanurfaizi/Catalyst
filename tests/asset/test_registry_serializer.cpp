@@ -1,8 +1,8 @@
 #include "test_harness.hpp"
 
-#include "engine/asset/core/AssetHandle.hpp"
-#include "engine/asset/core/AssetType.hpp"
-#include "engine/asset/persistence/RegistrySerializer.hpp"
+#include "engine/assets/core/AssetHandle.hpp"
+#include "engine/assets/core/AssetType.hpp"
+#include "engine/assets/persistence/RegistrySerializer.hpp"
 
 #include <filesystem>
 #include <fstream>

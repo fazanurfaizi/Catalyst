@@ -1,7 +1,7 @@
 #include "engine/graphics/Renderer.hpp"
 
-#include "engine/asset/builtin/BuiltinShaders.hpp"
-#include "engine/asset/core/AssetHandle.hpp"
+#include "engine/assets/builtin/BuiltinShaders.hpp"
+#include "engine/assets/core/AssetHandle.hpp"
 #include "engine/components/Light.hpp"
 #include "engine/components/Sprite.hpp"
 #include "engine/components/Transform.hpp"

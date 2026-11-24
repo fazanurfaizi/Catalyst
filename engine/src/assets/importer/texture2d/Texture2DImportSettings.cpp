@@ -1,4 +1,4 @@
-#include "engine/asset/importer/texture2d/Texture2DImportSettings.hpp"
+#include "engine/assets/importer/texture2d/Texture2DImportSettings.hpp"
 
 namespace engine::asset {
 

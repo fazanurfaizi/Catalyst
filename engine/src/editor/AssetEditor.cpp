@@ -1,7 +1,7 @@
 #include "engine/editor/AssetEditor.hpp"
 
-#include "engine/asset/cache/AssetState.hpp"
-#include "engine/asset/manager/AssetManagerEditor.hpp"
+#include "engine/assets/cache/AssetState.hpp"
+#include "engine/assets/manager/AssetManagerEditor.hpp"
 #include "imgui.h"
 
 #include <algorithm>

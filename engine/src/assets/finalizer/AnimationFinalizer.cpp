@@ -1,5 +1,6 @@
-#include "engine/asset/finalizer/AnimationFinalizer.hpp"
-#include "engine/asset/importer/animation/AnimationImportResult.hpp"
+#include "engine/assets/finalizer/AnimationFinalizer.hpp"
+
+#include "engine/assets/importer/animation/AnimationImportResult.hpp"
 #include "engine/resources/AnimationAsset.hpp"
 #include <memory>
 #include <utility>

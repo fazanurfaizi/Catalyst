@@ -1,14 +1,14 @@
 #include "test_harness.hpp"
 
-#include "engine/asset/core/ImportRequest.hpp"
-#include "engine/asset/core/ImportResult.hpp"
-#include "engine/asset/core/ImportedAssetData.hpp"
-#include "engine/asset/importer/animation/AnimationImporter.hpp"
-#include "engine/asset/importer/font/FontImporter.hpp"
-#include "engine/asset/importer/shader/ShaderImporter.hpp"
-#include "engine/asset/importer/sound/SoundImporter.hpp"
-#include "engine/asset/importer/texture-atlas/TextureAtlasImporter.hpp"
-#include "engine/asset/importer/texture2d/Texture2DImporter.hpp"
+#include "engine/assets/core/ImportRequest.hpp"
+#include "engine/assets/core/ImportResult.hpp"
+#include "engine/assets/core/ImportedAssetData.hpp"
+#include "engine/assets/importer/animation/AnimationImporter.hpp"
+#include "engine/assets/importer/font/FontImporter.hpp"
+#include "engine/assets/importer/shader/ShaderImporter.hpp"
+#include "engine/assets/importer/sound/SoundImporter.hpp"
+#include "engine/assets/importer/texture-atlas/TextureAtlasImporter.hpp"
+#include "engine/assets/importer/texture2d/Texture2DImporter.hpp"
 
 #include <cstdint>
 #include <filesystem>

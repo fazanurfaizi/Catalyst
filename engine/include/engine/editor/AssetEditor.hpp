@@ -1,7 +1,7 @@
 #pragma once
 
-#include "engine/asset/core/AssetHandle.hpp"
-#include "engine/asset/manager/IAssetManager.hpp"
+#include "engine/assets/core/AssetHandle.hpp"
+#include "engine/assets/manager/IAssetManager.hpp"
 
 namespace engine::editor {
 

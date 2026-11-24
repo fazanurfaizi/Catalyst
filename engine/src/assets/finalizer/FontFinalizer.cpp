@@ -1,6 +1,6 @@
-#include "engine/asset/finalizer/FontFinalizer.hpp"
-#include "engine/asset/core/Asset.hpp"
-#include "engine/asset/importer/font/FontImportResult.hpp"
+#include "engine/assets/finalizer/FontFinalizer.hpp"
+#include "engine/assets/core/Asset.hpp"
+#include "engine/assets/importer/font/FontImportResult.hpp"
 #include "engine/resources/FontAsset.hpp"
 #include "engine/utils/Logger.hpp"
 #include <memory>

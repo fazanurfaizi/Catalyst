@@ -1,6 +1,6 @@
 #include "test_harness.hpp"
 
-#include "engine/asset/persistence/AtomicFileWriter.hpp"
+#include "engine/assets/persistence/AtomicFileWriter.hpp"
 
 #include <filesystem>
 #include <fstream>

@@ -1,8 +1,9 @@
 #pragma once
 
-#include "engine/asset/core/Asset.hpp"
+#include "engine/assets/core/Asset.hpp"
 #include "engine/graphics/texture/Texture.hpp"
 #include "engine/resources/TextureFormat.hpp"
+
 #include <cstdint>
 
 namespace engine::resources {

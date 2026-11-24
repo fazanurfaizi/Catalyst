@@ -2,7 +2,9 @@
 
 #include "engine/graphics/gl/Shader.hpp"
 #include "engine/graphics/texture/Texture.hpp"
+
 #include "glad/gl.h"
+
 #include <cstddef>
 #include <cstdint>
 #include <glm/glm.hpp>

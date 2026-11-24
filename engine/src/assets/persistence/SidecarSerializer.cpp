@@ -1,6 +1,7 @@
-#include "engine/asset/persistence/SidecarSerializer.hpp"
-#include "engine/asset/importer/IAssetImporter.hpp"
-#include "engine/asset/persistence/AtomicFileWriter.hpp"
+#include "engine/assets/persistence/SidecarSerializer.hpp"
+
+#include "engine/assets/importer/IAssetImporter.hpp"
+#include "engine/assets/persistence/AtomicFileWriter.hpp"
 #include "engine/utils/Logger.hpp"
 
 #include <filesystem>

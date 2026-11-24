@@ -1,4 +1,4 @@
-#include "engine/asset/cache/AssetCache.hpp"
+#include "engine/assets/cache/AssetCache.hpp"
 
 namespace engine::asset {
 

@@ -1,6 +1,7 @@
 #include "engine/graphics/lighting/LightRenderer.hpp"
 #include "engine/graphics/lighting/LightBuffer.hpp"
 #include <algorithm>
+
 #include <glad/gl.h>
 
 namespace engine::graphics {

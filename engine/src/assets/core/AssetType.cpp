@@ -1,4 +1,4 @@
-#include "engine/asset/core/AssetType.hpp"
+#include "engine/assets/core/AssetType.hpp"
 
 namespace engine::asset {
 

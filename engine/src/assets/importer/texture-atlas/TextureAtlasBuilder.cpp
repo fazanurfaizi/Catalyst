@@ -1,4 +1,4 @@
-#include "engine/asset/importer/texture-atlas/TextureAtlasBuilder.hpp"
+#include "engine/assets/importer/texture-atlas/TextureAtlasBuilder.hpp"
 #include "engine/utils/Logger.hpp"
 
 #include <glm/glm.hpp>

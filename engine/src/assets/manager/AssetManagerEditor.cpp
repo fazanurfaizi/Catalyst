@@ -1,7 +1,8 @@
-#include "engine/asset/manager/AssetManagerEditor.hpp"
-#include "engine/asset/importer/IAssetImporter.hpp"
-#include "engine/asset/persistence/SidecarSerializer.hpp"
+#include "engine/assets/manager/AssetManagerEditor.hpp"
+#include "engine/assets/importer/IAssetImporter.hpp"
+#include "engine/assets/persistence/SidecarSerializer.hpp"
 #include "engine/utils/Logger.hpp"
+
 #include <filesystem>
 #include <utility>
 

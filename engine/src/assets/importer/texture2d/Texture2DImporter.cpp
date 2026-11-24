@@ -1,12 +1,13 @@
-#include "engine/asset/importer/texture2d/Texture2DImporter.hpp"
-#include "engine/asset/importer/texture2d/Texture2DImportResult.hpp"
-#include "engine/asset/importer/texture2d/Texture2DImportSettings.hpp"
+#include "engine/assets/importer/texture2d/Texture2DImporter.hpp"
+#include "engine/assets/importer/texture2d/Texture2DImportResult.hpp"
+#include "engine/assets/importer/texture2d/Texture2DImportSettings.hpp"
+
+#include <stb/stb_image.h>
 
 #include <algorithm>
 #include <cstddef>
 #include <filesystem>
 #include <limits>
-#include <stb/stb_image.h>
 
 namespace engine::asset {
 

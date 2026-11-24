@@ -1,7 +1,7 @@
 #include "test_harness.hpp"
 
-#include "engine/asset/importer/ImporterRegistry.hpp"
-#include "engine/asset/manager/AssetManagerEditor.hpp"
+#include "engine/assets/importer/ImporterRegistry.hpp"
+#include "engine/assets/manager/AssetManagerEditor.hpp"
 
 #include <filesystem>
 #include <fstream>

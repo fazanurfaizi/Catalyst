@@ -1,4 +1,4 @@
-#include "engine/asset/watcher/AssetWatcher.hpp"
+#include "engine/assets/watcher/AssetWatcher.hpp"
 
 #include <mutex>
 #include <system_error>

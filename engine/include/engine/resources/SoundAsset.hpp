@@ -1,8 +1,9 @@
 #pragma once
 
-#include "engine/asset/core/Asset.hpp"
-#include "engine/asset/core/AssetHandle.hpp"
-#include "engine/asset/core/AssetType.hpp"
+#include "engine/assets/core/Asset.hpp"
+#include "engine/assets/core/AssetHandle.hpp"
+#include "engine/assets/core/AssetType.hpp"
+
 #include <cstdint>
 #include <filesystem>
 

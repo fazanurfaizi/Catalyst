@@ -79,42 +79,6 @@ Shader &Shader::operator=(Shader &&other) noexcept {
   return *this;
 }
 
-bool Shader::LoadFromFile(const std::string &path) {
-  namespace fs = std::filesystem;
-
-  fs::path base(path);
-  while (base.has_extension()) {
-    base.replace_extension();
-  }
-
-  fs::path vertPath, fragPath;
-  std::error_code ec;
-  if (fs::is_directory(base, ec) && !ec) {
-    // example directory-per shader:
-    // assets/shaders/light/light.vert.glsl
-    // assets/shaders/light/light.frag.glsl
-    const std::string stem = base.filename().string();
-    vertPath = base / (stem + ".vert.glsl");
-    fragPath = base / (stem + ".frag.glsl");
-  } else {
-    // example: assets/shaders/sprite.vert.glsl
-    vertPath = base.string() + ".vert.glsl";
-    fragPath = base.string() + ".frag.glsl";
-  }
-
-  std::string vertSrc, fragSrc;
-  if (!ReadFile(vertPath, vertSrc)) {
-    Logger::Error("[Shader] cannot read vertex shader: %s", vertPath.c_str());
-    return false;
-  }
-  if (!ReadFile(fragPath, fragSrc)) {
-    Logger::Error("[Shader] cannot read fragment shader: %s", fragPath.c_str());
-    return false;
-  }
-
-  return Compile(vertSrc, fragSrc);
-}
-
 bool Shader::Compile(const std::string &vertexSrc,
                      const std::string &fragmentSrc) {
   const GLuint vs = CompileStage(GL_VERTEX_SHADER, vertexSrc);

@@ -1,7 +1,7 @@
 #include "test_harness.hpp"
 
-#include "engine/asset/core/AssetHandle.hpp"
-#include "engine/asset/core/AssetType.hpp"
+#include "engine/assets/core/AssetHandle.hpp"
+#include "engine/assets/core/AssetType.hpp"
 #include "engine/core/GameConfigSerializer.hpp"
 
 #include <filesystem>

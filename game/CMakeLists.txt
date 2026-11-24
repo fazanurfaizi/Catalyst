@@ -11,9 +11,8 @@ target_link_libraries(game PUBLIC
   imgui
 )
 
-if(GAME_PRODUCTION_BUILD)
+if(CATALYST_PRODUCTION_BUILD)
   target_compile_definitions(game PRIVATE ASSETS_PATH="./assets/")
 else()
-  # CMAKE_SOURCE_DIR points to the root KingdomRushFrontiers folder
   target_compile_definitions(game PRIVATE ASSETS_PATH="${CMAKE_SOURCE_DIR}/assets/")
 endif()

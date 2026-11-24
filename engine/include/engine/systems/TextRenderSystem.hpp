@@ -1,6 +1,6 @@
 #pragma once
 
-#include "engine/asset/manager/IAssetManager.hpp"
+#include "engine/assets/manager/IAssetManager.hpp"
 #include "engine/components/TextComponent.hpp"
 #include "engine/components/Transform.hpp"
 #include "engine/ecs/Registry.hpp"

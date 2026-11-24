@@ -1,7 +1,9 @@
-#include "engine/asset/finalizer/SoundFinalizer.hpp"
-#include "engine/asset/importer/sound/SoundImportResult.hpp"
+#include "engine/assets/finalizer/SoundFinalizer.hpp"
+
+#include "engine/assets/importer/sound/SoundImportResult.hpp"
 #include "engine/resources/SoundAsset.hpp"
 #include "engine/utils/Logger.hpp"
+
 #include <memory>
 
 namespace engine::asset {

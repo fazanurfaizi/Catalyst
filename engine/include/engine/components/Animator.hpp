@@ -1,6 +1,7 @@
 #pragma once
 
-#include "engine/asset/core/AssetHandle.hpp"
+#include "engine/assets/core/AssetHandle.hpp"
+
 #include <string>
 #include <string_view>
 

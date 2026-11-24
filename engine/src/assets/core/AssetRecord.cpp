@@ -1,4 +1,4 @@
-#include "engine/asset/core/AssetRecord.hpp"
+#include "engine/assets/core/AssetRecord.hpp"
 
 namespace engine::asset {
 
