@@ -131,29 +131,29 @@ set(CATALYST_ENGINE_UTIL_SOURCES
 
 option(CATALYST_RHI_BACKEND "RHI backend" "gl") # gl | vulkan
 
-# set(CATALYST_RHI_SOURCES
-#   src/rhi/Device.cpp
-#   src/rhi/SwapChain.cpp
-#   src/rhi/Texture.cpp
-#   src/rhi/Sampler.cpp
-#   src/rhi/Buffer.cpp
-#   src/rhi/ShaderStages.cpp
-#   src/rhi/Pipeline.cpp
-#   src/rhi/BindGroupLayout.cpp
-#   src/rhi/BindGroup.cpp
-#   src/rhi/RenderPass.cpp
-#   src/rhi/CommandList.cpp
-#   src/rhi/RingBuffer.cpp
-# )
+set(CATALYST_RHI_SOURCES
+  src/rhi/Device.cpp
+  src/rhi/SwapChain.cpp
+  src/rhi/Texture.cpp
+  src/rhi/Sampler.cpp
+  src/rhi/Buffer.cpp
+  src/rhi/ShaderStages.cpp
+  src/rhi/Pipeline.cpp
+  src/rhi/BindGroupLayout.cpp
+  src/rhi/BindGroup.cpp
+  src/rhi/RenderPass.cpp
+  src/rhi/CommandList.cpp
+  src/rhi/RingBuffer.cpp
+)
 
-# if (CATALYST_RHI_BACKEND STREQUAL "gl")
-#   target_sources(engine PRIVATE
-#     ${CATALYST_RHI_SOURCES}
-#     src/rhi/gl/gl_device.cpp
-#     src/rhi/gl/gl_swapchain.cpp
-#   )
-#   target_compile_definitions(engine PRIVATE CATALYST_RHI_GL)
-# endif()
+if (CATALYST_RHI_BACKEND STREQUAL "gl")
+  target_sources(engine PRIVATE
+    ${CATALYST_RHI_SOURCES}
+    src/rhi/gl/gl_device.cpp
+    src/rhi/gl/gl_swapChain.cpp
+  )
+  target_compile_definitions(engine PRIVATE CATALYST_RHI_GL)
+endif()
 
 
 add_library(engine STATIC
@@ -203,6 +203,16 @@ target_link_libraries(engine
 # ---------------------------------------------------------------------------
 if(GAME_WARNING_FLAGS)
   target_compile_options(engine PRIVATE ${GAME_WARNING_FLAGS})
+endif()
+
+
+add_library(rhi_headers_check OBJECT src/rhi/headers_check.cpp)
+target_include_directories(rhi_headers_check PRIVATE
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+)
+target_compile_features(rhi_headers_check PRIVATE cxx_std_20)
+if(GAME_WARNING_FLAGS)
+  target_compile_options(rhi_headers_check PRIVATE ${GAME_WARNING_FLAGS})
 endif()
 
 # ---------------------------------------------------------------------------
