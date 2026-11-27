@@ -10,22 +10,22 @@ animation, particles, audio, text rendering, and a small ImGui-based editor.
 
 ## Features
 
-- **ECS** — sparse-set `Registry`, deferred entity destruction, views, and JSON component
+- **ECS** - sparse-set `Registry`, deferred entity destruction, views, and JSON component
   serialization.
-- **Rendering** — instanced sprite batch, layered draw list, render pipeline with
+- **Rendering** - instanced sprite batch, layered draw list, render pipeline with
   offscreen targets, and an OpenGL 3.3 core renderer.
-- **2D lighting** — point, directional, and spot lights with a tiled light culling pass
+- **2D lighting** - point, directional, and spot lights with a tiled light culling pass
   and an ambient term.
-- **Asset pipeline** — typed asset handles, importers/finalizers, a JSON asset registry,
+- **Asset pipeline** - typed asset handles, importers/finalizers, a JSON asset registry,
   `.meta.json` sidecars, dependency graph, and atomic writes.
-- **Hot reload** — a polling file watcher reimports changed assets in editor builds.
-- **Animation** — sprite-strip clips, an animation library, and an animator component.
-- **Text** — TTF font packing into atlases and a batched text renderer.
-- **Audio** — miniaudio-backed sound effects and a looping music player.
-- **Particles** — CPU particle emitters with configurable curves.
-- **Scene tooling** — scene serialization plus an ImGui asset browser, renderer stats,
+- **Hot reload** - a polling file watcher reimports changed assets in editor builds.
+- **Animation** - sprite-strip clips, an animation library, and an animator component.
+- **Text** - TTF font packing into atlases and a batched text renderer.
+- **Audio** - miniaudio-backed sound effects and a looping music player.
+- **Particles** - CPU particle emitters with configurable curves.
+- **Scene tooling** - scene serialization plus an ImGui asset browser, renderer stats,
   and debug panels.
-- **Game flow** — a `Game` base class, pluggable `GameState`s, fixed timestep updates,
+- **Game flow** - a `Game` base class, pluggable `GameState`s, fixed timestep updates,
   and configurable windows.
 
 ## Requirements
